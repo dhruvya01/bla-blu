@@ -1,0 +1,58 @@
+[debug] [2026-05-19T22:26:37.867Z] ----------------------------------------------------------------------
+[debug] [2026-05-19T22:26:37.869Z] Command:       /usr/local/share/nvm/versions/node/v22.22.3/bin/node /home/codespace/nvm/current/bin/firebase init hosting
+[debug] [2026-05-19T22:26:37.869Z] CLI Version:   15.18.0
+[debug] [2026-05-19T22:26:37.869Z] Platform:      linux
+[debug] [2026-05-19T22:26:37.869Z] Node Version:  v22.22.3
+[debug] [2026-05-19T22:26:37.870Z] Time:          Tue May 19 2026 22:26:37 GMT+0000 (Coordinated Universal Time)
+[debug] [2026-05-19T22:26:37.870Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  /workspaces/bla-blu
+
+Before we get started, keep in mind:
+
+  * You are currently outside your home directory
+  * You are initializing within an existing Firebase project directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-05-19T22:26:39.082Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-19T22:26:39.082Z] > authorizing via signed-in user (tgfhiyfvhtfghug@gmail.com)
+[debug] [2026-05-19T22:26:39.083Z] Checked if tokens are valid: true, expires at: 1779233038679
+[debug] [2026-05-19T22:26:39.083Z] Checked if tokens are valid: true, expires at: 1779233038679
+[debug] [2026-05-19T22:26:39.085Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/blablu-dhruvya [none]
+[debug] [2026-05-19T22:26:39.704Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/blablu-dhruvya 200
+[debug] [2026-05-19T22:26:39.704Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/blablu-dhruvya {"projectId":"blablu-dhruvya","projectNumber":"228477281625","displayName":"blablu","name":"projects/blablu-dhruvya","resources":{"hostingSite":"blablu-dhruvya"},"state":"ACTIVE","etag":"1_4badc92d-2ea2-4b24-942f-cbe42b9edbc8"}
+[info] i  Using project blablu-dhruvya (blablu) . 
+[info] 
+=== Hosting Setup
+[debug] [2026-05-19T22:26:57.350Z] Checked if tokens are valid: true, expires at: 1779233038679
+[debug] [2026-05-19T22:26:57.351Z] Checked if tokens are valid: true, expires at: 1779233038679
+[debug] [2026-05-19T22:26:57.351Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/blablu-dhruvya [none]
+[debug] [2026-05-19T22:26:57.875Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/blablu-dhruvya 200
+[debug] [2026-05-19T22:26:57.875Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/blablu-dhruvya {"projectId":"blablu-dhruvya","projectNumber":"228477281625","displayName":"blablu","name":"projects/blablu-dhruvya","resources":{"hostingSite":"blablu-dhruvya"},"state":"ACTIVE","etag":"1_4badc92d-2ea2-4b24-942f-cbe42b9edbc8"}
+[info] 
+[info] Your public directory is the folder (relative to your project directory) that
+[info] will contain Hosting assets to be uploaded with firebase deploy. If you
+[info] have a build process for your assets, use your build's output directory.
+[info] 
+[info] 
+[info] i  Detected a .git folder at /workspaces/bla-blu 
+[info] i  Authorizing with GitHub to upload your service account to a GitHub repository's secrets store. 
+[info] 
+[info] Visit this URL on this device to log in:
+[info] https://github.com/login/oauth/authorize?client_id=89cf50f02ac6aaed3484&state=414571114&redirect_uri=http%3A%2F%2Flocalhost%3A9005&scope=read%3Auser%20repo%20public_repo
+[info] 
+[info] Waiting for authentication...
