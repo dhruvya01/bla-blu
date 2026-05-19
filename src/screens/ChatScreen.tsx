@@ -49,7 +49,7 @@ import { sensory } from "../utils/sensory";
 import { useNow } from "../hooks/useNow";
 import { getDistance, formatDistance } from "../utils/geo";
 import { compressImage } from "../utils/imageUtils";
-import { encryptData, decryptData } from "../utils/e2ee";
+import { encryptData, decryptData, clearE2E } from "../utils/e2ee";
 
 const isUserOnline = (u: any, now: number) => {
   if (!u?.lastActive) return false;
@@ -615,6 +615,7 @@ export function ChatScreen({ socket }: ChatProps) {
     isPartnerTyping,
     setView,
     addCoins,
+    setE2eReady,
   } = useAppStore(
     useShallow((state) => ({
       user: state.user,
@@ -626,6 +627,7 @@ export function ChatScreen({ socket }: ChatProps) {
       isPartnerTyping: state.isPartnerTyping,
       setView: state.setView,
       addCoins: state.addCoins,
+      setE2eReady: state.setE2eReady,
     })),
   );
 
@@ -765,6 +767,18 @@ export function ChatScreen({ socket }: ChatProps) {
       console.error(err);
     }
     setShowMenu(false);
+  };
+
+  const handleResetE2EE = () => {
+    if (
+      window.confirm(
+        "Are you sure you want to reset your E2EE passcode? Your messages are secure, but you will need to re-enter your passcode (and make sure your partner enters the exact same one) to decrypt messages again.",
+      )
+    ) {
+      clearE2E();
+      setE2eReady(false);
+      setShowMenu(false);
+    }
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1250,6 +1264,12 @@ export function ChatScreen({ socket }: ChatProps) {
                       className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 rounded-xl transition-colors flex items-center gap-2"
                     >
                       <Download size={16} /> Export PDF
+                    </button>
+                    <button
+                      onClick={handleResetE2EE}
+                      className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 rounded-xl transition-colors flex items-center gap-2"
+                    >
+                      <Lock size={16} /> Reset E2EE Passcode
                     </button>
                     <button
                       onClick={deleteChatHistory}

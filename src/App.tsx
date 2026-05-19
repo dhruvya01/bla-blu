@@ -208,14 +208,6 @@ import { E2EESetupModal } from "./components/E2EESetupModal";
 import { restoreE2E, isE2EEnabled } from "./utils/e2ee";
 
 export default function App() {
-  const [e2eReady, setE2eReady] = useState(isE2EEnabled());
-
-  useEffect(() => {
-    restoreE2E().then(success => {
-      setE2eReady(success);
-    });
-  }, []);
-
   const {
     user,
     view,
@@ -228,6 +220,8 @@ export default function App() {
     roomId,
     babyEvolution,
     tickBabyLogic,
+    e2eReady,
+    setE2eReady,
   } = useAppStore(
     useShallow((state) => ({
       user: state.user,
@@ -241,10 +235,19 @@ export default function App() {
       roomId: state.roomId,
       babyEvolution: state.babyEvolution,
       tickBabyLogic: state.tickBabyLogic,
+      e2eReady: state.e2eReady,
+      setE2eReady: state.setE2eReady,
     })),
   );
 
+  useEffect(() => {
+    restoreE2E().then(success => {
+      setE2eReady(success);
+    });
+  }, [setE2eReady]);
+
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showAnjaliSurprise, setShowAnjaliSurprise] = useState(false);
   const [activeToast, setActiveToast] = useState<InAppToast | null>(null);
@@ -257,7 +260,7 @@ export default function App() {
     return "Night Good";
   }, []);
 
-  const { socket } = useAppSync(roomId, user?.uid || null);
+  const { socket } = useAppSync(roomId, isAuthReady && user?.uid ? user.uid : null);
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -297,9 +300,9 @@ export default function App() {
   }, [theme]);
 
   useCareIntelligence();
-  useActivitySync(roomId, user?.uid || null);
-  useNotifications(roomId, user, setView);
-  useLocationSync(roomId, user?.uid || null);
+  useActivitySync(roomId, isAuthReady && user?.uid ? user.uid : null);
+  useNotifications(roomId, isAuthReady ? user : null, setView);
+  useLocationSync(roomId, isAuthReady && user?.uid ? user.uid : null);
 
   useLocalNotificationEngine((newToast) => {
     setActiveToast(newToast);
@@ -333,6 +336,7 @@ export default function App() {
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       const store = useAppStore.getState();
       if (!fbUser) {
+        setIsAuthReady(false);
         store.setUser(null);
         store.setPartner(null);
         store.setPair(null);
@@ -341,22 +345,26 @@ export default function App() {
         localStorage.removeItem("blablu_user_uid");
         localStorage.removeItem("blablu_last_room");
         store.setLoading(false);
-      } else if (fbUser && !store.user) {
-        try {
-          const docSnap = await getDoc(doc(db, "users", fbUser.uid));
-          if (docSnap.exists()) {
-            const data = { uid: docSnap.id, ...docSnap.data() } as User;
-            store.setUser(data);
-            if (data.roomId) store.setRoomId(data.roomId);
-            if (store.view === "login") store.setView("home");
-          } else {
-            auth.signOut();
-            store.setView("login");
+      } else {
+        setIsAuthReady(true);
+        if (!store.user) {
+          try {
+            const docSnap = await getDoc(doc(db, "users", fbUser.uid));
+            if (docSnap.exists()) {
+              const data = { uid: docSnap.id, ...docSnap.data() } as User;
+              store.setUser(data);
+              if (data.roomId) store.setRoomId(data.roomId);
+              if (store.view === "login") store.setView("home");
+            } else {
+              auth.signOut();
+              store.setView("login");
+              setIsAuthReady(false);
+            }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            store.setLoading(false);
           }
-        } catch (e) {
-          console.error(e);
-        } finally {
-          store.setLoading(false);
         }
       }
     });
@@ -366,7 +374,7 @@ export default function App() {
   const debugBirthday = useAppStore((state) => state?.debugBirthday);
   const birthdayPerson = debugBirthday || getRealBirthday();
 
-  if (loading) {
+  if (loading || (!isAuthReady && user)) {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-bg relative overflow-hidden">
         <motion.div
@@ -383,7 +391,7 @@ export default function App() {
     );
   }
 
-  if (view === "login" || !user) return <LoginScreen />;
+  if (view === "login" || !user || !isAuthReady) return <LoginScreen />;
 
   return (
     <GlobalErrorBoundary>

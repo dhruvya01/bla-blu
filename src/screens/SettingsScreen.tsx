@@ -15,6 +15,7 @@ import {
   Quote,
   Check,
   Bell,
+  ShieldCheck,
 } from "lucide-react";
 import { signOut, updatePassword } from "firebase/auth";
 import { auth, db } from "../firebase/config";
@@ -28,6 +29,7 @@ import { CONFIG } from "../config";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { compressImage } from "../utils/imageUtils";
+import { clearE2E } from "../utils/e2ee";
 
 interface SettingsProps {
   onSave?: (data: any) => void;
@@ -65,6 +67,8 @@ export function SettingsScreen({ onSave, onRequestNotify }: SettingsProps) {
   const setCustomNotificationSound = useAppStore(
     (state) => state.setCustomNotificationSound,
   );
+  const e2eReady = useAppStore((state) => state.e2eReady);
+  const setE2eReady = useAppStore((state) => state.setE2eReady);
 
   const [activeTab, setActiveTab] = useState<"profile" | "account">("profile");
 
@@ -951,6 +955,35 @@ export function SettingsScreen({ onSave, onRequestNotify }: SettingsProps) {
                   >
                     Forgot/Reset via Email ✉️
                   </button>
+
+                  <div className="pt-4 border-t border-border/10">
+                    <h4 className="text-xs font-semibold text-text/60 mb-2">End-to-End Encryption (E2EE)</h4>
+                    {e2eReady ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                          <ShieldCheck size={16} /> E2EE Secured with active passcode
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to reset your E2EE passcode? Your messages are secure, but you will need to re-enter your passcode (and make sure your partner enters the exact same one) to decrypt messages again.")) {
+                              clearE2E();
+                              setE2eReady(false);
+                              showStatus("success", "E2EE passcode reset!");
+                            }
+                          }}
+                          className="w-full py-2.5 text-rose-500 bg-rose-500/5 border border-rose-500/15 rounded-xl text-xs font-medium active:scale-95 transition-all text-center"
+                        >
+                          Reset E2EE Passcode
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                          ⓘ Encryption is currently inactive. Set a passcode in the chat screen to protect your privacy.
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </section>
 

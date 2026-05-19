@@ -107,12 +107,11 @@ export function LoginScreen() {
       setView("home");
 
     } catch (err: any) {
-      console.error("Login attempt failed:", err.code, err.message);
-      
-      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
-        showError("Invalid password. Please check your credentials.");
-      } else if (err.code === "auth/user-not-found") {
-        // If user not found, try to auto-create ONLY if this is the first time
+      if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+        // Due to Email Enumeration Protection, Firebase returns invalid-credential 
+        // for BOTH wrong password AND user not found.
+        // We will try to create the user. If it fails with email-already-in-use,
+        // it means it was a wrong password instead!
         try {
           const newCred = await createUserWithEmailAndPassword(auth, profile.email, password);
           const newUserData = await provisionNewUser(newCred.user.uid, selectedUser);
@@ -120,12 +119,18 @@ export function LoginScreen() {
           setRoomId(SHARED_PAIR_ID);
           setView("home");
         } catch (createErr: any) {
-          showError("User not found and could not be created.");
+          if (createErr.code === "auth/email-already-in-use") {
+            showError("Invalid password. Please check your credentials.");
+          } else {
+            showError("Failed to auto-create account.");
+            console.error("Create error:", createErr);
+          }
         }
       } else if (err.code === "auth/too-many-requests") {
         showError("Too many failed attempts. Please try again later.");
       } else {
         showError("Login failed: " + (err.message || "Unknown error"));
+        console.error("Login attempt failed:", err);
       }
     } finally {
       setLoading(false);

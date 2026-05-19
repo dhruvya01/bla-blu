@@ -78,8 +78,10 @@ interface AppStore {
   isPartnerTyping: boolean;
   latestPing: { id: number; type: "heartbeat" | "hug" | "sparkle" } | null;
   debugBirthday: string | null;
+  e2eReady: boolean;
 
   // Actions
+  setE2eReady: (ready: boolean) => void;
   setDebugBirthday: (name: string | null) => void;
   setUser: (u: User | null) => void;
   setPartner: (p: User | null) => void;
@@ -291,8 +293,10 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   loveTrail: [],
   speedingHistory: [],
   healthIssues: [],
+  e2eReady: typeof window !== "undefined" ? !!localStorage.getItem("blablu_e2ee_secret") : false,
 
   // Actions
+  setE2eReady: (ready) => set({ e2eReady: ready }),
   setDebugBirthday: (name) => set({ debugBirthday: name }),
   setUser: (user) =>
     set((state) => enrichState(state, undefined, user, undefined)),
