@@ -97,6 +97,7 @@ export function LoginScreen() {
       
       const userSnap = await getDoc(doc(db, "users", cred.user.uid));
       if (!userSnap.exists()) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
         const newUserData = await provisionNewUser(cred.user.uid, selectedUser);
         setUser(newUserData);
       } else {
@@ -114,6 +115,10 @@ export function LoginScreen() {
         // it means it was a wrong password instead!
         try {
           const newCred = await createUserWithEmailAndPassword(auth, profile.email, password);
+          // Firebase Auth takes a moment to propagate the auth token to the Firestore SDK.
+          // Wait before writing initial data to Firestore.
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
           const newUserData = await provisionNewUser(newCred.user.uid, selectedUser);
           setUser(newUserData);
           setRoomId(SHARED_PAIR_ID);
