@@ -170,7 +170,7 @@ export function LoginScreen() {
           <div className="premium-card p-6 space-y-6 bg-card rounded-[2.5rem] shadow-sm border border-border">
             <div className="space-y-4">
               <div className="text-center pb-2">
-                <p className="text-sm font-bold text-text/70">Welcome to Blablu</p>
+                <p className="text-sm font-bold text-text/70">our app</p>
                 <p className="text-xs font-medium text-primary/80 mt-1">This app is exclusively for Anjali & Dhruvya.</p>
               </div>
               
@@ -230,6 +230,10 @@ export function LoginScreen() {
           </motion.p>
         )}
       </AnimatePresence>
+
+      <div className="fixed bottom-6 text-[10px] font-bold text-text/30 tracking-widest uppercase text-center w-full">
+        made by dhruvya for anjali
+      </div>
     </div>
   );
 }
