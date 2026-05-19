@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
+import path from "path";
 
 async function start() {
   const app = express();
@@ -38,7 +39,11 @@ async function start() {
   });
 
   if (process.env.NODE_ENV === "production") {
-    app.use(express.static("dist"));
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
   } else {
     const vite = await createViteServer({
       server: { middlewareMode: true },
