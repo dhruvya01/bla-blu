@@ -97,7 +97,8 @@ export function LoginScreen() {
       
       const userSnap = await getDoc(doc(db, "users", cred.user.uid));
       if (!userSnap.exists()) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await cred.user.getIdToken(true);
+        await new Promise(resolve => setTimeout(resolve, 2000));
         const newUserData = await provisionNewUser(cred.user.uid, selectedUser);
         setUser(newUserData);
       } else {
@@ -117,7 +118,8 @@ export function LoginScreen() {
           const newCred = await createUserWithEmailAndPassword(auth, profile.email, password);
           // Firebase Auth takes a moment to propagate the auth token to the Firestore SDK.
           // Wait before writing initial data to Firestore.
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await newCred.user.getIdToken(true);
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           const newUserData = await provisionNewUser(newCred.user.uid, selectedUser);
           setUser(newUserData);
