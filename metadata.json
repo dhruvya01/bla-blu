@@ -1,0 +1,12 @@
+{
+  "name": "BlaBlu",
+  "description": "An intimate, end-to-end encrypted app for couples featuring shared scrapbooks, a locked photo vault, and secure messaging.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

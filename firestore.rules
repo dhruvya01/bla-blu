@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isPart(partnerIds) {
+      return request.auth.uid in partnerIds;
+    }
+
+    match /users/{userId} {
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated();
+    }
+
+    match /pairs/{roomId} {
+      allow read: if isAuthenticated() && isPart(resource.data.partnerIds);
+      allow create: if isAuthenticated() && isPart(request.resource.data.partnerIds);
+      allow update, delete: if isAuthenticated() && isPart(resource.data.partnerIds);
+      
+      match /{document=**} {
+        allow read, write: if isAuthenticated() && isPart(get(/databases/$(database)/documents/pairs/$(roomId)).data.partnerIds);
+      }
+    }
+    
+    match /{document=**} {
+      allow read, write: if false; // Deny by default
+    }
+  }
+}

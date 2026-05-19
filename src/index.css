@@ -1,0 +1,345 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+@import url('https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Quicksand", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fredoka", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-primary: var(--primary);
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-text: var(--text);
+  --color-border: var(--border);
+
+  --color-cream: #FFFDF7;
+  --color-mochi-dark: #373831;
+  --color-lavender: #B983FF;
+  --color-rose: #FFB7C5;
+  --color-mochi-lavender-light: #D5B2FF;
+  --color-mint: #98D8C8;
+  --color-mochi-mint-dark: #2D4C44;
+  --color-mochi-pink: #FFD9DD;
+  --color-mochi-pink-dark: #5D3A3A;
+
+  --radius-mochi: 2.25rem;
+  --radius-mochi-full: 9999px;
+
+  --shadow-sm: inset 0 2px 4px rgba(255,255,255,0.4), 0 8px 24px -4px rgba(0, 0, 0, 0.03), 0 2px 8px -2px rgba(0,0,0,0.02);
+  --shadow-md: inset 0 2px 4px rgba(255,255,255,0.5), 0 12px 32px -4px rgba(0, 0, 0, 0.04), 0 4px 12px -2px rgba(0,0,0,0.03);
+  --shadow-lg: inset 0 2px 4px rgba(255,255,255,0.6), 0 20px 48px -6px rgba(0, 0, 0, 0.05), 0 8px 16px -2px rgba(0,0,0,0.03);
+  --shadow-premium: inset 0 2px 5px rgba(255,255,255,0.5), 0 24px 50px -12px rgba(0, 0, 0, 0.06), 0 12px 24px -6px rgba(0, 0, 0, 0.03);
+  --shadow-glow: 0 0 25px var(--primary-alpha-20), inset 0 0 10px rgba(255, 255, 255, 0.5);
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-float-slow: float 9s ease-in-out infinite;
+  --animate-float-fast: float 3s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-spin-slow: spin 8s linear infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+  }
+
+  @keyframes ping {
+    from { transform: scale(1); opacity: 0.8; }
+    to { transform: scale(2.5); opacity: 0; }
+  }
+}
+
+:root {
+  --primary: #FF7EB3;
+  --primary-rgb: 255, 126, 179;
+  --primary-alpha-20: rgba(255, 126, 179, 0.2);
+  --bg: #FFF5F9;
+  --card: rgba(255, 255, 255, 0.85);
+  --text: #502A3D;
+  --border: rgba(255, 126, 179, 0.1);
+}
+
+.theme-pink {
+  --primary: #FF7EB3;
+  --primary-rgb: 255, 126, 179;
+  --primary-alpha-20: rgba(255, 126, 179, 0.2);
+  --bg: #FFF5F9;
+  --card: rgba(255, 255, 255, 0.9);
+  --text: #502A3D;
+  --border: rgba(255, 126, 179, 0.1);
+}
+
+.theme-lavender {
+  --primary: #9C89FF;
+  --primary-rgb: 156, 137, 255;
+  --primary-alpha-20: rgba(156, 137, 255, 0.2);
+  --bg: #F8F7FF;
+  --card: rgba(255, 255, 255, 0.9);
+  --text: #37335C;
+  --border: rgba(156, 137, 255, 0.1);
+}
+
+.theme-cream {
+  --primary: #E09F7A;
+  --primary-rgb: 224, 159, 122;
+  --primary-alpha-20: rgba(224, 159, 122, 0.2);
+  --bg: #FCFAF7;
+  --card: rgba(255, 255, 255, 0.92);
+  --text: #55443B;
+  --border: rgba(224, 159, 122, 0.12);
+}
+
+.theme-dark {
+  --primary: #FF8AB4;
+  --primary-rgb: 255, 138, 180;
+  --primary-alpha-20: rgba(255, 138, 180, 0.3);
+  --bg: #0A0809;
+  --card: rgba(20, 15, 17, 0.85);
+  --text: #FFEBF2;
+  --border: rgba(255, 138, 180, 0.15);
+}
+
+.theme-amoled {
+  --primary: #FF2D78;
+  --primary-rgb: 255, 45, 120;
+  --primary-alpha-20: rgba(255, 45, 120, 0.3);
+  --bg: #000000;
+  --card: rgba(15, 10, 12, 0.9);
+  --text: #FFFFFF;
+  --border: rgba(255, 45, 120, 0.2);
+}
+
+/* ═══ NEW CUTE THEMES ═══ */
+
+.theme-mint {
+  --primary: #34D399;
+  --primary-rgb: 52, 211, 153;
+  --primary-alpha-20: rgba(52, 211, 153, 0.2);
+  --bg: #F0FDF9;
+  --card: rgba(255, 255, 255, 0.92);
+  --text: #1A3C34;
+  --border: rgba(52, 211, 153, 0.12);
+}
+
+.theme-peach {
+  --primary: #FB923C;
+  --primary-rgb: 251, 146, 60;
+  --primary-alpha-20: rgba(251, 146, 60, 0.2);
+  --bg: #FFF7ED;
+  --card: rgba(255, 255, 255, 0.92);
+  --text: #5C3A1E;
+  --border: rgba(251, 146, 60, 0.12);
+}
+
+.theme-sakura {
+  --primary: #F472B6;
+  --primary-rgb: 244, 114, 182;
+  --primary-alpha-20: rgba(244, 114, 182, 0.2);
+  --bg: #FDF2F8;
+  --card: rgba(255, 255, 255, 0.9);
+  --text: #5C1A3A;
+  --border: rgba(244, 114, 182, 0.1);
+}
+
+.theme-ocean {
+  --primary: #38BDF8;
+  --primary-rgb: 56, 189, 248;
+  --primary-alpha-20: rgba(56, 189, 248, 0.2);
+  --bg: #F0F9FF;
+  --card: rgba(255, 255, 255, 0.92);
+  --text: #1A3A5C;
+  --border: rgba(56, 189, 248, 0.12);
+}
+
+.theme-honey {
+  --primary: #F59E0B;
+  --primary-rgb: 245, 158, 11;
+  --primary-alpha-20: rgba(245, 158, 11, 0.2);
+  --bg: #FFFBEB;
+  --card: rgba(255, 255, 255, 0.92);
+  --text: #5C4A1E;
+  --border: rgba(245, 158, 11, 0.12);
+}
+
+.theme-rose {
+  --primary: #E11D48;
+  --primary-rgb: 225, 29, 72;
+  --primary-alpha-20: rgba(225, 29, 72, 0.15);
+  --bg: #FFF1F2;
+  --card: rgba(255, 255, 255, 0.92);
+  --text: #4C0519;
+  --border: rgba(225, 29, 72, 0.1);
+}
+
+/* ═══ DARK / NIGHT THEMES ═══ */
+
+.theme-midnight {
+  --primary: #818CF8;
+  --primary-rgb: 129, 140, 248;
+  --primary-alpha-20: rgba(129, 140, 248, 0.25);
+  --bg: #000000;
+  --card: rgba(15, 15, 30, 0.85);
+  --text: #E8E8FF;
+  --border: rgba(129, 140, 248, 0.15);
+}
+
+.theme-aurora {
+  --primary: #4ADE80;
+  --primary-rgb: 74, 222, 128;
+  --primary-alpha-20: rgba(74, 222, 128, 0.2);
+  --bg: #000000;
+  --card: rgba(10, 20, 15, 0.85);
+  --text: #D5FFE5;
+  --border: rgba(74, 222, 128, 0.15);
+}
+
+.theme-mocha {
+  --primary: #D4A574;
+  --primary-rgb: 212, 165, 116;
+  --primary-alpha-20: rgba(212, 165, 116, 0.25);
+  --bg: #0A0807;
+  --card: rgba(25, 20, 15, 0.85);
+  --text: #F5E6D3;
+  --border: rgba(212, 165, 116, 0.15);
+}
+
+.theme-berry {
+  --primary: #C084FC;
+  --primary-rgb: 192, 132, 252;
+  --primary-alpha-20: rgba(192, 132, 252, 0.25);
+  --bg: #000000;
+  --card: rgba(20, 10, 30, 0.85);
+  --text: #F3E8FF;
+  --border: rgba(192, 132, 252, 0.15);
+}
+
+@layer base {
+  body {
+    background: var(--bg); 
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+    transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1), color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+}
+
+@layer components {
+  .card {
+     @apply bg-card backdrop-blur-xl border border-border rounded-[2.5rem] shadow-sm text-text overflow-hidden transition-all duration-500;
+  }
+
+  .screen-pad {
+    @apply px-6;
+  }
+
+  .section-gap {
+    @apply space-y-5;
+  }
+
+  .squishy-btn {
+    @apply transition-all duration-300 active:scale-90 cursor-pointer;
+  }
+
+  .glass {
+    @apply bg-white/40 backdrop-blur-md border border-white/60 shadow-sm relative overflow-hidden;
+  }
+  
+  .glass-dark {
+    @apply bg-black/40 backdrop-blur-md border border-white/10 shadow-sm relative overflow-hidden;
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 25px var(--primary-alpha-20);
+  }
+
+  .map-pastel-filter {
+    filter: sepia(10%) hue-rotate(-15deg) saturate(95%) brightness(108%) contrast(92%);
+  }
+
+  @keyframes sparkle {
+    0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
+    50% { transform: scale(1) rotate(180deg); opacity: 1; }
+  }
+
+  .animate-sparkle {
+    animation: sparkle 2.5s ease-in-out infinite;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom Scrollbar for desktop */
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+    opacity: 0.3;
+  }
+}
+
+/* Cozy-Tech Design System Utilities */
+.glass-card {
+  background: var(--card);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0px 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.ping-glow-primary {
+  box-shadow: 0 0 20px 5px rgba(231, 187, 198, 0.4);
+}
+
+.ping-glow-secondary {
+  box-shadow: 0 0 20px 5px rgba(197, 197, 216, 0.4);
+}
+
+.love-trail-path {
+  filter: drop-shadow(0 0 8px rgba(255, 209, 220, 0.5));
+}
+
+.text-glow-primary {
+  text-shadow: 0 0 10px rgba(231, 187, 198, 0.5);
+}

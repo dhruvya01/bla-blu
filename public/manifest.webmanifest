@@ -1,0 +1,1 @@
+{"name":"Blablu Couple App","short_name":"Blablu","description":"A private space for couples to share location, chat, and habits.","start_url":"./","display":"standalone","background_color":"#1a1a1a","theme_color":"#1a1a1a","lang":"en","scope":"./","icons":[{"src":"pwa-icon.svg","sizes":"192x192 512x512","type":"image/svg+xml","purpose":"any maskable"}]}
