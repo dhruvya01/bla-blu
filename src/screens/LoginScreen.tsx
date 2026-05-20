@@ -93,7 +93,7 @@ export function LoginScreen() {
     setLoading(true);
     try {
       // Try to sign in
-      const cred = await signInWithEmailAndPassword(auth, profile.email, password);
+      const cred = await signInWithEmailAndPassword(auth, profile.email, password.trim());
       
       const userSnap = await getDoc(doc(db, "users", cred.user.uid));
       if (!userSnap.exists()) {
@@ -102,10 +102,10 @@ export function LoginScreen() {
         const newUserData = await provisionNewUser(cred.user.uid, selectedUser);
         setUser(newUserData);
       } else {
-        setUser(userSnap.data() as User);
+        const existingData = { uid: userSnap.id, roomId: userSnap.data().roomId || SHARED_PAIR_ID, ...userSnap.data() } as User;
+        setUser(existingData);
+        setRoomId(existingData.roomId);
       }
-      
-      setRoomId(SHARED_PAIR_ID);
       setView("home");
 
     } catch (err: any) {
@@ -115,7 +115,7 @@ export function LoginScreen() {
         // We will try to create the user. If it fails with email-already-in-use,
         // it means it was a wrong password instead!
         try {
-          const newCred = await createUserWithEmailAndPassword(auth, profile.email, password);
+          const newCred = await createUserWithEmailAndPassword(auth, profile.email, password.trim());
           // Firebase Auth takes a moment to propagate the auth token to the Firestore SDK.
           // Wait before writing initial data to Firestore.
           await newCred.user.getIdToken(true);

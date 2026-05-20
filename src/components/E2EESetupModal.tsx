@@ -6,13 +6,23 @@ import { sensory } from "../utils/sensory";
 
 export function E2EESetupModal({ onComplete }: { onComplete: () => void }) {
   const [passphrase, setPassphrase] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleSave = async () => {
     if (!passphrase.trim()) return;
-    await initE2E(passphrase.trim());
-    sensory.play("success");
-    onComplete();
+    try {
+      await initE2E(passphrase.trim());
+      sensory.play("success");
+      onComplete();
+    } catch (e: any) {
+      setErrorMsg(e.message || "Encryption not supported on this browser.");
+    }
   };
+
+  const handleSkip = () => {
+    // Allows them to explicitly bypass if there is a crypto error or they want to ignore it
+    onComplete();
+  }
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -25,11 +35,12 @@ export function E2EESetupModal({ onComplete }: { onComplete: () => void }) {
         <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <Lock size={32} className="text-emerald-500" />
         </div>
-        <h2 className="text-xl font-bold text-text mb-2 tracking-tight">End-to-End Encryption</h2>
+        <h2 className="text-xl font-bold text-text mb-2 tracking-tight">Encryption Key</h2>
         <p className="text-sm text-text/60 mb-6 leading-relaxed">
-          Your messages and photos are secured with military-grade encryption.
-          Set a shared passphrase. Make sure your partner uses the exact same one!
+          Enter your shared passphrase to unlock your messages.
         </p>
+
+        {errorMsg && <p className="text-xs text-rose-500 mb-4">{errorMsg}</p>}
 
         <input
           type="text"
@@ -40,13 +51,21 @@ export function E2EESetupModal({ onComplete }: { onComplete: () => void }) {
           onKeyDown={e => e.key === "Enter" && handleSave()}
         />
 
-        <button
-          onClick={handleSave}
-          disabled={!passphrase.trim()}
-          className="w-full bg-emerald-500 text-white rounded-xl py-3 font-semibold disabled:opacity-50 active:scale-95 transition-all"
-        >
-          Secure Chat
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={handleSave}
+            disabled={!passphrase.trim()}
+            className="w-full bg-emerald-500 text-white rounded-xl py-3 font-semibold disabled:opacity-50 active:scale-95 transition-all"
+          >
+            Unlock Chat
+          </button>
+          <button
+            onClick={handleSkip}
+            className="w-full bg-transparent text-emerald-500 rounded-xl py-3 font-semibold active:scale-95 transition-all text-xs"
+          >
+            Skip for now (Messages will be locked)
+          </button>
+        </div>
       </motion.div>
     </div>
   );

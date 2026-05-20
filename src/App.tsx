@@ -353,7 +353,7 @@ export default function App() {
             if (docSnap.exists()) {
               const data = { uid: docSnap.id, ...docSnap.data() } as User;
               store.setUser(data);
-              if (data.roomId) store.setRoomId(data.roomId);
+              store.setRoomId(data.roomId || "blablu_nest");
               if (store.view === "login") store.setView("home");
             }
           } catch (e) {

@@ -363,7 +363,12 @@ function ChatMessage({
             )}
 
             <div className="relative group flex flex-col items-start gap-1">
-              {decryptedImage && (
+              {decryptedImage && decryptedImage.startsWith("🔒") ? (
+                <div className="flex flex-col items-center justify-center bg-black/5 dark:bg-white/5 rounded-xl p-4 mt-1 mb-1 shadow-sm border border-black/5 text-text/60 w-32 h-32">
+                  <Lock size={24} className="mb-2 opacity-50" />
+                  <span className="text-xs font-semibold text-center leading-tight">Verification<br/>Failed</span>
+                </div>
+              ) : decryptedImage ? (
                 <img
                   src={decryptedImage}
                   alt="Image"
@@ -371,7 +376,7 @@ function ChatMessage({
                   style={{ maxHeight: "300px" }}
                   onClick={() => onExpandImage && onExpandImage(decryptedImage!)}
                 />
-              )}
+              ) : null}
               {decryptedText && (
                 <span
                   className="text-[15px] font-medium leading-relaxed break-words"

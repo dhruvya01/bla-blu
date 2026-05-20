@@ -103,7 +103,7 @@ export const decryptData = async (cipherText: string): Promise<string> => {
     const dec = new TextDecoder();
     return dec.decode(decrypted);
   } catch (e) {
-    console.error("Decryption failed", e);
+    // Expected to fail if passphrase doesn't match or data is corrupted
     return "🔒 Encrypted Message - Verification Failed";
   }
 };

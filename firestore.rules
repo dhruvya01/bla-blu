@@ -10,16 +10,20 @@ service cloud.firestore {
       return request.auth.uid in partnerIds;
     }
 
+    function isAllowedPair() {
+      return request.auth.token.email == 'dhruvya@blablu.app' || request.auth.token.email == 'anjali@blablu.app';
+    }
+
     match /users/{userId} {
-      allow write: if isAuthenticated() && request.auth.uid == userId;
-      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAllowedPair() && request.auth.uid == userId;
+      allow read: if isAuthenticated() && isAllowedPair();
     }
 
     match /pairs/{roomId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthenticated() && isAllowedPair() && roomId == 'blablu_nest';
       
       match /{document=**} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthenticated() && isAllowedPair() && roomId == 'blablu_nest';
       }
     }
     
