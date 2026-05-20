@@ -6,6 +6,8 @@ import cors from "cors";
 import path from "path";
 import * as admin from "firebase-admin";
 
+let isFirebaseAdminInitialized = false;
+
 // Initialize Firebase Admin if Service Account is provided
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
@@ -13,6 +15,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
+    isFirebaseAdminInitialized = true;
     console.log("Firebase Admin initialized successfully.");
   } catch (error) {
     console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON. Please check the environment variable format.");
@@ -26,7 +29,7 @@ async function start() {
   
   // Custom API endpoint for sending push notifications
   app.post("/api/notify", async (req, res) => {
-    if (!admin.apps.length) {
+    if (!isFirebaseAdminInitialized) {
       return res.status(500).json({ error: "Firebase Admin is not configured. Missing FIREBASE_SERVICE_ACCOUNT." });
     }
 

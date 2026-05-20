@@ -960,6 +960,11 @@ export function ChatScreen({ socket }: ChatProps) {
           }),
         })
           .then(async (res) => {
+            if (!res.ok) {
+              const text = await res.text();
+              console.error("[DEBUG-PUSH] Relay HTTP Error:", res.status, text);
+              return;
+            }
             const data = await res.json();
             console.log("[DEBUG-PUSH] Relay Response:", data);
           })

@@ -32,6 +32,36 @@ import { encryptData, decryptData } from "../utils/e2ee";
 import { compressImage } from "../utils/imageUtils";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
+import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import Captions from "yet-another-react-lightbox/plugins/captions";
+import "yet-another-react-lightbox/styles.css";
+import "yet-another-react-lightbox/plugins/captions.css";
+
+function CustomSlide({ slide, ...props }: any) {
+  const [decryptedUrl, setDecryptedUrl] = useState("");
+  useEffect(() => {
+    let active = true;
+    if (slide.photo.url.startsWith("E2EE:")) {
+      decryptData(slide.photo.url).then((url) => {
+        if (active) setDecryptedUrl(url);
+      });
+    } else {
+      setDecryptedUrl(slide.photo.url);
+    }
+    return () => { active = false; };
+  }, [slide.photo.url]);
+
+  if (!decryptedUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+  return <img src={decryptedUrl} alt="Vault item" className="yarl__slide_image" {...props} />;
+}
+
 
 interface VaultPhoto {
   id: string;
@@ -455,95 +485,71 @@ export function VaultScreen() {
             )}
         </div>
 
-        {/* Enlarged Photo Modal */}
-        <AnimatePresence>
-          {selectedPhoto && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] bg-black backdrop-blur-3xl flex flex-col"
-            >
-              <div className="p-4 flex items-center justify-between">
-                <button 
-                  onClick={() => setSelectedPhoto(null)}
-                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all font-bold"
-                >
-                  <X size={24} />
-                </button>
-                
-                <div className="flex items-center gap-2">
-                   <div className="px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center gap-2">
-                      <ShieldCheck size={14} className="text-emerald-400" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Encrypted</span>
-                   </div>
-                </div>
-
-                <div className="w-10" />
-              </div>
-
-              <div className="flex-1 flex flex-col items-center justify-center p-4">
-                <motion.div 
-                   layoutId={selectedPhoto.id}
-                   className="w-full max-w-lg aspect-square bg-white/5 rounded-[2rem] overflow-hidden shadow-2xl relative"
-                >
-                  {!decryptedSelectedUrl ? (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                    </div>
-                  ) : (
-                    <img 
-                      src={decryptedSelectedUrl} 
-                      className="w-full h-full object-contain"
-                      alt="Enlarged Vault Photo"
-                    />
-                  )}
-                </motion.div>
-                
-                {selectedPhoto.caption && (
-                  <p className="mt-8 text-center text-white/80 font-serif italic max-w-sm px-6">
-                    "{selectedPhoto.caption}"
-                  </p>
-                )}
-                
-                <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
-                  {selectedPhoto.timestamp ? new Date(selectedPhoto.timestamp).toLocaleString() : 'Just now'}
-                </p>
-              </div>
-
-              {/* Bottom Actions */}
-              <div className="p-8 pb-12 flex items-center justify-center gap-6">
-                <button 
+        {/* Advanced Gallery Lightbox */}
+        <Lightbox
+          open={!!selectedPhoto}
+          index={selectedPhoto ? allPhotos.findIndex(p => p.id === selectedPhoto.id) : -1}
+          close={() => setSelectedPhoto(null)}
+          slides={allPhotos.map(p => ({ 
+             type: "custom-photo", 
+             photo: p,
+             title: p.timestamp ? new Date(p.timestamp).toLocaleString() : 'Just now',
+             description: p.caption || (p.source === 'chat' ? 'From Chat' : p.source === 'timeline' ? 'From Scrapbook' : '')
+          }))}
+          plugins={[Zoom, Captions]}
+          captions={{ descriptionTextAlign: 'center' }}
+          carousel={{ finite: true }}
+          animation={{ swipe: 250 }}
+          on={{
+             view: ({ index }) => setSelectedPhoto(allPhotos[index])
+          }}
+          zoom={{
+             maxZoomPixelRatio: 5,
+             zoomInMultiplier: 2,
+             wheelZoomDistanceFactor: 100,
+             pinchZoomDistanceFactor: 100,
+             scrollToZoom: true
+          }}
+          render={{
+            slide: ({ slide }) => (slide.type === "custom-photo" ? <CustomSlide slide={slide} /> : null),
+            buttonPrev: allPhotos.length <= 1 ? () => null : undefined,
+            buttonNext: allPhotos.length <= 1 ? () => null : undefined,
+            iconClose: () => <X size={24} />,
+          }}
+          toolbar={{
+            buttons: [
+              <div key="badge" className="mr-auto ml-4 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center gap-2">
+                 <ShieldCheck size={14} className="text-emerald-400" />
+                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hidden sm:inline-block">Encrypted Vault</span>
+              </div>,
+              <button 
+                  key="download"
                   onClick={handleDownload}
                   disabled={!decryptedSelectedUrl}
-                  className="flex flex-col items-center gap-2 text-white/60 hover:text-white transition-colors active:scale-90"
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-xl">
-                    <Download size={24} />
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Download</span>
-                </button>
-
-                <button 
-                  onClick={() => handleDelete(selectedPhoto)}
+                  className="p-2 text-white/70 hover:text-white transition-colors disabled:opacity-30"
+                  title="Download"
+              >
+                  <Download size={22} />
+              </button>,
+              <button 
+                  key="delete"
+                  onClick={() => selectedPhoto && handleDelete(selectedPhoto)}
                   disabled={isDeleting}
-                  className="flex flex-col items-center gap-2 text-rose-400 hover:text-rose-500 transition-colors active:scale-90 disabled:opacity-50 disabled:pointer-events-none"
-                >
-                    <div className="w-14 h-14 rounded-2xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 shadow-xl">
-                      {isDeleting ? (
-                        <div className="w-6 h-6 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" />
-                      ) : (
-                        <Trash2 size={24} />
-                      )}
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest">
-                      {confirmDeleteId === selectedPhoto.id ? "Sure?" : "Delete"}
-                    </span>
-                  </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  className="p-2 mr-2 text-rose-400 hover:text-rose-500 transition-colors disabled:opacity-30"
+                  title="Delete"
+              >
+                  {isDeleting ? (
+                     <div className="w-5 h-5 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin mx-auto" />
+                  ) : confirmDeleteId === selectedPhoto?.id ? (
+                     <span className="text-[10px] font-bold uppercase tracking-widest text-rose-500 bg-rose-500/20 px-2 py-1 rounded-md">Sure?</span>
+                  ) : (
+                     <Trash2 size={22} />
+                  )}
+              </button>,
+              "close",
+            ]
+          }}
+        />
 
         {/* Floating Action Button for mobile prominence */}
         {allPhotos.length > 0 && (

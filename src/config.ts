@@ -1,8 +1,7 @@
 /**
  * Global configuration for the Blablu app.
- * Replace the SERVER_URL with your deployed Render/Railway URL.
  */
-// Get the origin dynamically for web. For mobile apps (Capacitor), you will need to hardcode your production backend URL.
+// Get the origin dynamically for web. For mobile apps (Capacitor), this uses the deployed app URL as fallback.
 const getBaseUrl = () => {
   if (typeof window !== 'undefined' && window.location.origin !== 'null' && !window.location.origin.includes('localhost') && !window.location.origin.includes('capacitor')) {
     return window.location.origin;

@@ -312,6 +312,12 @@ export function SettingsScreen({ onSave, onRequestNotify }: SettingsProps) {
           data: { type: "test" },
         }),
       });
+      if (!res.ok) {
+         const text = await res.text();
+         console.error("[DEBUG-PUSH] Server error:", res.status, text);
+         showStatus("error", `Server error: ${res.status}`);
+         return;
+      }
       const data = await res.json();
       if (data.success) {
         showStatus("success", "Test sent! Check your phone.");
