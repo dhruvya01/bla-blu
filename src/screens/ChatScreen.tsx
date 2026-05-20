@@ -946,41 +946,34 @@ export function ChatScreen({ socket }: ChatProps) {
 
       // RELAYED SECURE PUSH NOTIFICATION
       if (partner?.fcmToken) {
-        const now = Date.now();
-        // Rate limit: 1 push per 40 seconds
-        if (now - lastPushSentRef.current > 40000) {
-          lastPushSentRef.current = now;
-          const privacy = useAppStore.getState().privacyModeEnabled;
-          const title = "Blablu";
-          const body = privacy
-            ? "blablubla blu"
-            : `${user.nickname || "Partner"} sent you a chat`;
+        const privacy = useAppStore.getState().privacyModeEnabled;
+        const title = "Blablu";
+        const body = privacy
+          ? "blablubla blu"
+          : `${user.nickname || "Partner"} sent you a chat`;
 
-          console.log(
-            "[DEBUG-PUSH] Sending Relay Request for partner:",
-            partner.uid,
-          );
+        console.log(
+          "[DEBUG-PUSH] Sending Relay Request for partner:",
+          partner.uid,
+        );
 
-          fetch(`${CONFIG.SERVER_URL}/api/notify`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              to: partner.fcmToken,
-              title: title,
-              body: body,
-              data: { roomId, senderId: user.uid, type: "chat" },
-            }),
+        fetch(`${CONFIG.SERVER_URL}/api/notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: partner.fcmToken,
+            title: title,
+            body: body,
+            data: { roomId, senderId: user.uid, type: "chat" },
+          }),
+        })
+          .then(async (res) => {
+            const data = await res.json();
+            console.log("[DEBUG-PUSH] Relay Response:", data);
           })
-            .then(async (res) => {
-              const data = await res.json();
-              console.log("[DEBUG-PUSH] Relay Response:", data);
-            })
-            .catch((err) => {
-              console.error("[DEBUG-PUSH] Relay Failed:", err);
-            });
-        } else {
-          console.log("[DEBUG-PUSH] Push skipped due to 40s rate limit.");
-        }
+          .catch((err) => {
+            console.error("[DEBUG-PUSH] Relay Failed:", err);
+          });
       } else {
         console.log(
           "[DEBUG-PUSH] Partner has no FCM token. Notification skipped.",

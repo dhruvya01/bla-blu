@@ -42,6 +42,19 @@ async function start() {
         token: targetToken,
         notification: { title, body },
         data: data || {},
+        android: {
+          notification: {
+            channelId: 'blablu_chat',
+            sound: 'default'
+          }
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default'
+            }
+          }
+        }
       };
 
       const response = await admin.messaging().send(message);
