@@ -16,14 +16,10 @@ service cloud.firestore {
     }
 
     match /pairs/{roomId} {
-      allow read: if isAuthenticated() && isPart(resource.data.partnerIds);
-      allow create: if isAuthenticated() && isPart(request.resource.data.partnerIds);
-      // Allow update if they are already a part of it OR if they are adding themselves to partnerIds
-      allow update: if isAuthenticated() && (isPart(resource.data.partnerIds) || isPart(request.resource.data.partnerIds));
-      allow delete: if isAuthenticated() && isPart(resource.data.partnerIds);
+      allow read, write: if isAuthenticated();
       
       match /{document=**} {
-        allow read, write: if isAuthenticated() && isPart(get(/databases/$(database)/documents/pairs/$(roomId)).data.partnerIds);
+        allow read, write: if isAuthenticated();
       }
     }
     
