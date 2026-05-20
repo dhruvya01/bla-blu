@@ -355,10 +355,6 @@ export default function App() {
               store.setUser(data);
               if (data.roomId) store.setRoomId(data.roomId);
               if (store.view === "login") store.setView("home");
-            } else {
-              auth.signOut();
-              store.setView("login");
-              setIsAuthReady(false);
             }
           } catch (e) {
             console.error(e);
