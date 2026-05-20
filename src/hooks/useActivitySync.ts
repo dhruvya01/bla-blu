@@ -62,14 +62,14 @@ export function useActivitySync(roomId: string | null, userId: string | null) {
     // Update lastActive instantly on mount
     updateDoc(doc(db, "users", userId), { lastActive: Date.now() }).catch(() => {});
 
-    // 2. Heartbeat (Basic Online Status - Every 45 seconds to keep presence solid)
+    // 2. Heartbeat (Basic Online Status - Every 3 minutes to keep presence solid but save quotas)
     const heartbeat = setInterval(async () => {
        try {
          await updateDoc(doc(db, "users", userId), {
             "lastActive": Date.now()
          });
        } catch(e) {}
-    }, 45000);
+    }, 180000);
 
     // 3. Battery Info (Every 5 minutes)
     const batteryInterval = setInterval(() => {

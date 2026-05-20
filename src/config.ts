@@ -4,10 +4,10 @@
  */
 // Get the origin dynamically for web. For mobile apps (Capacitor), you will need to hardcode your production backend URL.
 const getBaseUrl = () => {
-  if (typeof window !== 'undefined' && window.location.origin !== 'null' && !window.location.origin.includes('localhost')) {
+  if (typeof window !== 'undefined' && window.location.origin !== 'null' && !window.location.origin.includes('localhost') && !window.location.origin.includes('capacitor')) {
     return window.location.origin;
   }
-  return 'https://blabluu-production.up.railway.app'; // Fallback for native mobile
+  return 'https://ais-pre-sbw6oyr6yv4xjx2nydz7os-361246541562.asia-southeast1.run.app'; // Fallback for native mobile
 };
 
 export const CONFIG = {

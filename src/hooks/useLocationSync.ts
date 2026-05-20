@@ -343,21 +343,21 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
           // Normal moving (>10 km/h): Update every 12 seconds
           // Stationary/Resting: Update every 90 seconds (1.5 minutes) to feel highly real-time
           // Safely at home: Update every 3 minutes (180,000ms) to maintain a responsive connection
-          let dynamicInterval = speedKmh > 30 ? 8_000 : speedKmh > 10 ? 12_000 : 90_000;
+          let dynamicInterval = speedKmh > 30 ? 15_000 : speedKmh > 10 ? 25_000 : 90_000;
           if (isAtHome) dynamicInterval = 180_000; 
 
           // High-Speed Real-Time Map Overlay Override!
           const isViewingMap = state.view === 'map' || state.view === 'journey';
           if (isViewingMap) {
-            dynamicInterval = speedKmh > 10 ? 3_000 : 6_000; // Silky smooth 3-6s tracking when open!
+            dynamicInterval = speedKmh > 10 ? 5_000 : 10_000; // Track nicely when open!
           }
 
           // Displacement threshold set to 10 meters for immediate micro-movement tracking
           const hasSignificantChange = moved > 10 || chgChanged || (battDiff > 1);
           const intervalPassed = elapsed >= dynamicInterval;
 
-          // Hard safety cooldown (3s when viewing map, 6s standard) for extreme responsiveness
-          const minCooldown = isViewingMap ? 3000 : 6000;
+          // Hard safety cooldown
+          const minCooldown = isViewingMap ? 5000 : 10000;
           if (elapsed < minCooldown) return;
 
           if (!hasSignificantChange && !intervalPassed) return;

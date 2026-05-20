@@ -832,14 +832,6 @@ export function ChatScreen({ socket }: ChatProps) {
     updateDoc(doc(db, "users", user.uid), { lastActive: Date.now() }).catch(
       (e) => console.error("Heartbeat error", e),
     );
-
-    const hbTimer = setInterval(() => {
-      updateDoc(doc(db, "users", user.uid), { lastActive: Date.now() }).catch(
-        (e) => console.error("Heartbeat error", e),
-      );
-    }, 45000); // Pulse every 45s
-
-    return () => clearInterval(hbTimer);
   }, [user?.uid]);
 
   // Ticker to refresh "seen Xm ago" labels
@@ -906,9 +898,9 @@ export function ChatScreen({ socket }: ChatProps) {
         const partnerUid = partner?.uid;
         if (!partnerUid) return;
         const partnerTypedAt = data[partnerUid];
-        // Show typing if partner typed in last 3 seconds
+        // Show typing if partner typed in last 10 seconds
         setIsPartnerTypingLocal(
-          partnerTypedAt && Date.now() - partnerTypedAt < 3000,
+          partnerTypedAt && Date.now() - partnerTypedAt < 10000,
         );
       });
       return () => unsubTyping();
@@ -1055,8 +1047,8 @@ export function ChatScreen({ socket }: ChatProps) {
       socket?.emit("typing", { roomId, userId: user.uid });
 
       const now = Date.now();
-      // Only write to Firestore at most once every 3.5 seconds to protect quota!
-      if (now - lastTypingWrite.current > 3500) {
+      // Only write to Firestore at most once every 9 seconds to protect quota!
+      if (now - lastTypingWrite.current > 9000) {
         lastTypingWrite.current = now;
         const typingRef = doc(db, "pairs", roomId, "presence", "typing");
         setDoc(typingRef, { [user.uid]: now }, { merge: true }).catch(() => {});

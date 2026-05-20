@@ -136,8 +136,14 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
       setTimelineEntries(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any);
     }, (error) => handleFirestoreError(error, 'list', 'pairs/' + roomId + '/timeline'));
 
-    // 6. Sync Shared Calendar Events
-    const calQuery = query(collection(db, 'pairs', roomId, 'calendarEvents'), orderBy('date', 'asc'));
+    // 6. Sync Shared Calendar Events (Limited to recent and future)
+    const thirtyDaysAgoDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgoStr = thirtyDaysAgoDate.toISOString().split('T')[0];
+    const calQuery = query(
+      collection(db, 'pairs', roomId, 'calendarEvents'),
+      where('date', '>=', thirtyDaysAgoStr),
+      orderBy('date', 'asc')
+    );
     const unsubCal = onSnapshot(calQuery, (snapshot) => {
       setCalendarEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any);
     }, (error) => handleFirestoreError(error, 'list', 'pairs/' + roomId + '/calendarEvents'));
@@ -157,8 +163,13 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
       useAppStore.getState().setHealth({ ...useAppStore.getState().health, customHabits: habits });
     }, (error) => handleFirestoreError(error, 'list', 'pairs/' + roomId + '/customHabits'));
 
-    // 10. Sync Habit Logs
-    const habitLogsQuery = query(collection(db, 'pairs', roomId, 'habitLogs'));
+    // 10. Sync Habit Logs (Limited to last ~60 days)
+    const sixtyDaysAgoDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgoStr = sixtyDaysAgoDate.toISOString().split('T')[0];
+    const habitLogsQuery = query(
+      collection(db, 'pairs', roomId, 'habitLogs'),
+      where('date', '>=', sixtyDaysAgoStr)
+    );
     const unsubHabitLogs = onSnapshot(habitLogsQuery, (snapshot) => {
       const logs = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any;
       setHabitLogs(logs);

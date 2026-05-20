@@ -182,6 +182,7 @@ export function InteractiveBabies({ showControls = true }: { showControls?: bool
   const [showTags, setShowTags] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastBabyWrite = useRef(0);
   const moodTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const flashTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -442,10 +443,14 @@ export function InteractiveBabies({ showControls = true }: { showControls?: bool
       sensory.play('levelUp');
     }
 
-    await updateDoc(doc(db, "pairs", roomId, "babyState", "current"), {
-      mood: newMood,
-      lastInteraction: Date.now()
-    }).catch(() => {});
+    const now = Date.now();
+    if (now - lastBabyWrite.current > 4000) {
+      lastBabyWrite.current = now;
+      updateDoc(doc(db, "pairs", roomId, "babyState", "current"), {
+        mood: newMood,
+        lastInteraction: now
+      }).catch(() => {});
+    }
 
     const count = newMood === 'playful' ? 12 : 8;
     const particles = generateBurst(count, originX, originY);
