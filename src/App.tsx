@@ -607,6 +607,7 @@ export default function App() {
           view !== "journey" &&
           view !== "settings" &&
           view !== "babygame" &&
+          view !== "vault" &&
           view !== "jar" && <Navigation />}
 
         <SurprisesManager />

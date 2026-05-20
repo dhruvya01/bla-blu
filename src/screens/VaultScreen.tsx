@@ -35,8 +35,8 @@ import { compressImage } from "../utils/imageUtils";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import Lightbox from "yet-another-react-lightbox";
-import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Captions from "yet-another-react-lightbox/plugins/captions";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import "yet-another-react-lightbox/styles.css";
 import "yet-another-react-lightbox/plugins/captions.css";
 
@@ -61,7 +61,38 @@ function CustomSlide({ slide, ...props }: any) {
       </div>
     );
   }
-  return <img src={decryptedUrl} alt="Vault item" className="yarl__slide_image" {...props} />;
+  
+  return (
+    <div className="w-full h-full flex items-center justify-center pointer-events-auto">
+      <TransformWrapper 
+        initialScale={1}
+        minScale={1}
+        maxScale={8}
+        doubleClick={{ mode: "zoomIn" }}
+        panning={{ velocityDisabled: true }}
+      >
+        {({ scale }) => (
+          <TransformComponent
+            wrapperStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyItems: "center" }}
+            contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <img 
+              src={decryptedUrl} 
+              alt="Vault item" 
+              className="max-w-[100vw] max-h-[100vh] object-contain cursor-grab active:cursor-grabbing" 
+              onPointerDown={(e) => {
+                 if (scale > 1) {
+                   e.stopPropagation();
+                 }
+              }}
+              draggable={false}
+              {...props} 
+            />
+          </TransformComponent>
+        )}
+      </TransformWrapper>
+    </div>
+  );
 }
 
 
@@ -571,19 +602,12 @@ export function VaultScreen() {
              title: p.timestamp ? new Date(p.timestamp).toLocaleString() : 'Just now',
              description: p.caption || (p.source === 'chat' ? 'From Chat' : p.source === 'timeline' ? 'From Scrapbook' : '')
           }))}
-          plugins={[Zoom, Captions]}
+          plugins={[Captions]}
           captions={{ descriptionTextAlign: 'center' }}
           carousel={{ finite: true }}
           animation={{ swipe: 250 }}
           on={{
              view: ({ index }) => setSelectedPhoto(allPhotos[index])
-          }}
-          zoom={{
-             maxZoomPixelRatio: 5,
-             zoomInMultiplier: 2,
-             wheelZoomDistanceFactor: 100,
-             pinchZoomDistanceFactor: 100,
-             scrollToZoom: true
           }}
           render={{
             slide: ({ slide }) => (slide.type === "custom-photo" ? <CustomSlide slide={slide} /> : null),
