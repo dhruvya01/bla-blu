@@ -953,7 +953,7 @@ export function ChatScreen({ socket }: ChatProps) {
           const privacy = useAppStore.getState().privacyModeEnabled;
           const title = "Blablu";
           const body = privacy
-            ? "New message!"
+            ? "blablubla blu"
             : `${user.nickname || "Partner"} sent you a chat`;
 
           console.log(

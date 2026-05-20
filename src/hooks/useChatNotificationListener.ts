@@ -81,14 +81,19 @@ export const useChatNotificationListener = (
             } else {
               // Minimized/Backgrounded: Fire system Local Notification Banner with Deep-linking action
               console.log(`[ChatNotificationListener] App Background: Fire native local notification banner.`);
+              
+              const isPrivacy = useAppStore.getState().privacyModeEnabled;
+              const notifTitle = isPrivacy ? "blablu" : alertData.senderName;
+              const notifBody = isPrivacy ? "blablubla blu" : "Sent you a message 💬";
+              
               if (Capacitor.isNativePlatform()) {
                 try {
                   await LocalNotifications.schedule({
                     notifications: [
                       {
                         id: Math.floor(Math.random() * 999999),
-                        title: alertData.senderName,
-                        body: alertData.text,
+                        title: notifTitle,
+                        body: notifBody,
                         schedule: { at: new Date(Date.now() + 10) },
                         channelId: "blablu_serverless", // Reuses channel created in useLocalNotificationEngine
                         extra: { view: "chat" }, // Deep links action straight into chat view

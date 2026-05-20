@@ -153,7 +153,7 @@ export const useLocalNotificationEngine = (
         let finalBody = params.body;
         if (privacyModeEnabledRef.current) {
           finalTitle = "blablu";
-          finalBody = "blablu blablu";
+          finalBody = "blablubla blu";
         }
 
         console.log(`[NotificationEngine] App is BACKGROUNDED. Triggering Native Local Notification: ${finalTitle}`);
