@@ -11,7 +11,9 @@ import {
   EyeOff,
   Download,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Delete,
+  Fingerprint
 } from "lucide-react";
 import { 
   collection, 
@@ -102,7 +104,7 @@ function PhotoCard({ photo, onDelete, onSelect, isConfirmingDelete }: { photo: V
   }, [photo.url, photo.caption]);
 
   if (!decryptedUrl) return (
-    <div className="aspect-square bg-card/40 animate-pulse rounded-2xl border border-border/50" />
+    <div className="aspect-square bg-card/40 animate-pulse" />
   );
 
   return (
@@ -110,7 +112,7 @@ function PhotoCard({ photo, onDelete, onSelect, isConfirmingDelete }: { photo: V
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       onClick={() => onSelect(photo)}
-      className="group relative aspect-square bg-card/40 rounded-2xl overflow-hidden border border-border/50 shadow-sm cursor-pointer active:scale-95 transition-transform"
+      className="group relative aspect-[4/5] bg-card/10 overflow-hidden cursor-pointer active:scale-[0.96] transition-transform rounded-2xl border border-border/40 shadow-sm"
     >
       <img 
         src={decryptedUrl} 
@@ -119,19 +121,19 @@ function PhotoCard({ photo, onDelete, onSelect, isConfirmingDelete }: { photo: V
         className={cn(
           "w-full h-full object-cover transition-all duration-700",
           isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-110",
-          "group-hover:scale-105"
+          "group-hover:scale-110 group-hover:rotate-1"
         )}
       />
       
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 pointer-events-none">
-        <p className="text-[10px] text-white/90 font-medium line-clamp-2 italic">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4 pointer-events-none">
+        <p className="text-[11px] text-white/90 font-medium line-clamp-2 shadow-sm font-sans tracking-wide">
           {decryptedCaption || (photo.source === 'chat' ? 'From Chat' : photo.source === 'timeline' ? 'From Scrapbook' : 'Private Vault')}
         </p>
       </div>
 
-      <div className="absolute top-2 right-2 flex gap-1 z-10">
-        <div className="w-6 h-6 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center">
-            <ShieldCheck size={12} className="text-emerald-400" />
+      <div className="absolute top-3 right-3 flex gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-lg">
+            <ShieldCheck size={14} className="text-emerald-400" />
         </div>
       </div>
     </motion.div>
@@ -140,10 +142,9 @@ function PhotoCard({ photo, onDelete, onSelect, isConfirmingDelete }: { photo: V
 
 export function VaultScreen() {
   const { setView, roomId, user } = useAppStore();
-  const [password, setPassword] = useState("");
+  const [pin, setPin] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [error, setError] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const [chatPhotos, setChatPhotos] = useState<VaultPhoto[]>([]);
   const [timelinePhotos, setTimelinePhotos] = useState<VaultPhoto[]>([]);
@@ -156,15 +157,35 @@ export function VaultScreen() {
 
   const correctPassword = "101024";
 
-  const handleUnlock = () => {
-    if (password === correctPassword) {
+  const handleKeypadPress = (digit: string) => {
+    if (pin.length < 6) {
+      const newPin = pin + digit;
+      setPin(newPin);
+      sensory.tap();
+      if (newPin.length === 6) {
+        verifyPin(newPin);
+      }
+    }
+  };
+
+  const handleBackspace = () => {
+    setPin(prev => prev.slice(0, -1));
+    sensory.tap();
+  };
+
+  const verifyPin = (enteredPin: string) => {
+    if (enteredPin === correctPassword) {
       setIsUnlocked(true);
       setError(false);
+      setPin("");
       sensory.play("success");
     } else {
       setError(true);
       sensory.play("urgent");
-      setTimeout(() => setError(false), 500);
+      setTimeout(() => {
+        setError(false);
+        setPin("");
+      }, 600);
     }
   };
 
@@ -290,6 +311,23 @@ export function VaultScreen() {
     return combined.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   }, [chatPhotos, timelinePhotos, vaultPhotos]);
 
+  const groupedPhotos = useMemo(() => {
+    const groups: { [key: string]: VaultPhoto[] } = {};
+    allPhotos.forEach(photo => {
+      let dateLabel = "Unknown Date";
+      if (photo.timestamp) {
+        const date = new Date(photo.timestamp);
+        dateLabel = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      }
+      if (!groups[dateLabel]) {
+        groups[dateLabel] = [];
+      }
+      groups[dateLabel].push(photo);
+    });
+    // the keys are already roughly ordered by our flat array because it came sorted by timestamp desc
+    return Object.entries(groups);
+  }, [allPhotos]);
+
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleDelete = async (photo: VaultPhoto) => {
@@ -352,98 +390,128 @@ export function VaultScreen() {
 
   if (!isUnlocked) {
     return (
-      <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-from)_0%,_transparent_50%)] from-primary/5">
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-between p-8 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-from)_0%,_transparent_50%)] from-primary/10">
+        
         <motion.div 
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="w-full max-w-sm text-center"
+            className="w-full pt-12 flex justify-between items-center"
         >
-          <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner border border-primary/5">
-            <Lock size={36} className="text-primary" />
-          </div>
-          
-          <h1 className="text-2xl font-bold text-text mb-2 tracking-tight">Locked Folder</h1>
-          <p className="text-sm text-text/50 mb-8 px-8">
-            This folder is hidden and encrypted. Enter the secret passcode to view your private moments.
-          </p>
-
-          <div className="relative mb-6 group">
-            <input 
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••"
-              className={cn(
-                "w-full bg-card border border-border rounded-3xl px-6 py-5 text-center text-2xl tracking-[0.5em] font-mono outline-none transition-all shadow-sm focus:shadow-md focus:border-primary/30",
-                error && "border-rose-500 animate-shake"
-              )}
-              onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
-              autoFocus
-            />
-            <button 
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-text/20 hover:text-text/40 transition-colors"
-            >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-
-          <button 
-            onClick={handleUnlock}
-            className="w-full bg-primary text-white font-bold py-5 rounded-3xl shadow-xl shadow-primary/20 hover:shadow-primary/30 active:scale-95 transition-all"
-          >
-            Access Vault
-          </button>
-
           <button 
             onClick={() => setView("home")}
-            className="mt-8 text-xs font-bold uppercase tracking-widest text-text/30 hover:text-text/50 transition-colors px-4 py-2"
+            className="p-3 bg-card/40 rounded-full active:scale-90 transition-all border border-border/50 text-text/60"
           >
-            Back to Home
+            <ChevronLeft size={24} />
           </button>
+          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+            <ShieldCheck size={14} className="text-emerald-500" />
+            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Encrypted Lock</span>
+          </div>
+          <div className="w-12 h-12" /> {/* Spacer */}
+        </motion.div>
+
+        <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="w-full flex-1 flex flex-col items-center justify-center max-w-sm"
+        >
+          <div className="w-20 h-20 bg-card rounded-[2.5rem] flex items-center justify-center mb-8 shadow-xl border border-border/60 relative overflow-hidden">
+            <Lock size={32} className="text-primary z-10" />
+            <div className="absolute inset-0 bg-primary/10 animate-pulse" />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-text mb-2 tracking-tight">Enter Passcode</h1>
+          <p className="text-sm text-text/40 mb-12">Passcode is required to access the vault.</p>
+
+          <div className={cn("flex items-center gap-4 mb-16", error && "animate-shake")}>
+            {[...Array(6)].map((_, i) => (
+              <div 
+                key={i}
+                className={cn(
+                  "w-4 h-4 rounded-full border-2 transition-all duration-300",
+                  pin.length > i 
+                    ? "bg-primary border-primary scale-110" 
+                    : "border-border/60 bg-transparent scale-100",
+                  error && "border-rose-500 bg-rose-500"
+                )}
+              />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3 gap-x-8 gap-y-6 w-full max-w-[280px]">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <button
+                key={num}
+                onClick={() => handleKeypadPress(num.toString())}
+                className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-3xl font-light text-text hover:bg-card active:bg-card/60 active:scale-90 transition-all font-mono"
+              >
+                {num}
+              </button>
+            ))}
+            
+            <div className="w-[72px] h-[72px] flex items-center justify-center">
+              <Fingerprint size={32} className="text-primary/40" />
+            </div>
+
+            <button
+                onClick={() => handleKeypadPress('0')}
+                className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-3xl font-light text-text hover:bg-card active:bg-card/60 active:scale-90 transition-all font-mono"
+            >
+              0
+            </button>
+            
+            <button
+                onClick={handleBackspace}
+                disabled={pin.length === 0}
+                className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-text/60 disabled:opacity-30 hover:bg-card active:bg-card/60 active:scale-90 transition-all"
+            >
+              <Delete size={28} />
+            </button>
+          </div>
         </motion.div>
         
         <style>{`
             @keyframes shake {
                 0%, 100% { transform: translateX(0); }
-                25% { transform: translateX(-10px); }
-                75% { transform: translateX(10px); }
+                25% { transform: translateX(-15px); }
+                75% { transform: translateX(15px); }
             }
-            .animate-shake { animation: shake 0.2s ease-in-out infinite; }
+            .animate-shake { animation: shake 0.3s ease-in-out; }
         `}</style>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-card/30 flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 z-50 bg-bg/80 backdrop-blur-xl border-b border-border/50 px-4 py-4 flex items-center gap-4">
-            <button 
-                onClick={() => setView("home")}
-                className="p-2 -ml-2 rounded-xl hover:bg-black/5 active:scale-90 transition-all text-text/60"
-            >
-                <ChevronLeft size={20} />
-            </button>
-            <div className="flex-1">
-                <h2 className="text-base font-black tracking-tight flex items-center gap-2">
-                    Locked Folder
+        <div className="sticky top-0 z-50 bg-bg/90 backdrop-blur-2xl px-4 py-3 flex items-center justify-between border-b border-border/30">
+            <div className="flex items-center gap-4">
+                <button 
+                    onClick={() => setView("home")}
+                    className="w-10 h-10 rounded-full flex items-center justify-center bg-card/40 hover:bg-card/80 active:scale-90 transition-all text-text/80 shadow-sm border border-border/60"
+                >
+                    <ChevronLeft size={22} />
+                </button>
+                <div>
+                  <h2 className="text-lg font-bold tracking-tight text-text flex items-center gap-2">
+                    Private Vault
                     <ShieldCheck size={16} className="text-emerald-500" />
-                </h2>
-                <p className="text-[10px] uppercase font-bold tracking-widest text-text/30">
-                    {allPhotos.length} Secured Items
-                </p>
+                  </h2>
+                  <p className="text-[10px] font-bold text-text/40 uppercase tracking-widest">{allPhotos.length} Secured Items</p>
+                </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
                 <label 
                     htmlFor="vault-upload-header"
-                    className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center cursor-pointer active:scale-90 transition-all shadow-lg ring-4 ring-primary/10"
+                    className="h-10 px-4 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center cursor-pointer hover:bg-primary/20 active:scale-95 transition-all border border-primary/20"
                 >
                     {isUploading ? (
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                     ) : (
-                        <Plus size={22} />
+                        <><Plus size={16} className="mr-1.5"/> Add</>
                     )}
                 </label>
                 <input id="vault-upload-header" type="file" accept="image/*" multiple className="hidden" onChange={handleFileUpload} disabled={isUploading} />
@@ -451,21 +519,21 @@ export function VaultScreen() {
         </div>
 
         {/* Grid */}
-        <div className="flex-1 p-4 pb-24">
+        <div className="flex-1 pb-24">
             {allPhotos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-24 text-center px-8 h-[60vh]">
-                    <div className="w-24 h-24 rounded-[2.5rem] bg-primary/5 flex items-center justify-center mb-6 relative">
-                        <ImageIcon size={48} className="text-primary/20" />
-                        <div className="absolute inset-0 bg-primary/5 rounded-[2.5rem] animate-pulse" />
+                <div className="flex flex-col items-center justify-center py-24 text-center px-8 h-[70vh]">
+                    <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-primary/10 to-transparent flex items-center justify-center mb-8 relative border border-primary/10 shadow-2xl shadow-primary/5">
+                        <Lock size={40} className="text-primary/60" />
+                        <div className="absolute inset-0 bg-primary/5 rounded-full animate-pulse" />
                     </div>
-                    <h3 className="text-lg font-bold text-text mb-2">Vault is Empty</h3>
-                    <p className="text-sm text-text/40 mb-8 max-w-[240px] mx-auto leading-relaxed">
-                        Add private photos that you don't want showing up in your phone's main gallery.
+                    <h3 className="text-2xl font-bold text-text mb-3 tracking-tight">Your Vault is Empty</h3>
+                    <p className="text-sm text-text/50 mb-10 max-w-[260px] mx-auto leading-relaxed">
+                        Encrypt and preserve your most private memories away from your main gallery.
                     </p>
                     
                     <label 
                         htmlFor="vault-upload-empty"
-                        className="flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-[2rem] font-bold shadow-xl shadow-primary/20 cursor-pointer active:scale-95 transition-all"
+                        className="flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-full font-bold shadow-xl shadow-primary/20 cursor-pointer active:scale-95 transition-all hover:bg-primary/90"
                     >
                         <Plus size={20} />
                         Choose Photos
@@ -473,13 +541,20 @@ export function VaultScreen() {
                     </label>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {allPhotos.map((photo) => (
-                        <PhotoCard 
-                          key={`${photo.source}-${photo.id}`} 
-                          photo={photo} 
-                          onSelect={setSelectedPhoto}
-                        />
+                <div className="space-y-8 pt-6 pb-6">
+                    {groupedPhotos.map(([dateString, photos]) => (
+                        <div key={dateString}>
+                            <h3 className="px-6 mb-4 text-[13px] font-bold tracking-widest uppercase text-text/50 sticky top-[72px] z-40 bg-bg/90 backdrop-blur-3xl py-3 border-y border-border/20">{dateString}</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 px-4">
+                                {photos.map((photo) => (
+                                    <PhotoCard 
+                                      key={`${photo.source}-${photo.id}`} 
+                                      photo={photo} 
+                                      onSelect={setSelectedPhoto}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             )}
