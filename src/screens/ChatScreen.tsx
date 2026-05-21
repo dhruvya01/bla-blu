@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import {
   Send,
   X,
@@ -23,7 +23,16 @@ import {
   MapPin,
   Image as ImageIcon,
   Lock,
+  Mic,
+  Square,
+  Play,
   Camera,
+  Palette,
+  Star,
+  Pause,
+  Sparkles,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import {
   collection,
@@ -178,6 +187,143 @@ function RomanticEffects({ effect }: { effect: string }) {
   return null;
 }
 
+function AudioMessageWaveform({ src, isMe }: { src: string; isMe: boolean }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [barHeights, setBarHeights] = useState<number[]>([]);
+
+  // Generate a random stable visual waveform
+  useEffect(() => {
+    const heights = Array.from({ length: 18 }, () => Math.floor(Math.random() * 16) + 4);
+    setBarHeights(heights);
+  }, []);
+
+  useEffect(() => {
+    if (!src) return;
+    const audio = new Audio(src);
+    audioRef.current = audio;
+
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+    const onTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+    const onLoadedMetadata = () => {
+      if (audio.duration && audio.duration !== Infinity) {
+        setDuration(audio.duration);
+      }
+    };
+
+    audio.addEventListener("playing", onPlay);
+    audio.addEventListener("auto", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener("playing", onPlay);
+      audio.removeEventListener("auto", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+    };
+  }, [src]);
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch((err) => console.error("Error playing audio:", err));
+    }
+  };
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return "0:00";
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  };
+
+  const handleWaveformClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (!audioRef.current || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    const percentage = clickX / width;
+    audioRef.current.currentTime = percentage * duration;
+    setCurrentTime(audioRef.current.currentTime);
+  };
+
+  const progress = duration ? currentTime / duration : 0;
+
+  return (
+    <div className={cn(
+      "flex items-center gap-2.5 py-2 px-3 rounded-2xl border max-w-[245px] select-none shadow-sm",
+      isMe 
+        ? "bg-white/10 border-white/15 text-white" 
+        : "bg-card border-border text-text"
+    )}>
+      {/* Play/Pause Button */}
+      <button
+        onClick={togglePlay}
+        className={cn(
+          "w-8.5 h-8.5 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 hover:scale-105 shadow-sm",
+          isMe ? "bg-white text-primary" : "bg-primary text-white"
+        )}
+      >
+        {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
+      </button>
+
+      {/* Waveform & Progress */}
+      <div className="flex-1 flex flex-col gap-1 min-w-[120px]">
+        {/* Interactive Bar Display */}
+        <div
+          onClick={handleWaveformClick}
+          className="h-8 flex items-center gap-[3px] cursor-pointer"
+        >
+          {barHeights.map((h, i) => {
+            const barProgress = (i / barHeights.length);
+            const active = progress >= barProgress;
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "w-[3px] rounded-full transition-colors duration-100",
+                  active
+                    ? isMe ? "bg-white" : "bg-primary"
+                    : isMe ? "bg-white/30" : "bg-text/20"
+                )}
+                style={{
+                  height: `${h}px`,
+                  transform: isPlaying && active ? `scaleY(${1 + Math.sin(currentTime * 4 + i) * 0.2})` : "none"
+                }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Timers */}
+        <div className="flex items-center justify-between text-[9px] opacity-75 font-mono leading-none">
+          <span>{formatTime(currentTime)}</span>
+          <span>{duration ? formatTime(duration) : "0:04"}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ChatMessage({
   m,
   isMe,
@@ -187,6 +333,7 @@ function ChatMessage({
   onReply,
   onReact,
   onVisible,
+  onStar,
   reactToMsgId,
   setReactToMsgId,
   onExpandImage,
@@ -197,6 +344,7 @@ function ChatMessage({
   const longPressTimer = useRef<any>(null);
   const [decryptedText, setDecryptedText] = useState(m.text || "");
   const [decryptedImage, setDecryptedImage] = useState(m.image || "");
+  const [decryptedAudio, setDecryptedAudio] = useState(m.audio || "");
 
   useEffect(() => {
     let active = true;
@@ -212,6 +360,11 @@ function ChatMessage({
       } else {
         setDecryptedImage(m.image || "");
       }
+      if (m.audio && m.audio.startsWith('E2EE:')) {
+        decryptData(m.audio).then(a => active && setDecryptedAudio(a));
+      } else {
+        setDecryptedAudio(m.audio || "");
+      }
     };
 
     attemptDecrypt();
@@ -221,7 +374,7 @@ function ChatMessage({
       active = false; 
       window.removeEventListener('e2ee-ready', attemptDecrypt);
     };
-  }, [m.text, m.image]);
+  }, [m.text, m.image, m.audio]);
 
   useEffect(() => {
     if (isMe || m.status === "seen") return;
@@ -401,6 +554,10 @@ function ChatMessage({
     );
   }
 
+  const x = useMotionValue(0);
+  const replyIconOpacity = useTransform(x, [-50, -30, 30, 50], [1, 0, 0, 1]);
+  const replyIconScale = useTransform(x, [-50, -30, 30, 50], [1, 0.5, 0.5, 1]);
+
   return (
     <div
       className={cn("flex w-full mb-2", isMe ? "justify-end" : "justify-start")}
@@ -412,14 +569,27 @@ function ChatMessage({
           isMe ? "items-end" : "items-start",
         )}
       >
-        <div className="relative">
+        <div className="relative flex items-center justify-center">
+          <motion.div
+            style={{ opacity: replyIconOpacity, scale: replyIconScale, x: isMe ? -20 : 20 }}
+            className={cn(
+              "absolute z-0",
+              isMe ? "right-full" : "left-full"
+            )}
+          >
+            <div className="w-8 h-8 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center text-text shadow-sm">
+              <Reply size={16} />
+            </div>
+          </motion.div>
           <motion.div
             drag="x"
+            style={{ x }}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={{ left: 0.1, right: 0.8 }}
             onDragEnd={(_, info) => {
               if (info.offset.x > 50 || info.offset.x < -50) {
                 onReply(m.id);
+                sensory.play("swoosh");
               }
             }}
             initial={{ opacity: 0, y: 12 }}
@@ -498,6 +668,16 @@ function ChatMessage({
                   }}
                 />
               ) : null}
+              {decryptedAudio && decryptedAudio.startsWith("🔒") ? (
+                <div className="flex flex-col items-center justify-center bg-black/5 dark:bg-white/5 rounded-xl p-4 mt-1 mb-1 shadow-sm border border-black/5 text-text/60 w-32 h-16">
+                  <Lock size={16} className="mb-1 opacity-50" />
+                  <span className="text-[10px] font-semibold text-center leading-tight">Secure Audio</span>
+                </div>
+              ) : decryptedAudio ? (
+                <div className="mt-1 mb-1 relative">
+                  <AudioMessageWaveform src={decryptedAudio} isMe={isMe} />
+                </div>
+              ) : null}
               {decryptedText && (
                 <span
                   className="text-[15px] font-medium leading-relaxed break-words"
@@ -546,6 +726,9 @@ function ChatMessage({
               <span className="text-[10px] text-text/50 font-medium lowercase">
                 {formatBubbleTime(m.timestamp)}
               </span>
+              {m.isStarred && (
+                <Star size={10} className="text-amber-400 fill-amber-400" />
+              )}
               {isMe && (
                 <span className="inline-flex items-center">
                   {m.status === "seen" ? (
@@ -617,6 +800,22 @@ function ChatMessage({
                     title="Delete message"
                   >
                     <Trash2 size={18} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onStar) onStar(m.id, m.isStarred);
+                      setReactToMsgId(null);
+                    }}
+                    className={cn(
+                      "p-1.5 rounded-full active:scale-90 transition-all",
+                      m.isStarred 
+                        ? "text-amber-400 hover:text-amber-500 bg-amber-500/10" 
+                        : "text-text/60 hover:text-amber-400 hover:bg-amber-400/10"
+                    )}
+                    title={m.isStarred ? "Unstar message" : "Star message"}
+                  >
+                    <Star size={18} fill={m.isStarred ? "currentColor" : "none"} />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setReactToMsgId(null); }}
@@ -842,6 +1041,255 @@ export const getClownCatStickerDataUrl = () => {
   return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
 };
 
+interface LiveSnapCameraProps {
+  onCapture: (base64: string) => void;
+  onClose: () => void;
+}
+
+function LiveSnapCamera({ onCapture, onClose }: LiveSnapCameraProps) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [capturedImg, setCapturedImg] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<"none" | "love" | "glow" | "noir">("none");
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function startCamera() {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode },
+          audio: false,
+        });
+        if (active) {
+          setStream(mediaStream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch camera stream: ", err);
+        setCameraError("Camera access has been disabled or is not supported in this frame. Please allow access or choose a photo.");
+      }
+    }
+    startCamera();
+    return () => {
+      active = false;
+    };
+  }, [facingMode]);
+
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [stream]);
+
+  const toggleFacingMode = () => {
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      if (facingMode === "user") {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg");
+      setCapturedImg(dataUrl);
+      sensory.success();
+    }
+  };
+
+  const getFilterStyle = (filterType: "none" | "love" | "glow" | "noir") => {
+    switch (filterType) {
+      case "love":
+        return "sepia(20%) saturate(140%) hue-rotate(-20deg) brightness(105%) contrast(95%)";
+      case "glow":
+        return "brightness(115%) saturate(110%) contrast(90%) opacity(95%)";
+      case "noir":
+        return "grayscale(100%) contrast(125%) brightness(95%)";
+      case "none":
+      default:
+        return "none";
+    }
+  };
+
+  const handleApply = () => {
+    if (!capturedImg) return;
+    const img = new Image();
+    img.src = capturedImg;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.filter = getFilterStyle(activeFilter);
+        ctx.drawImage(img, 0, 0);
+        const filteredDataUrl = canvas.toDataURL("image/jpeg");
+        onCapture(filteredDataUrl);
+      }
+    };
+  };
+
+  return (
+    <div className="fixed inset-0 z-[400] bg-black text-white flex flex-col justify-between p-6 select-none">
+      {/* Top action bar */}
+      <div className="flex items-center justify-between z-10">
+        <button
+          onClick={onClose}
+          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all active:scale-95"
+        >
+          <X size={20} />
+        </button>
+        <div className="bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wider flex items-center gap-1.5 uppercase">
+          <Sparkles size={12} className="text-amber-400" />
+          <span>Snapchat Snap</span>
+        </div>
+        <div className="w-10 h-10" /> {/* Spacer */}
+      </div>
+
+      {/* Main Viewfinder / Snapped preview container */}
+      <div className="relative flex-1 my-6 rounded-3xl overflow-hidden bg-neutral-900 border border-white/10 flex items-center justify-center shadow-2xl">
+        {capturedImg ? (
+          <img
+            src={capturedImg}
+            alt="Snap Preview"
+            className="w-full h-full object-cover"
+            style={{ filter: getFilterStyle(activeFilter) }}
+          />
+        ) : cameraError ? (
+          <div className="p-8 text-center flex flex-col items-center gap-4">
+            <Camera size={40} className="text-white/20" />
+            <p className="text-sm font-semibold opacity-70 max-w-[280px] leading-relaxed">{cameraError}</p>
+            <button
+              onClick={onClose}
+              className="mt-2 px-6 py-2.5 bg-white text-black font-bold text-xs rounded-full shadow-lg"
+            >
+              Choose from Gallery
+            </button>
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={cn(
+              "w-full h-full object-cover",
+              facingMode === "user" && "scale-x-[-1]"
+            )}
+          />
+        )}
+
+        {/* Dynamic Watermark on Love Theme */}
+        {capturedImg && activeFilter === "love" && (
+          <div className="absolute top-4 right-4 bg-rose-500/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold tracking-wider text-rose-200 border border-rose-400/30">
+            💖 Love Spell Filter
+          </div>
+        )}
+      </div>
+
+      {/* Bottom control items */}
+      <div className="z-10 flex flex-col items-center gap-4 shrink-0">
+        {capturedImg ? (
+          <div className="w-full space-y-5">
+            {/* Filter Sliders / selectors */}
+            <div className="flex items-center justify-center gap-2">
+              {[
+                { id: "none", label: "Original", icon: "🎬" },
+                { id: "love", label: "Romance", icon: "🌸" },
+                { id: "glow", label: "Glow", icon: "✨" },
+                { id: "noir", label: "Noir", icon: "🎞️" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    setActiveFilter(f.id as any);
+                    sensory.tap();
+                  }}
+                  className={cn(
+                    "px-3.5 py-2.5 rounded-2xl flex items-center gap-1.5 text-xs font-bold border transition-all active:scale-95",
+                    activeFilter === f.id
+                      ? "bg-white text-black border-white shadow-md scale-103"
+                      : "bg-white/5 text-white/80 border-white/5 hover:border-white/15"
+                  )}
+                >
+                  <span>{f.icon}</span>
+                  <span>{f.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 w-full">
+              <button
+                onClick={() => {
+                  setCapturedImg(null);
+                  sensory.tap();
+                }}
+                className="py-3.5 bg-neutral-800 hover:bg-neutral-700 text-white font-bold rounded-2xl active:scale-95 transition-all text-xs"
+              >
+                Retake
+              </button>
+              <button
+                onClick={handleApply}
+                className="py-3.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl active:scale-95 transition-all text-xs shadow-lg shadow-primary/20"
+              >
+                Send Snap Photo
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-10 w-full mb-2">
+            {/* Gallery Fallback */}
+            <button
+              onClick={onClose}
+              className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all active:scale-90"
+              title="Gallery"
+            >
+              <Smile size={20} className="text-white/80" />
+            </button>
+
+            {/* Shutter Button with snap animation */}
+            <button
+              onClick={capturePhoto}
+              className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all bg-transparent disabled:opacity-50"
+              disabled={!!cameraError}
+            >
+              <div className="w-14 h-14 rounded-full bg-white relative">
+                <div className="absolute inset-0.5 rounded-full border border-black/10" />
+              </div>
+            </button>
+
+            {/* Switch Camera */}
+            <button
+              onClick={toggleFacingMode}
+              className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
+              disabled={!!cameraError}
+              title="Flip Camera"
+            >
+              <Palette size={20} className="text-white/80 rotate-45" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface ChatProps {
   socket: Socket | null;
 }
@@ -874,6 +1322,11 @@ export function ChatScreen({ socket }: ChatProps) {
   );
 
   const [showChatMenu, setShowChatMenu] = useState(false);
+  const [chatWallpaper, setChatWallpaper] = useState(() => {
+    return localStorage.getItem("blablu_chat_wallpaper") || "default";
+  });
+  const [showWallpaperSelector, setShowWallpaperSelector] = useState(false);
+  const [isLiveCameraOpen, setIsLiveCameraOpen] = useState(false);
 
   const DEFAULT_QUICK_MESSAGES = [
     { id: "eat", type: "eat", label: "Ask to eat", icon: "Utensils" },
@@ -947,6 +1400,63 @@ export function ChatScreen({ socket }: ChatProps) {
   const longPressTimeoutRef = useRef<any>(null);
   const isLongPressRef = useRef<boolean>(false);
   const lastStickerSentTimeRef = useRef<number>(0);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudio, setRecordedAudio] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          if (audioChunksRef.current.length > 0) {
+            setRecordedAudio(reader.result as string);
+          }
+        };
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      sensory.tap();
+    } catch (err) {
+      console.error("Failed to start recording", err);
+      alert("Microphone permission denied or not available.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      sensory.tap();
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      audioChunksRef.current = [];
+      mediaRecorderRef.current.stop();
+      setRecordedAudio(null);
+      setIsRecording(false);
+      sensory.tap();
+    } else {
+      setRecordedAudio(null);
+    }
+  };
 
   const handleAddCustomSticker = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1190,12 +1700,14 @@ export function ChatScreen({ socket }: ChatProps) {
   }, [roomId, user, partner?.uid]);
 
   const sendMessage = async () => {
-    if ((!input.trim() && !imageFile) || !user || !roomId) return;
+    if ((!input.trim() && !imageFile && !recordedAudio) || !user || !roomId) return;
     const textToSend = input.trim();
     const imageToSend = imageFile;
+    const audioToSend = recordedAudio;
 
     setInput(""); // Optimistically clear input
     setImageFile(null); // Clear image
+    setRecordedAudio(null);
     setReplyToMsgId(null);
     addCoins(1); // Gain 1 coin per message!
     
@@ -1215,6 +1727,7 @@ export function ChatScreen({ socket }: ChatProps) {
       };
       if (textToSend) msgData.text = await encryptData(textToSend);
       if (imageToSend) msgData.image = await encryptData(imageToSend);
+      if (audioToSend) msgData.audio = await encryptData(audioToSend);
 
       await addDoc(collection(db, "pairs", roomId, "chatMessages"), msgData);
 
@@ -1440,6 +1953,34 @@ export function ChatScreen({ socket }: ChatProps) {
     }
   };
 
+  const toggleStarMessage = async (msgId: string, currentlyStarred?: boolean) => {
+    if (!user || !roomId || !msgId) return;
+    try {
+      await updateDoc(doc(db, "pairs", roomId, "chatMessages", msgId), {
+        isStarred: !currentlyStarred,
+      });
+      sensory.success();
+    } catch (err) {
+      console.error("Failed to toggle star status: ", err);
+    }
+  };
+
+  const getWallpaperClass = () => {
+    switch (chatWallpaper) {
+      case "sakura":
+        return "bg-gradient-to-tr from-pink-50/90 via-[#fff0f3]/80 to-rose-100/95 dark:from-[#2e0e15] dark:via-[#1c080e] dark:to-[#3b121e] relative before:content-[''] before:absolute before:inset-0 before:opacity-[0.03] before:dark:opacity-[0.07] before:bg-[radial-gradient(#e11d48_1px,transparent_1px)] before:[background-size:16px_16px]";
+      case "sunset":
+        return "bg-gradient-to-tr from-orange-50/90 via-[#fff3e0]/80 to-rose-100/90 dark:from-[#351515] dark:via-[#200c0c] dark:to-[#2e1d35] relative before:content-[''] before:absolute before:inset-0 before:opacity-[0.04] before:bg-[linear-gradient(45deg,#f43f5e_1px,transparent_1px)] before:[background-size:24px_24px]";
+      case "midnight":
+        return "bg-gradient-to-b from-[#0a071c] via-[#05030e] to-[#010005] text-white relative before:content-[''] before:absolute before:inset-0 before:opacity-[0.12] before:bg-[radial-gradient(#ffffff_1px,transparent_1px)] before:[background-size:32px_32px]";
+      case "mint":
+        return "bg-[#f4fbf7] dark:bg-[#071710] relative before:content-[''] before:absolute before:inset-0 before:opacity-[0.05] before:dark:opacity-[0.08] before:bg-[linear-gradient(to_right,#059669_1px,transparent_1px),linear-gradient(to_bottom,#059669_1px,transparent_1px)] before:[background-size:20px_20px]";
+      case "default":
+      default:
+        return "bg-bg shadow-inner";
+    }
+  };
+
   const now = useNow(10000);
   const pOnline = isUserOnline(partner, now);
   const replyMsg = replyToMsgId
@@ -1597,6 +2138,16 @@ export function ChatScreen({ socket }: ChatProps) {
                       <Lock size={16} /> Reset E2EE Passcode
                     </button>
                     <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowWallpaperSelector(true);
+                        sensory.tap();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 rounded-xl transition-colors flex items-center gap-2"
+                    >
+                      <Palette size={16} /> Choose Wallpaper
+                    </button>
+                    <button
                       onClick={deleteChatHistory}
                       className="w-full text-left px-4 py-2.5 text-sm font-medium text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors flex items-center gap-2"
                     >
@@ -1609,6 +2160,74 @@ export function ChatScreen({ socket }: ChatProps) {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* WALLPAPER SELECTOR MODAL */}
+      <AnimatePresence>
+        {showWallpaperSelector && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black z-[250]"
+              onClick={() => setShowWallpaperSelector(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="fixed bottom-0 left-0 right-0 z-[260] bg-card border-t border-border rounded-t-[2.5rem] shadow-2xl p-6 pb-10 flex flex-col items-center max-w-md mx-auto"
+            >
+              <div className="w-12 h-1.5 bg-border rounded-full mb-6 cursor-pointer" onClick={() => setShowWallpaperSelector(false)} />
+              
+              <div className="flex items-center gap-2 mb-2">
+                <Palette className="text-primary" size={20} />
+                <h3 className="font-display font-bold text-lg text-text">Chat Wallpaper</h3>
+              </div>
+              <p className="text-xs text-text/50 mb-6 text-center">Customize the background with romantic presets</p>
+
+              <div className="grid grid-cols-2 gap-4 w-full">
+                {[
+                  { id: "default", label: "Cozy Slate", class: "bg-bg shadow-sm border border-border", text: "text-text" },
+                  { id: "sakura", label: "Sakura Love", class: "bg-gradient-to-tr from-pink-100 to-rose-200 text-[#c2185b]", icon: "🌸" },
+                  { id: "sunset", label: "Sunset Kiss", class: "bg-gradient-to-tr from-amber-100 via-rose-100 to-purple-200 text-[#9c27b0]", icon: "🌅" },
+                  { id: "midnight", label: "Starry Night", class: "bg-gradient-to-b from-indigo-950 to-purple-950 text-white", icon: "🌌" },
+                  { id: "mint", label: "Mint Grid", class: "bg-emerald-50 text-[#0f5132]", icon: "🌿" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setChatWallpaper(item.id);
+                      localStorage.setItem("blablu_chat_wallpaper", item.id);
+                      sensory.success();
+                    }}
+                    className={cn(
+                      "group relative flex flex-col items-center justify-center p-4 rounded-3xl border-2 transition-all cursor-pointer h-24 overflow-hidden shadow-sm",
+                      chatWallpaper === item.id 
+                        ? "border-primary shadow-md scale-102" 
+                        : "border-border hover:border-text/20"
+                    )}
+                  >
+                    <div className={cn("absolute inset-0 opacity-85 group-hover:opacity-100 transition-opacity", item.class)} />
+                    <div className="relative z-10 flex flex-col items-center">
+                      <span className="text-2xl mb-1">{item.icon || "🏡"}</span>
+                      <span className="text-xs font-bold font-sans text-text">{item.label}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowWallpaperSelector(false)}
+                className="w-full mt-6 py-3.5 bg-primary text-white font-bold rounded-2xl active:scale-95 transition-all text-sm shadow-md hover:bg-primary/90"
+              >
+                Apply Wallpaper
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* EXPANDED IMAGE MODAL */}
       <AnimatePresence>
@@ -1641,7 +2260,10 @@ export function ChatScreen({ socket }: ChatProps) {
       {/* CHAT AREA */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto px-5 pt-28 pb-6 flex flex-col no-scrollbar"
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto px-5 pt-28 pb-6 flex flex-col no-scrollbar",
+          getWallpaperClass()
+        )}
       >
         {messages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center opacity-20 text-center px-10">
@@ -1681,6 +2303,7 @@ export function ChatScreen({ socket }: ChatProps) {
                     onReply={setReplyToMsgId}
                     onReact={addReaction}
                     onVisible={markAsSeen}
+                    onStar={toggleStarMessage}
                     reactToMsgId={reactToMsgId}
                     setReactToMsgId={setReactToMsgId}
                     onExpandImage={setExpandedImage}
@@ -1993,12 +2616,13 @@ export function ChatScreen({ socket }: ChatProps) {
                     <button
                       onClick={() => {
                         setShowAttachmentMenu(false);
-                        cameraInputRef.current?.click();
+                        setIsLiveCameraOpen(true);
+                        sensory.tap();
                       }}
                       className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-black/5 active:bg-black/10 transition-colors flex items-center gap-3 border-b border-border/50"
                     >
                       <Camera size={18} className="text-primary" />
-                      Take Photo
+                      Take Live Snap
                     </button>
                     <button
                       onClick={() => {
@@ -2044,29 +2668,79 @@ export function ChatScreen({ socket }: ChatProps) {
             ref={stickerInputRef}
             onChange={handleAddCustomSticker}
           />
-          <textarea
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            placeholder="Write a message..."
-            rows={1}
-            className="bg-card border border-border rounded-2xl px-4 py-3 flex-1 text-sm outline-none resize-none transition-all focus:border-primary/50 max-h-32 shadow-sm placeholder:text-text/20"
-            style={{ height: "auto" }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() && !imageFile}
-            className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-md disabled:bg-primary/30"
-          >
-            <Send size={18} />
-          </button>
+          {isRecording ? (
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl px-4 py-3 flex-1 flex items-center justify-between shadow-sm h-10">
+              <div className="flex items-center gap-2 text-rose-500 animate-pulse text-sm font-medium">
+                <Mic size={16} />
+                Recording...
+              </div>
+              <button onClick={cancelRecording} className="text-text/50 hover:text-text pr-2">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ) : recordedAudio ? (
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl px-4 py-2 flex-1 flex items-center justify-between shadow-sm h-10">
+              <audio src={recordedAudio} controls className="h-6 w-full max-w-[150px] scale-90 origin-left" />
+              <button onClick={cancelRecording} className="text-text/50 hover:text-text pl-2">
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <textarea
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              placeholder="Write a message..."
+              rows={1}
+              className="bg-card border border-border rounded-2xl px-4 py-3 flex-1 text-sm outline-none resize-none transition-all focus:border-primary/50 max-h-32 shadow-sm placeholder:text-text/20"
+              style={{ height: "auto" }}
+            />
+          )}
+          
+          {isRecording ? (
+            <button
+              onClick={stopRecording}
+              className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-md animate-pulse"
+            >
+              <Square size={18} fill="currentColor" />
+            </button>
+          ) : input.trim() || imageFile || recordedAudio ? (
+            <button
+              onClick={sendMessage}
+              className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-md"
+            >
+              <Send size={18} />
+            </button>
+          ) : (
+            <button
+              onClick={startRecording}
+              className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-md"
+            >
+              <Mic size={18} />
+            </button>
+          )}
         </div>
       </div>
+
+      {isLiveCameraOpen && (
+        <LiveSnapCamera
+          onCapture={async (base64) => {
+            try {
+              setIsLiveCameraOpen(false);
+              const compressed = await compressImage(base64, 600, 0.4);
+              setImageFile(compressed);
+            } catch (err) {
+              console.error("Compression of snapped image failed:", err);
+            }
+          }}
+          onClose={() => setIsLiveCameraOpen(false)}
+        />
+      )}
     </motion.div>
   );
 }
