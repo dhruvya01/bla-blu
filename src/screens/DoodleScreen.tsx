@@ -19,6 +19,13 @@ import {
   Circle,
   Grid,
   Smile,
+  Maximize2,
+  Minimize2,
+  Columns2,
+  Hash,
+  Activity,
+  Zap,
+  Lock,
 } from "lucide-react";
 import { useAppStore } from "../store";
 import { db } from "../firebase/config";
@@ -31,7 +38,7 @@ export interface Stroke {
   color: string;
   width: number;
   opacity: number;
-  tool: "pencil" | "brush" | "neon" | "eraser";
+  tool: "pencil" | "brush" | "neon" | "eraser" | "spray";
   shape?: "none" | "line" | "rect" | "circle";
 }
 
@@ -56,6 +63,10 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   const [currentOpacity, setCurrentOpacity] = useState(1);
   const [currentTool, setCurrentTool] = useState<Stroke["tool"]>("brush");
   const [currentShape, setCurrentShape] = useState<Stroke["shape"]>("none");
+  const [isMirrorMode, setIsMirrorMode] = useState(false);
+  const [radialSymmetry, setRadialSymmetry] = useState<0 | 4 | 6 | 8>(0);
+  const [isSmoothing, setIsSmoothing] = useState(true);
+  const [activeTab, setActiveTab] = useState<"tools" | "colors" | "settings">("tools");
   const [canvasBg, setCanvasBg] = useState("#ffffff");
   const [isDrawing, setIsDrawing] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
@@ -69,6 +80,8 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   strokesRef.current = strokes;
   const currentPathRef = useRef<{ x: number; y: number; pressure?: number }[]>([]);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
+  const lastPointTimeRef = useRef<number>(0);
+  const lastSpeedRef = useRef<number>(1);
 
   const triggerHaptic = () => {
     sensory.tap();
@@ -79,23 +92,29 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
     { name: "Pink", hex: "#ec4899" },
     { name: "Amethyst", hex: "#d946ef" },
     { name: "Lavender", hex: "#a855f7" },
+    { name: "Violet", hex: "#8b5cf6" },
     { name: "Indigo", hex: "#6366f1" },
     { name: "Royal", hex: "#3b82f6" },
     { name: "Sky", hex: "#0ea5e9" },
+    { name: "Cyan", hex: "#06b6d4" },
     { name: "Teal", hex: "#14b8a6" },
     { name: "Emerald", hex: "#10b981" },
     { name: "Forest", hex: "#22c55e" },
     { name: "Lime", hex: "#84cc16" },
+    { name: "Lemon", hex: "#facc15" },
     { name: "Sunny", hex: "#eab308" },
+    { name: "Amber", hex: "#f59e0b" },
     { name: "Orange", hex: "#f97316" },
     { name: "Rose", hex: "#ef4444" },
+    { name: "Coffee", hex: "#78350f" },
     { name: "Slate", hex: "#334155" },
     { name: "Midnight", hex: "#0f172a" },
+    { name: "AMOLED", hex: "#000000" },
     { name: "Pure White", hex: "#ffffff" },
   ];
 
   const BG_COLORS = [
-    "#ffffff", "#fafaf9", "#f0f9ff", "#fff7ed", "#fdf2f8", "#0f172a", "#1e293b"
+    "#ffffff", "#fafaf9", "#f5f5f4", "#f0f9ff", "#fff7ed", "#fdf2f8", "#0f172a", "#1e293b", "#000000"
   ];
 
   // Persistence: Load/Save draft from LocalStorage
@@ -160,7 +179,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   }, []);
 
   // Sync state values
-  useEffect(() => drawStrokesOnCanvas(), [strokes, isDrawing, canvasBg, showGrid, currentColor, currentWidth, currentOpacity, currentTool, currentShape]);
+  useEffect(() => drawStrokesOnCanvas(), [strokes, isDrawing, canvasBg, showGrid, currentColor, currentWidth, currentOpacity, currentTool, currentShape, isMirrorMode, radialSymmetry, isSmoothing]);
 
   // Redraw all strokes from standard state
   const drawStrokesOnCanvas = () => {
@@ -190,7 +209,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
       ctx.restore();
     }
 
-    const renderStroke = (s: Stroke) => {
+    const renderStroke = (s: Stroke, symmetryOptions: { mirror?: boolean; rotation?: number } = {}) => {
       if (s.points.length < 1) return;
       ctx.save();
       
@@ -202,12 +221,25 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
+      // Apply symmetry transformations
+      if (symmetryOptions.mirror) {
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+      }
+      
+      if (symmetryOptions.rotation) {
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(symmetryOptions.rotation);
+        ctx.translate(-width / 2, -height / 2);
+      }
+
       if (s.tool === "neon") {
-        ctx.shadowBlur = s.width * 2;
+        ctx.shadowBlur = s.width * 2.5;
         ctx.shadowColor = drawColor;
-      } else if (s.tool === "brush") {
-        ctx.shadowBlur = s.width * 0.5;
-        ctx.shadowColor = "rgba(0,0,0,0.1)";
+      } else if (s.tool === "pencil") {
+        ctx.globalAlpha = s.opacity * 0.7; // Grainy feel
+      } else if (s.tool === "spray") {
+        ctx.globalAlpha = s.opacity * 0.5;
       }
 
       if (s.shape && s.shape !== "none" && s.points.length >= 2) {
@@ -227,39 +259,85 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
           ctx.arc(sx, sy, radius, 0, Math.PI * 2);
         }
         ctx.stroke();
-      } else {
-        ctx.beginPath();
-        if (s.points.length < 3) {
-          ctx.moveTo(s.points[0].x * width, s.points[0].y * height);
-          s.points.forEach(p => ctx.lineTo(p.x * width, p.y * height));
-          ctx.stroke();
-        } else {
-          ctx.moveTo(s.points[0].x * width, s.points[0].y * height);
-          for (let i = 1; i < s.points.length - 2; i++) {
-            const xc = (s.points[i].x + s.points[i + 1].x) / 2 * width;
-            const yc = (s.points[i].y + s.points[i + 1].y) / 2 * height;
-            ctx.quadraticCurveTo(s.points[i].x * width, s.points[i].y * height, xc, yc);
+      } else if (s.points.length > 0) {
+        if (s.tool === "spray") {
+          // Special spray effect - optimized for performance
+          const density = Math.min(20, Math.floor(s.width * 2));
+          s.points.forEach(p => {
+            for (let i = 0; i < density; i++) {
+              const offsetX = (Math.random() - 0.5) * s.width * 4;
+              const offsetY = (Math.random() - 0.5) * s.width * 4;
+              ctx.fillStyle = drawColor;
+              ctx.fillRect(p.x * width + offsetX, p.y * height + offsetY, 1, 1);
+            }
+          });
+        } else if (!isSmoothing || s.points.length < 3) {
+          for (let i = 0; i < s.points.length - 1; i++) {
+            const p1 = s.points[i];
+            const p2 = s.points[i + 1];
+            
+            // Speed-based width if pressure data exists
+            const speedFact = p2.pressure ? Math.max(0.3, Math.min(1.5, 1 / (p2.pressure * 0.005 + 1))) : 1;
+            ctx.lineWidth = s.width * speedFact;
+            
+            ctx.beginPath();
+            ctx.moveTo(p1.x * width, p1.y * height);
+            ctx.lineTo(p2.x * width, p2.y * height);
+            ctx.stroke();
           }
+        } else {
+          // Smoothed path with segments
+          for (let i = 1; i < s.points.length - 2; i++) {
+            const p0 = s.points[i - 1];
+            const p1 = s.points[i];
+            const p2 = s.points[i + 1];
+            
+            const xc = (p1.x + p2.x) / 2 * width;
+            const yc = (p1.y + p2.y) / 2 * height;
+            
+            const speedFact = p2.pressure ? Math.max(0.3, Math.min(1.5, 1 / (p2.pressure * 0.005 + 1))) : 1;
+            ctx.lineWidth = s.width * speedFact;
+
+            ctx.beginPath();
+            ctx.moveTo(p1.x * width, p1.y * height);
+            ctx.quadraticCurveTo(p1.x * width, p1.y * height, xc, yc);
+            ctx.stroke();
+          }
+          // Cap the stroke
           const last2 = s.points[s.points.length - 2];
           const last = s.points[s.points.length - 1];
-          ctx.quadraticCurveTo(last2.x * width, last2.y * height, last.x * width, last.y * height);
+          ctx.beginPath();
+          ctx.moveTo(last2.x * width, last2.y * height);
+          ctx.lineTo(last.x * width, last.y * height);
           ctx.stroke();
         }
       }
       ctx.restore();
     };
 
-    strokesRef.current.forEach(s => renderStroke(s));
+    const runRenderCycle = (s: Stroke) => {
+      renderStroke(s);
+      if (isMirrorMode) renderStroke(s, { mirror: true });
+      if (radialSymmetry > 0) {
+        const angle = (Math.PI * 2) / radialSymmetry;
+        for (let i = 1; i < radialSymmetry; i++) {
+          renderStroke(s, { rotation: angle * i });
+        }
+      }
+    };
+
+    strokesRef.current.forEach(s => runRenderCycle(s));
     
     if (isDrawing && currentPathRef.current.length > 0) {
-      renderStroke({
+      const activeStroke = {
         points: currentPathRef.current,
         color: currentColor,
         width: currentWidth,
         opacity: currentOpacity,
         tool: currentTool,
         shape: currentShape
-      });
+      };
+      runRenderCycle(activeStroke);
     }
   };
 
@@ -301,6 +379,9 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
     startPosRef.current = { x: coords.x, y: coords.y };
     currentPathRef.current = [coords];
     
+    lastPointTimeRef.current = Date.now();
+    lastSpeedRef.current = 1;
+
     // Trigger faint haptic
     triggerHaptic();
     drawStrokesOnCanvas();
@@ -318,7 +399,18 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
       if (lastPoint) {
         const dist = Math.hypot(coords.x - lastPoint.x, coords.y - lastPoint.y);
         if (dist < 0.002) return;
+
+        // Velocity tracking for dynamic width
+        const now = Date.now();
+        const timeDiff = now - lastPointTimeRef.current;
+        const speed = timeDiff > 0 ? (dist / timeDiff) * 1000 : 0;
+        
+        // Smoothing speed transitions
+        const smoothedSpeed = (speed * 0.3) + (lastSpeedRef.current * 0.7);
+        lastSpeedRef.current = smoothedSpeed;
+        lastPointTimeRef.current = now;
       }
+      
       currentPathRef.current.push(coords);
     }
     drawStrokesOnCanvas();
@@ -392,7 +484,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
     saveToScrapbook();
   };
 
-  const handleConfirmSaveToScrapbook = async () => {
+  const handleConfirmSaveToScrapbook = async (isVault: boolean = false) => {
     const canvas = canvasRef.current;
     if (!canvas || !roomId || !user) return;
 
@@ -404,17 +496,20 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
 
       // 2. Encrypt contents with App E2EE
       const encryptedContent = await encryptData(dataUrl);
-      const encryptedCaption = await encryptData(doodleTitle.trim() || "Our Romantic Drawing 🎨🐾");
+      const encryptedCaption = await encryptData(doodleTitle.trim() || (isVault ? "🔒 Secret Artwork" : "Our Romantic Drawing 🎨🐾"));
 
-      // 3. Store to Shared Scrapbook/Timeline document in Firebase
-      const timelineDocRef = collection(db, "pairs", roomId, "timeline");
-      await addDoc(timelineDocRef, {
+      // 3. Store to selected collection (timeline or vault)
+      const collectionName = isVault ? "vault" : "timeline";
+      const docRef = collection(db, "pairs", roomId, collectionName);
+      
+      await addDoc(docRef, {
         type: "photo",
         content: encryptedContent,
         caption: encryptedCaption,
         createdAt: serverTimestamp(),
         userId: user.uid,
-        stickers: [], // standard scrapbook specs
+        stickers: [], 
+        isLocked: isVault
       });
 
       sensory.success();
@@ -422,267 +517,320 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
       setShowSaveModal(false);
       setDoodleTitle("");
 
-      // Confetti and notify
-      alert("Successfully saved to Our Scrapbook! 🥳💖");
+      alert(isVault ? "Art moved to the Locked Vault! 🔐" : "Successfully saved to Our Scrapbook! 🥳💖");
     } catch (err) {
       console.error(err);
       setIsSavingToScrapbook(false);
-      alert("Failed to save to scrapbook 💔");
+      alert("Failed to save art 💔");
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#fafaf9] dark:bg-[#12101e] transition-colors relative select-none">
+    <div className="flex flex-col h-screen bg-[#fafaf9] dark:bg-[#0c0a15] transition-colors relative select-none overflow-hidden">
       
-      {/* HEADER BAR */}
-      <div className="px-4 py-3 bg-white/70 dark:bg-card/40 backdrop-blur-md border-b border-border/40 flex items-center justify-between shadow-xs sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              triggerHaptic();
-              if (onClose) {
-                onClose();
-              } else {
-                setView("home");
-              }
-            }}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-text transition-all"
-            title="Go home"
+      {/* MINIMAL TOP HUD */}
+      <AnimatePresence>
+        {!isDrawing && (
+          <motion.div 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -20, opacity: 0 }}
+            className="px-4 py-3 flex items-center justify-between z-50 absolute top-0 inset-x-0 pointer-events-none"
           >
-            <ArrowLeft size={16} />
-          </button>
-          
-          <div className="flex flex-col">
-            <span className="text-xs font-black tracking-tight text-text">Doodle Studio</span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-text/40">Private Creation</span>
-          </div>
-        </div>
+            <div className="flex items-center gap-3 pointer-events-auto">
+              <button
+                onClick={() => { triggerHaptic(); if (onClose) onClose(); else setView("home"); }}
+                className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/80 dark:bg-card/80 backdrop-blur-xl text-text border border-border/50 shadow-lg active:scale-95 transition-all"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              
+              <div className="hidden sm:flex flex-col">
+                <span className="text-[10px] font-black tracking-widest text-text/40 uppercase">Canvas Studio</span>
+                <span className="text-xs font-bold text-text">Creative Mode</span>
+              </div>
+            </div>
 
-        <div className="flex items-center gap-1.5">
-          {strokes.length > 0 && (
-            <button
-              onClick={handleFinalSend}
-              className="px-4 py-1.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-primary/20"
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <button
+                onClick={handleUndo}
+                disabled={strokes.length === 0}
+                className={`w-10 h-10 flex items-center justify-center rounded-2xl bg-white/80 dark:bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg transition-all ${
+                  strokes.length > 0 ? "text-text active:scale-95" : "text-text/20"
+                }`}
+              >
+                <Undo size={18} />
+              </button>
+
+              <button
+                onClick={handleFinalSend}
+                className="px-6 h-10 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 active:scale-95 transition-all shadow-xl shadow-primary/20"
+              >
+                {onSend ? "Post" : "Save"}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* IMMERSIVE CANVAS */}
+      <div 
+        ref={containerRef}
+        className="flex-1 w-full h-full relative"
+        style={{ cursor: currentTool === "eraser" ? "cell" : "crosshair" }}
+      >
+        <canvas
+          ref={canvasRef}
+          onMouseDown={handleStartDrawing}
+          onMouseMove={handleDrawMove}
+          onMouseUp={handleEndDrawing}
+          onMouseLeave={handleEndDrawing}
+          onTouchStart={handleStartDrawing}
+          onTouchMove={handleDrawMove}
+          onTouchEnd={handleEndDrawing}
+          className="absolute inset-0 block w-full h-full"
+        />
+
+        {strokes.length === 0 && !isDrawing && (
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center select-none">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 0.1, scale: 1 }}
+              className="flex flex-col items-center gap-6"
             >
-              {onSend ? "Send to Partner" : "Save to Memories"}
-            </button>
-          )}
-          <button
-            onClick={handleClear}
-            className="w-8 h-8 flex items-center justify-center text-text/40 hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition-colors"
-            title="Clear board"
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
+              <Zap size={140} strokeWidth={1} />
+              <div className="text-center">
+                <h3 className="font-display font-black text-5xl italic tracking-tighter text-text uppercase">Creative Pad</h3>
+                <p className="font-medium text-lg text-text">Thumb-mode optimized</p>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
 
-      {/* DRAWING BOARD AREA */}
-      <div className="flex-1 flex w-full relative overflow-hidden bg-white dark:bg-[#0c0a15] touch-none">
-        
-        {/* LEFT TOOLBAR - ADVANCED DRAWING */}
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-4 bg-white/90 dark:bg-card/90 backdrop-blur-xl p-2.5 rounded-[2rem] border border-border/50 shadow-2xl">
-          
-          {/* Main Tools Palette */}
-          <div className="flex flex-col gap-2">
-            {[
-              { id: "pencil", icon: <Pen size={16} />, label: "Pencil", color: "text-slate-500" },
-              { id: "brush", icon: <Palette size={16} />, label: "Brush", color: "text-primary" },
-              { id: "neon", icon: <Sparkles size={16} />, label: "Neon", color: "text-purple-500" },
-              { id: "eraser", icon: <div className="w-4 h-3 border-2 border-current rounded-xs" />, label: "Eraser", color: "text-rose-500" }
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => { triggerHaptic(); setCurrentTool(t.id as any); setCurrentShape("none"); }}
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all relative group ${
-                  currentTool === t.id && currentShape === "none" ? "bg-primary text-white shadow-lg scale-110" : "text-text/40 hover:bg-slate-100 dark:hover:bg-neutral-800"
-                }`}
-                title={t.label}
-              >
-                {t.icon}
-                <div className="absolute left-14 px-2 py-1 bg-neutral-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">
-                  {t.label}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="w-6 h-px bg-border/50" />
-
-          {/* Shapes Palette */}
-          <div className="flex flex-col gap-2">
-            {[
-              { id: "line", icon: <div className="w-5 h-0.5 bg-current rotate-45" />, label: "Line" },
-              { id: "rect", icon: <Square size={16} />, label: "Rectangle" },
-              { id: "circle", icon: <Circle size={16} />, label: "Circle" }
-            ].map((s) => (
-              <button
-                key={s.id}
-                onClick={() => { triggerHaptic(); setCurrentShape(s.id as any); if (currentTool === "eraser") setCurrentTool("brush"); }}
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all relative group ${
-                  currentShape === s.id ? "bg-indigo-500 text-white shadow-lg scale-110" : "text-text/40 hover:bg-slate-100 dark:hover:bg-neutral-800"
-                }`}
-                title={s.label}
-              >
-                {s.icon}
-                <div className="absolute left-14 px-2 py-1 bg-neutral-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">
-                  {s.label}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="w-6 h-px bg-border/50" />
-
-          {/* Grid Toggle */}
-          <button
-            onClick={() => { triggerHaptic(); setShowGrid(!showGrid); }}
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
-              showGrid ? "bg-emerald-500 text-white shadow-lg scale-110" : "text-text/40 hover:bg-slate-100 dark:hover:bg-neutral-800"
-            }`}
-            title="Toggle Grid"
+      {/* MOBILE-OPTIMIZED BOTTOM TOOL DECK */}
+      <AnimatePresence>
+        {!isDrawing && (
+          <motion.div 
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 50, opacity: 0 }}
+            className="absolute bottom-6 inset-x-4 z-50 flex flex-col gap-4 pointer-events-none"
           >
-            <Grid size={16} />
-          </button>
+            
+            {/* EXPANDABLE SETTINGS TRAY */}
+            <AnimatePresence mode="wait">
+              {activeTab === "tools" && (
+                <motion.div 
+                  key="tools"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 20, opacity: 0 }}
+                  className="bg-white/90 dark:bg-card/90 backdrop-blur-2xl p-4 rounded-[2.5rem] border border-border/50 shadow-2xl pointer-events-auto flex flex-col gap-5 max-w-2xl mx-auto w-full"
+                >
+                  {/* Tool Selection Row */}
+                  <div className="grid grid-cols-5 gap-2">
+                    {[
+                      { id: "pencil", icon: <Pen size={18} />, label: "Sketch" },
+                      { id: "brush", icon: <Palette size={18} />, label: "Paint" },
+                      { id: "spray", icon: <Sparkles size={18} />, label: "Spray" },
+                      { id: "neon", icon: <Zap size={18} />, label: "Neon" },
+                      { id: "eraser", icon: <Trash2 size={18} />, label: "Erase" }
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => { triggerHaptic(); setCurrentTool(t.id as any); setCurrentShape("none"); }}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${
+                          currentTool === t.id && currentShape === "none" ? "bg-primary text-white shadow-lg scale-105" : "text-text/40 hover:bg-slate-100 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        {t.icon}
+                        <span className="text-[8px] font-black uppercase tracking-tighter">{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
 
-          <div className="w-6 h-px bg-border/50" />
+                  {/* Shapes Row */}
+                  <div className="flex items-center gap-2 px-2">
+                    <span className="text-[10px] font-black uppercase text-text/30 mr-2">Shapes</span>
+                    {[
+                      { id: "line", icon: <div className="w-5 h-0.5 bg-current rotate-45" /> },
+                      { id: "rect", icon: <Square size={18} /> },
+                      { id: "circle", icon: <Circle size={18} /> },
+                      { id: "none", icon: <Activity size={18} />, label: "Freehand" }
+                    ].map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => { triggerHaptic(); setCurrentShape(s.id as any); if (s.id !== "none" && currentTool === "eraser") setCurrentTool("brush"); }}
+                        className={`flex-1 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                          currentShape === s.id ? "bg-indigo-500 text-white shadow-md active:scale-95" : "text-text/30 hover:bg-slate-100 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        {s.icon}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
-          {/* Undo */}
-          <button
-            onClick={handleUndo}
-            disabled={strokes.length === 0}
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
-              strokes.length > 0 ? "text-text hover:bg-slate-100 dark:hover:bg-neutral-800" : "text-text/10 cursor-not-allowed"
-            }`}
-            title="Undo"
-          >
-            <Undo size={16} />
-          </button>
-        </div>
+              {activeTab === "colors" && (
+                <motion.div 
+                  key="colors"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 20, opacity: 0 }}
+                  className="bg-white/90 dark:bg-card/90 backdrop-blur-2xl p-5 rounded-[2.5rem] border border-border/50 shadow-2xl pointer-events-auto max-w-2xl mx-auto w-full"
+                >
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {COLORS.map((color) => (
+                      <button
+                        key={color.hex}
+                        onClick={() => { triggerHaptic(); setCurrentColor(color.hex); if (currentTool === "eraser") setCurrentTool("brush"); }}
+                        className={`w-11 h-11 rounded-full shrink-0 transition-all active:scale-125 ${
+                          currentColor === color.hex ? "scale-125 ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-900 shadow-xl" : "opacity-90 hover:opacity-100"
+                        }`}
+                        style={{ backgroundColor: color.hex }}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
-        {/* RIGHT SLIDERS - WIDTH & OPACITY */}
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-6 bg-white/90 dark:bg-card/90 backdrop-blur-xl p-3 rounded-[2rem] border border-border/50 shadow-2xl">
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-tighter text-text/30">Size</span>
-            <div className="h-32 w-1.5 bg-slate-100 dark:bg-white/5 rounded-full relative overflow-hidden group cursor-pointer">
-              <input
-                type="range"
-                min="1"
-                max="50"
-                step="1"
-                value={currentWidth}
-                onChange={(e) => setCurrentWidth(Number(e.target.value))}
-                className="absolute inset-0 opacity-0 cursor-pointer h-full w-full z-10 [writing-mode:bt-lr] rotate-180"
-                style={{ appearance: "slider-vertical" }}
-              />
-              <motion.div 
-                className="absolute bottom-0 left-0 w-full bg-primary"
-                initial={false}
-                animate={{ height: `${(currentWidth / 50) * 100}%` }}
-              />
+              {activeTab === "settings" && (
+                <motion.div 
+                  key="settings"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 20, opacity: 0 }}
+                  className="bg-white/90 dark:bg-card/90 backdrop-blur-2xl p-6 rounded-[2.5rem] border border-border/50 shadow-2xl pointer-events-auto flex flex-col gap-6 max-w-2xl mx-auto w-full"
+                >
+                  {/* Sliders Area */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-black uppercase text-text/40">
+                        <span>Brush Size</span>
+                        <span>{currentWidth}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1" max="60" step="1"
+                        value={currentWidth}
+                        onChange={(e) => setCurrentWidth(Number(e.target.value))}
+                        className="w-full accent-primary h-2 bg-slate-100 dark:bg-white/5 rounded-full appearance-none cursor-pointer"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-black uppercase text-text/40">
+                        <span>Opacity</span>
+                        <span>{Math.round(currentOpacity*100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.1" max="1" step="0.05"
+                        value={currentOpacity}
+                        onChange={(e) => setCurrentOpacity(Number(e.target.value))}
+                        className="w-full accent-indigo-500 h-2 bg-slate-100 dark:bg-white/5 rounded-full appearance-none cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Toggles & Symmetry */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => { triggerHaptic(); setShowGrid(!showGrid); }}
+                      className={`flex items-center gap-3 p-4 rounded-3xl transition-all border ${
+                        showGrid ? "bg-emerald-500/10 border-emerald-500 text-emerald-600" : "bg-slate-50 dark:bg-white/5 border-transparent text-text/40"
+                      }`}
+                    >
+                      <Grid size={18} />
+                      <span className="text-xs font-bold">Show Grid</span>
+                    </button>
+                    <button
+                      onClick={() => { triggerHaptic(); setIsSmoothing(!isSmoothing); }}
+                      className={`flex items-center gap-3 p-4 rounded-3xl transition-all border ${
+                        isSmoothing ? "bg-amber-500/10 border-amber-500 text-amber-600" : "bg-slate-50 dark:bg-white/5 border-transparent text-text/40"
+                      }`}
+                    >
+                      <Zap size={18} />
+                      <span className="text-xs font-bold">Smoothing</span>
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-3xl space-y-3">
+                    <span className="text-[10px] font-black uppercase text-text/30">Symmetry Mode</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: "off", icon: <Minimize2 size={16} />, label: "Off", action: () => { setIsMirrorMode(false); setRadialSymmetry(0); } },
+                        { id: "mirror", icon: <Columns2 size={16} />, label: "Mirror", action: () => { setIsMirrorMode(true); setRadialSymmetry(0); } },
+                        { id: "radial", icon: <Hash size={16} />, label: "Radial (6)", action: () => { setIsMirrorMode(false); setRadialSymmetry(6); } }
+                      ].map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => { triggerHaptic(); s.action(); }}
+                          className={`flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all ${
+                            (s.id === "off" && !isMirrorMode && radialSymmetry === 0) ||
+                            (s.id === "mirror" && isMirrorMode) ||
+                            (s.id === "radial" && radialSymmetry === 6)
+                              ? "bg-primary text-white shadow-md"
+                              : "text-text/40 hover:bg-slate-200 dark:hover:bg-white/10"
+                          }`}
+                        >
+                          {s.icon}
+                          <span className="text-[9px] font-bold">{s.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Background Color */}
+                  <div className="flex items-center gap-3">
+                     <span className="text-[10px] font-black uppercase text-text/30">Background</span>
+                     <div className="flex-1 flex overflow-x-auto gap-2 no-scrollbar">
+                        {BG_COLORS.map(bg => (
+                          <button
+                            key={bg}
+                            onClick={() => { triggerHaptic(); setCanvasBg(bg); }}
+                            className={`w-8 h-8 rounded-full shrink-0 border-2 transition-all ${
+                              canvasBg === bg ? "border-primary scale-110" : "border-transparent"
+                            }`}
+                            style={{ backgroundColor: bg }}
+                          />
+                        ))}
+                     </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* PRIMARY NAVIGATION TIER */}
+            <div className="bg-white/80 dark:bg-card/90 backdrop-blur-3xl p-2 rounded-[3rem] border border-border/50 shadow-2xl flex items-center gap-2 pointer-events-auto max-w-lg mx-auto w-full">
+              {[
+                { id: "tools", icon: <Pen size={20} />, label: "Canvas" },
+                { id: "colors", icon: <Palette size={20} />, label: "Palette" },
+                { id: "settings", icon: <Activity size={20} />, label: "Alchemy" }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => { triggerHaptic(); setActiveTab(tab.id as any); }}
+                  className={`flex-1 h-14 rounded-[2.5rem] flex items-center justify-center gap-3 transition-all ${
+                    activeTab === tab.id ? "bg-primary text-white shadow-xl scale-[1.02]" : "text-text/40 hover:bg-slate-100 dark:hover:bg-white/5"
+                  }`}
+                >
+                  {tab.icon}
+                  <span className="text-xs font-black uppercase tracking-tighter hidden sm:inline">{tab.label}</span>
+                </button>
+              ))}
+              <div className="w-px h-8 bg-border/40 mx-1" />
+              <button
+                onClick={handleClear}
+                className="w-14 h-14 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-500/10 transition-colors"
+              >
+                <Trash2 size={20} />
+              </button>
             </div>
-            <span className="text-[10px] font-bold text-text/60">{currentWidth}</span>
-          </div>
-
-          <div className="w-6 h-px bg-border/50" />
-
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-tighter text-text/30">Alpha</span>
-            <div className="h-32 w-1.5 bg-slate-100 dark:bg-white/5 rounded-full relative overflow-hidden group cursor-pointer">
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                value={currentOpacity}
-                onChange={(e) => setCurrentOpacity(Number(e.target.value))}
-                className="absolute inset-0 opacity-0 cursor-pointer h-full w-full z-10 [writing-mode:bt-lr] rotate-180"
-                style={{ appearance: "slider-vertical" }}
-              />
-              <motion.div 
-                className="absolute bottom-0 left-0 w-full bg-indigo-500"
-                initial={false}
-                animate={{ height: `${currentOpacity * 100}%` }}
-              />
-            </div>
-            <span className="text-[10px] font-bold text-text/60">{Math.round(currentOpacity * 100)}%</span>
-          </div>
-        </div>
-
-        <div 
-          ref={containerRef}
-          className="flex-1 w-full h-full relative"
-          style={{ cursor: currentTool === "eraser" ? "cell" : "crosshair" }}
-        >
-          <canvas
-            ref={canvasRef}
-            onMouseDown={handleStartDrawing}
-            onMouseMove={handleDrawMove}
-            onMouseUp={handleEndDrawing}
-            onMouseLeave={handleEndDrawing}
-            onTouchStart={handleStartDrawing}
-            onTouchMove={handleDrawMove}
-            onTouchEnd={handleEndDrawing}
-            className="absolute inset-0 block w-full h-full"
-          />
-
-          {strokes.length === 0 && !isDrawing && (
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center select-none">
-              <div className="flex flex-col items-center gap-4 opacity-10 dark:opacity-20 animate-in fade-in zoom-in duration-1000">
-                <Palette size={120} />
-                <div className="text-center">
-                  <h3 className="font-display font-black text-4xl italic tracking-tighter text-text uppercase">Canvas Studio</h3>
-                  <p className="font-medium text-lg text-text">Private Artistic Playground</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* TOOL CONTROL OVERLAYS */}
-        <div className="absolute bottom-6 inset-x-0 z-40 px-4 flex flex-col gap-4 pointer-events-none">
-          {/* Canvas Background Color Picker */}
-          <div className="flex justify-center">
-             <div className="bg-white/80 dark:bg-card/80 backdrop-blur-xl p-1.5 rounded-full border border-border/50 shadow-2xl flex items-center gap-1.5 pointer-events-auto overflow-x-auto no-scrollbar max-w-full scale-90">
-                <div className="text-[10px] font-black uppercase text-text/30 px-2 flex items-center gap-1">
-                  <Layers size={10} /> BG
-                </div>
-                {BG_COLORS.map((bg) => (
-                  <button
-                    key={bg}
-                    onClick={() => { triggerHaptic(); setCanvasBg(bg); }}
-                    className={`w-6 h-6 rounded-full border-2 transition-all shrink-0 ${
-                      canvasBg === bg ? "border-primary scale-110 shadow-lg" : "border-transparent hover:scale-110"
-                    }`}
-                    style={{ backgroundColor: bg }}
-                  />
-                ))}
-             </div>
-          </div>
-
-          {/* Drawing Color Palette */}
-          {currentTool !== "eraser" && (
-            <div className="flex justify-center">
-              <div className="bg-white/90 dark:bg-card/90 backdrop-blur-2xl p-2 rounded-[2rem] border border-border/50 shadow-2xl flex items-center gap-2 pointer-events-auto overflow-x-auto no-scrollbar max-w-[90%] scroll-smooth">
-                {COLORS.map((color) => (
-                  <button
-                    key={color.hex}
-                    onClick={() => { triggerHaptic(); setCurrentColor(color.hex); if (currentTool === "eraser") setCurrentTool("brush"); }}
-                    className={`w-10 h-10 rounded-2xl shrink-0 transition-all ${
-                      currentColor === color.hex ? "scale-110 shadow-xl ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-900" : "hover:scale-105 opacity-80"
-                    }`}
-                    style={{ backgroundColor: color.hex }}
-                  >
-                    {currentColor === color.hex && (
-                      <CheckCircle size={14} className="text-white mx-auto drop-shadow-md" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* SAVE TO SCRAPBOOK / TIMELINE POPUP MODAL */}
       <AnimatePresence>
@@ -726,28 +874,31 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
               <div className="flex gap-2 mt-2">
                 <button
                   type="button"
-                  onClick={() => setShowSaveModal(false)}
+                  onClick={() => handleConfirmSaveToScrapbook(false)}
                   disabled={isSavingToScrapbook}
-                  className="flex-1 py-3 border border-border text-xs font-bold rounded-xl text-text hover:bg-slate-50 transition-colors"
+                  className="flex-1 py-4 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-primary/20 transition-all flex flex-col items-center gap-1"
                 >
-                  Cancel
+                  <Heart size={16} />
+                  Memories
                 </button>
                 <button
                   type="button"
-                  onClick={handleConfirmSaveToScrapbook}
+                  onClick={() => handleConfirmSaveToScrapbook(true)}
                   disabled={isSavingToScrapbook}
-                  className="flex-1 py-3 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-primary-hover active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
+                  className="flex-1 py-4 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-600 active:scale-95 transition-all shadow-lg flex flex-col items-center gap-1"
                 >
-                  {isSavingToScrapbook ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Saving
-                    </>
-                  ) : (
-                    "Confirm"
-                  )}
+                  <Lock size={16} />
+                  Vault
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSaveModal(false)}
+                className="w-full text-[10px] font-bold text-text/30 uppercase tracking-widest py-2"
+              >
+                Cancel
+              </button>
             </motion.div>
           </>
         )}
