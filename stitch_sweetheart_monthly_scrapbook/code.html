@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Our Scrapbook - Memories Board</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Be+Vietnam+Pro:wght@400&amp;family=Bricolage+Grotesque:opsz,wght@12..96,500&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed": "#3f0017",
+                    "surface-container": "#ffe9e3",
+                    "on-tertiary-container": "#433f38",
+                    "surface-dim": "#fbd1c4",
+                    "surface": "#fff8f6",
+                    "surface-variant": "#ffdbd0",
+                    "inverse-on-surface": "#ffede8",
+                    "on-primary-container": "#771a38",
+                    "primary": "#a03a57",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-low": "#fff1ed",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-fixed-variant": "#4a463f",
+                    "on-secondary-fixed-variant": "#5c4300",
+                    "outline-variant": "#dbc0c4",
+                    "on-background": "#2c160e",
+                    "tertiary": "#625e56",
+                    "outline": "#887175",
+                    "background": "#fff8f6",
+                    "primary-fixed": "#ffd9df",
+                    "tertiary-container": "#b1aaa1",
+                    "on-surface": "#2c160e",
+                    "surface-container-high": "#ffe2da",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#e9e1d8",
+                    "inverse-primary": "#ffb1c1",
+                    "inverse-surface": "#442a22",
+                    "primary-fixed-dim": "#ffb1c1",
+                    "secondary-fixed-dim": "#ecc065",
+                    "on-surface-variant": "#554245",
+                    "on-tertiary-fixed": "#1e1b15",
+                    "error-container": "#ffdad6",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed": "#261900",
+                    "tertiary-fixed-dim": "#cdc5bc",
+                    "secondary-container": "#fed174",
+                    "on-error": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "secondary": "#795900",
+                    "primary-container": "#ff85a2",
+                    "surface-container-highest": "#ffdbd0",
+                    "surface-bright": "#fff8f6",
+                    "secondary-fixed": "#ffdea1",
+                    "on-secondary-container": "#785800",
+                    "on-primary-fixed-variant": "#812240",
+                    "surface-tint": "#a03a57",
+                    "error": "#ba1a1a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "lg": "24px",
+                    "md": "16px",
+                    "xl": "40px",
+                    "unit": "4px",
+                    "gutter": "16px",
+                    "margin-desktop": "64px",
+                    "margin-mobile": "20px",
+                    "xs": "4px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "display-lg-mobile": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "body-md": [
+                            "Be Vietnam Pro"
+                    ],
+                    "headline-md": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "label-caps": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "label-handwritten": [
+                            "Bricolage Grotesque"
+                    ],
+                    "body-lg": [
+                            "Be Vietnam Pro"
+                    ],
+                    "display-lg": [
+                            "Plus Jakarta Sans"
+                    ]
+            },
+            "fontSize": {
+                    "display-lg-mobile": [
+                            "32px",
+                            {
+                                    "lineHeight": "38px",
+                                    "fontWeight": "800"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "label-caps": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.1em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "label-handwritten": [
+                            "16px",
+                            {
+                                    "lineHeight": "20px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "display-lg": [
+                            "40px",
+                            {
+                                    "lineHeight": "48px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "800"
+                            }
+                    ]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24;
+        }
+        
+        .washi-tape {
+            position: absolute;
+            width: 40px;
+            height: 16px;
+            background-color: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 219, 208, 0.5);
+            z-index: 10;
+            clip-path: polygon(5% 0%, 95% 0%, 100% 10%, 95% 20%, 100% 30%, 95% 40%, 100% 50%, 95% 60%, 100% 70%, 95% 80%, 100% 90%, 95% 100%, 5% 100%, 0% 90%, 5% 80%, 0% 70%, 5% 60%, 0% 50%, 5% 40%, 0% 30%, 5% 20%, 0% 10%);
+        }
+
+        .shadow-squishy {
+            box-shadow: 0px 4px 12px rgba(93, 64, 55, 0.15);
+        }
+        
+        .bg-pattern {
+            background-image: radial-gradient(var(--tw-colors-surface-variant) 1px, transparent 1px);
+            background-size: 16px 16px;
+        }
+
+        .sticky-note {
+            background: linear-gradient(135deg, #ffff88 0%, #ffffaa 100%);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col relative pb-20">
+<!-- TopAppBar -->
+<header class="bg-background dark:bg-background docked full-width top-0 z-40 sticky">
+<div class="flex justify-between items-center px-margin-mobile py-sm w-full">
+<button aria-label="Favorite" class="hover:opacity-80 scale-95 transition-transform duration-200 p-2 text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+<h1 class="text-headline-md font-headline-md text-primary dark:text-primary-fixed-dim text-center">
+                Our Scrapbook
+            </h1>
+<button aria-label="More options" class="hover:opacity-80 scale-95 transition-transform duration-200 p-2 text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow px-margin-mobile py-lg flex flex-col items-center">
+<!-- Scrapbook Page Container -->
+<div class="w-full max-w-md bg-surface-container shadow-squishy rounded-xl p-md relative overflow-hidden bg-pattern border border-surface-variant/30 flex flex-col items-center min-h-[700px]">
+<h2 class="font-label-handwritten text-label-handwritten text-on-surface text-center mb-xl relative z-10 pt-4">
+                Memories Board
+                <div class="h-[2px] bg-primary w-24 mx-auto mt-1 rounded-full opacity-60"></div>
+</h2>
+<!-- Timeline/Polaroid Layout -->
+<div class="relative w-full flex-grow flex flex-col items-center justify-start pb-xl">
+<!-- Connecting Dotted Line -->
+<div class="absolute top-0 bottom-0 left-1/2 -ml-[1px] border-l-2 border-dashed border-outline/30 z-0"></div>
+<!-- Layout Grid for Overlapping Elements -->
+<div class="relative w-full h-full min-h-[500px]">
+<!-- Polaroid 1 (Top Left) -->
+<div class="absolute top-[5%] left-[5%] z-20 transform -rotate-6 hover:rotate-0 hover:z-50 transition-all duration-300">
+<div class="washi-tape -top-2 left-4 rotate-3"></div>
+<div class="bg-on-tertiary p-2 pb-6 shadow-squishy rounded-sm flex flex-col items-center max-w-[120px]">
+<div class="w-24 h-24 bg-surface-variant overflow-hidden mb-2 rounded-sm border border-outline/10">
+<img alt="A beautiful, vibrant photo of a couple holding hands by the beach at sunset." class="w-full h-full object-cover" data-alt="A beautiful, vibrant photo of a couple holding hands by the beach at sunset." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6h8ZS1jF6-CxPamoqmlg2bEe_jCy4tZyobDAtDW5iZYdTHksuQb5iTPPTx7EjCWJyYNBSAdQDbtbTW6fnrh63yT9L5cp8oprKnYda1u1IL2qmnFKUobNHeKgbvHt7nctyE55tmvCBIuMBoyTHwEXtyT-vr550OSzceq0sQE_OGxte3KnaQCrIj3gHmuV1gVoU5W2xaizLYQwDeaQBFmeZx8KclgMRwsdB49EZSpsQD63Fayyv9oOtLj-XmUhrgrF3tNOo1vY3fv8"/>
+</div>
+<span class="font-label-handwritten text-xs text-tertiary">Beach day!</span>
+</div>
+</div>
+<!-- Memo 1 (Top Right) -->
+<div class="absolute top-[2%] right-[10%] z-10 transform rotate-12 hover:rotate-0 hover:z-50 transition-all duration-300">
+<div class="sticky-note p-3 w-24 h-24 rounded-sm flex items-center justify-center text-center">
+<span class="font-label-handwritten text-sm text-on-surface-variant leading-tight">Can't wait for summer again ☀️</span>
+</div>
+</div>
+<!-- Polaroid 2 (Middle Right) -->
+<div class="absolute top-[20%] right-[5%] z-30 transform rotate-4 hover:rotate-0 hover:z-50 transition-all duration-300">
+<div class="washi-tape -top-2 right-2 -rotate-12 bg-primary/20 border-primary/30"></div>
+<div class="bg-on-tertiary p-2 pb-6 shadow-squishy rounded-sm flex flex-col items-center max-w-[140px]">
+<div class="w-28 h-28 bg-surface-variant overflow-hidden mb-2 rounded-sm border border-outline/10">
+<img alt="A cute, candid polaroid style photo of a picnic in a sunlit park." class="w-full h-full object-cover" data-alt="A cute, candid polaroid style photo of a picnic in a sunlit park." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4PWjfmt2P2jsmedVZxxIekGGV4NUcvndjS1iLuvZP5R0E4XdFmv8bgbNzHoGpQpiTorr49ftax43pzA5pTHnE3KYTYU5sjuePTkasm4ROmde3eiAHqlAPBjxo9WG-4-Bn6Owr_WxAutPS68hPuNKeeHP6rvuwQL_nYtiWZ0r08r4Co2seZfk_PCaVOfgM-ItcvhwCO-7tGxq0x9i4gPY6w29cJJbxbAUL1JNh4ksPlq4GL4857bnXAFlxrY8wUecOq0c5JvsPIaA"/>
+</div>
+<span class="font-label-handwritten text-xs text-tertiary">Picnic in the park</span>
+</div>
+</div>
+<!-- Center Heart Icon on Dotted Line -->
+<div class="absolute top-[45%] left-1/2 -ml-[12px] bg-surface-container rounded-full p-1 z-0">
+<span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<!-- Polaroid 3 (Center Left) -->
+<div class="absolute top-[35%] left-[10%] z-25 transform -rotate-10 hover:rotate-0 hover:z-50 transition-all duration-300">
+<div class="washi-tape top-1/2 -left-4 -translate-y-1/2 rotate-90"></div>
+<div class="bg-on-tertiary p-1.5 pb-5 shadow-squishy rounded-sm flex flex-col items-center max-w-[100px]">
+<div class="w-20 h-20 bg-surface-variant overflow-hidden mb-1 rounded-sm border border-outline/10">
+<img alt="Coffee date" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCubJznfsVAHi10a7myiINMQ8xE4c2zmoqvsBCAm71VJYQfxJtxiEtGMFOCr5nbYJI9ep5wCwL_NHCMBPXSevk2XemPW4FF5PiHyzyXDFGVa0xNHpyg9C6ZQaROkontajdUjPXebVJzMrc1Tt85i2jiNQKZuKLUXPk9r_oSxX9eXMEdmVlOO8yx4AztODT5U0ifUVG72cuZrRTaDDROMRkLRRgb1ZDweFmXEbnXHCXwWzu8LEDWbFz1NbgL38lairHtd9HgdRTl9io"/>
+</div>
+</div>
+</div>
+<!-- Memo 2 (Middle Left) -->
+<div class="absolute top-[55%] left-[5%] z-15 transform -rotate-6 hover:rotate-0 hover:z-50 transition-all duration-300">
+<div class="bg-surface-variant p-3 w-28 h-20 rounded shadow-squishy flex items-center justify-center border-l-4 border-primary">
+<span class="font-label-handwritten text-xs text-on-surface">Remember this coffee?</span>
+</div>
+</div>
+<!-- Polaroid 4 (Bottom Right) -->
+<div class="absolute top-[60%] right-[10%] z-40 transform rotate-8 hover:rotate-0 hover:z-50 transition-all duration-300">
+<div class="washi-tape -top-3 left-4 -rotate-6"></div>
+<div class="bg-on-tertiary p-2 pb-6 shadow-squishy rounded-sm flex flex-col items-center max-w-[130px]">
+<div class="w-24 h-24 bg-surface-variant overflow-hidden mb-2 rounded-sm border border-outline/10">
+<img alt="City lights" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7crFTYvbcNpyzf2NkyXKjklN50wzrPl4NWBkamlBz3khOEvWNd2LD-15RsD978wxNV8WceseTNhJWm2v60s-mNg92yMDfc1uPw3_Eel4t9Wt9s-kFno7V6RJpne75YWhE3P0r5HqVn-Rkjgys_0YrxgvavQR2jpVkdRv1JaQjmyh59UG3tt7OkJLBHtaYF7JuGb6wk-rzcSKSWNrHVIq_Wp6dxrobO5I1xD_D4OxFHp71096fYlr-mxmUTCO7qak1zDUx0VBbZiI"/>
+</div>
+<span class="font-label-handwritten text-xs text-tertiary">Night out ✨</span>
+</div>
+</div>
+<!-- Polaroid 5 (Bottom Left) -->
+<div class="absolute top-[75%] left-[15%] z-35 transform -rotate-3 hover:rotate-0 hover:z-50 transition-all duration-300">
+<div class="washi-tape -top-2 right-0 rotate-12 bg-secondary/20 border-secondary/30"></div>
+<div class="bg-on-tertiary p-2 pb-6 shadow-squishy rounded-sm flex flex-col items-center max-w-[110px]">
+<div class="w-20 h-20 bg-surface-variant overflow-hidden mb-2 rounded-sm border border-outline/10">
+<img alt="Concert" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZ9j0_J_6iKqa04vD640Wbu0RniurlVLMcluLJXeH9bd51bSL5L58JG3TwQ4KKjbDAPWUXis2hWzUZdHoldYUhIrAc6gt5duzfxYhS8PRweBgJmMIRZiUmcypxt-H9i8TK5NN31HSvyPNX-O98tHKJz6iq7rofIWhkGpU7mJSpNoPIP2fdgqS7ZxRDML1Rk5bF02EzigRwkZCn9uvswgkXal9m7Gc9vuz999qEYJIcvynJFSS9lnh6_EkNfw62WepBV47uPAPooCI"/>
+</div>
+<span class="font-label-handwritten text-xs text-tertiary">May 2026</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Swipe Indicator -->
+<div class="mt-auto pt-lg w-full flex justify-between items-center px-4 relative z-50">
+<button class="p-2 text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="font-label-caps text-label-caps text-primary tracking-widest">MAY 2026</span>
+<div class="flex gap-1 mt-2">
+<div class="w-1.5 h-1.5 rounded-full bg-outline/30"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline/30"></div>
+</div>
+</div>
+<button class="p-2 text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden bg-surface-container-low dark:bg-inverse-surface shadow-md fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter py-xs rounded-t-xl">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant scale-90 active:scale-95 transition-all duration-300 rounded-lg">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="text-label-caps font-label-caps">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary-container dark:bg-on-primary-fixed-variant text-on-primary-container dark:text-primary-fixed rounded-full px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant scale-90 active:scale-95 transition-all duration-300">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">book</span>
+<span class="text-label-caps font-label-caps">Scrapbook</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant scale-90 active:scale-95 transition-all duration-300 rounded-lg">
+<span class="material-symbols-outlined mb-1">photo_library</span>
+<span class="text-label-caps font-label-caps">Gallery</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-4 py-1 hover:bg-surface-container-highest dark:hover:bg-surface-variant scale-90 active:scale-95 transition-all duration-300 rounded-lg">
+<span class="material-symbols-outlined mb-1">settings</span>
+<span class="text-label-caps font-label-caps">Settings</span>
+</button>
+</nav>
+<!-- TopAppBar Nav items (for md up) -->
+<nav class="hidden md:flex fixed top-0 w-full bg-surface-container-low shadow-sm z-50 px-margin-desktop py-md justify-between items-center">
+<h1 class="text-headline-md font-headline-md text-primary">Our Scrapbook</h1>
+<div class="flex space-x-lg">
+<button class="text-on-surface-variant hover:text-primary font-label-caps text-label-caps transition-colors">HOME</button>
+<button class="text-primary border-b-2 border-primary font-label-caps text-label-caps pb-1">SCRAPBOOK</button>
+<button class="text-on-surface-variant hover:text-primary font-label-caps text-label-caps transition-colors">GALLERY</button>
+<button class="text-on-surface-variant hover:text-primary font-label-caps text-label-caps transition-colors">SETTINGS</button>
+</div>
+</nav>
+</body></html>

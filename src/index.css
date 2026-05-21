@@ -1,11 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&family=Handlee&family=Plus+Jakarta+Sans:wght@700;800&family=Be+Vietnam+Pro:wght@400&family=Bricolage+Grotesque:opsz,wght@12..96,500&display=swap');
 @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 @import url('https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Quicksand", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fredoka", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Be Vietnam Pro", "Quicksand", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Fredoka", ui-sans-serif, system-ui, sans-serif;
+  --font-handlee: "Handlee", cursive;
+  --font-scrapbook: "Bricolage Grotesque", "Handlee", cursive;
   
   --color-primary: var(--primary);
   --color-bg: var(--bg);
@@ -338,6 +340,40 @@
 
 .love-trail-path {
   filter: drop-shadow(0 0 8px rgba(255, 209, 220, 0.5));
+}
+
+/* Scrapbook Design System */
+.bg-scrapbook-pattern {
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--primary-alpha-20) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+.shadow-squishy {
+  box-shadow: 0px 4px 12px rgba(93, 64, 55, 0.08);
+}
+
+.washi-tape-accent {
+  position: absolute;
+  width: 50px;
+  height: 18px;
+  background-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(2px);
+  border: 1px solid var(--primary-alpha-20);
+  z-index: 10;
+  clip-path: polygon(5% 0%, 95% 0%, 100% 10%, 95% 20%, 100% 30%, 95% 40%, 100% 50%, 95% 60%, 100% 70%, 95% 80%, 100% 90%, 95% 100%, 5% 100%, 0% 90%, 5% 80%, 0% 70%, 5% 60%, 0% 50%, 5% 40%, 0% 30%, 5% 20%, 0% 10%);
+}
+
+.sticky-note-bg {
+  background: linear-gradient(135deg, #ffff88 0%, #ffffaa 100%);
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.06);
+}
+
+.polaroid-frame {
+  background: white;
+  padding: 8px 8px 32px 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0,0,0,0.03);
 }
 
 .text-glow-primary {

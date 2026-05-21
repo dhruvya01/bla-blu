@@ -293,10 +293,21 @@ export default function App() {
     }
   }, [user]);
 
+  const DARK_THEMES = ["dark", "amoled", "midnight", "aurora", "mocha", "berry"];
+
   useEffect(() => {
     if (theme) {
-      document.body.className = `theme-${theme}`;
-      document.documentElement.className = `theme-${theme}`;
+      const cls = `theme-${theme}`;
+      const isDark = DARK_THEMES.includes(theme);
+      
+      document.body.className = cls;
+      document.documentElement.className = cls;
+      
+      if (isDark) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
     }
   }, [theme]);
 
@@ -448,7 +459,8 @@ export default function App() {
         {view !== "chat" &&
           view !== "settings" &&
           view !== "map" &&
-          view !== "journey" && (
+          view !== "journey" &&
+          view !== "timeline" && (
             <motion.header
               initial={{ y: -100 }}
               animate={{ y: 0 }}
@@ -577,6 +589,7 @@ export default function App() {
               view !== "map" &&
               view !== "journey" &&
               view !== "vault" &&
+              view !== "timeline" &&
               "pt-16 pb-8",
           )}
         >
@@ -611,7 +624,8 @@ export default function App() {
           view !== "babygame" &&
           view !== "vault" &&
           view !== "doodle" &&
-          view !== "jar" && <Navigation />}
+          view !== "jar" &&
+          view !== "timeline" && <Navigation />}
 
         <SurprisesManager />
         {/* <MusicPlayer /> */}
