@@ -243,15 +243,102 @@ function ChatMessage({
     return () => observer.disconnect();
   }, [m.id, m.status, isMe, onVisible]);
 
-  const handleTouchStart = () => {
-    longPressTimer.current = setTimeout(() => {
-      setReactToMsgId(m.id);
+  const longPressTimerRef = useRef<any>(null);
+  const isLongPressActive = useRef<boolean>(false);
+  const touchStartPos = useRef<{ x: number, y: number }>({ x: 0, y: 0 });
+
+  const handleDelete = async () => {
+    if (!roomId) return;
+    const confirmMessage = m.isSticker 
+      ? "Delete this sticker for both of you?" 
+      : "Delete this message for both of you?";
+      
+    if (!window.confirm(confirmMessage)) return;
+    
+    try {
+      await updateDoc(
+        doc(db, "pairs", roomId, "chatMessages", m.id),
+        {
+          isDeleted: true,
+          text: "This message was deleted",
+          image: deleteField(),
+          isSticker: deleteField(),
+          reactions: deleteField(),
+          replyTo: deleteField()
+        }
+      );
       sensory.tap();
-    }, 500);
+      setReactToMsgId(null);
+    } catch (err) {
+      handleFirestoreError(
+        err,
+        "update",
+        `pairs/${roomId}/chatMessages/${m.id}`,
+      );
+    }
   };
 
-  const handleTouchEnd = () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  const startPressTimer = (clientX: number, clientY: number) => {
+    isLongPressActive.current = false;
+    touchStartPos.current = { x: clientX, y: clientY };
+    
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressActive.current = true;
+      sensory.success();
+      handleDelete();
+    }, 600); // 600ms long press
+  };
+
+  const cancelPressTimer = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleTouchStartCustom = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    startPressTimer(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchMoveCustom = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+    const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+    if (dx > 10 || dy > 10) {
+      cancelPressTimer();
+    }
+  };
+
+  const handleTouchEndCustom = (e: React.TouchEvent) => {
+    cancelPressTimer();
+    if (isLongPressActive.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  const handleMouseDownCustom = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // primary only
+    startPressTimer(e.clientX, e.clientY);
+  };
+
+  const handleMouseMoveCustom = (e: React.MouseEvent) => {
+    const dx = Math.abs(e.clientX - touchStartPos.current.x);
+    const dy = Math.abs(e.clientY - touchStartPos.current.y);
+    if (dx > 10 || dy > 10) {
+      cancelPressTimer();
+    }
+  };
+
+  const handleMouseUpCustom = (e: React.MouseEvent) => {
+    cancelPressTimer();
+    if (isLongPressActive.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   };
 
   const repliedMsg = m.replyTo
@@ -305,6 +392,40 @@ function ChatMessage({
     );
   }
 
+  if (m.isDeleted) {
+    return (
+      <div
+        className={cn("flex w-full mb-2", isMe ? "justify-end" : "justify-start")}
+      >
+        <div
+          className={cn(
+            "flex flex-col max-w-[85%] relative",
+            isMe ? "items-end" : "items-start",
+          )}
+        >
+          <div
+            className={cn(
+              "px-4 py-2 rounded-2xl text-xs italic opacity-60 flex items-center gap-1.5 border select-none",
+              isMe
+                ? "bg-primary/5 text-primary/80 border-primary/20 rounded-br-sm"
+                : "bg-card text-text/60 border-border rounded-bl-sm"
+            )}
+          >
+            <Trash2 size={12} className="shrink-0 opacity-50" />
+            <span>This message was deleted</span>
+          </div>
+          {shouldShowTimestamp(m, nextMsg) && (
+            <div className={cn("mt-1 flex", isMe ? "justify-end" : "justify-start")}>
+              <span className="text-[10px] text-text/50 font-medium lowercase">
+                {formatBubbleTime(m.timestamp)}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn("flex w-full mb-2", isMe ? "justify-end" : "justify-start")}
@@ -333,12 +454,16 @@ function ChatMessage({
               setReactToMsgId(m.id);
             }}
             onDoubleClick={() => onReply(m.id)}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
+            onTouchStart={handleTouchStartCustom}
+            onTouchMove={handleTouchMoveCustom}
+            onTouchEnd={handleTouchEndCustom}
+            onMouseDown={handleMouseDownCustom}
+            onMouseMove={handleMouseMoveCustom}
+            onMouseUp={handleMouseUpCustom}
             className={cn(
               m.isSticker
-                ? "p-0 bg-transparent border-none shadow-none relative select-none"
-                : "px-4 py-2.5 rounded-2xl relative transition-all",
+                ? "p-0 bg-transparent border-none shadow-none relative select-none cursor-pointer"
+                : "px-4 py-2.5 rounded-2xl relative transition-all cursor-pointer",
               !m.isSticker && (isMe
                 ? "bg-primary text-white rounded-br-sm shadow-sm"
                 : "bg-card text-text border border-border rounded-bl-sm shadow-sm")
@@ -378,22 +503,29 @@ function ChatMessage({
                   alt={m.isSticker ? "Sticker" : "Image"}
                   className={cn(
                     m.isSticker
-                      ? "w-28 h-28 md:w-32 md:h-32 object-contain filter drop-shadow-md cursor-pointer pointer-events-auto"
+                      ? "w-28 h-28 md:w-32 md:h-32 object-contain filter drop-shadow-md cursor-pointer pointer-events-auto select-none"
                       : "mt-1 mb-1 max-w-full rounded-xl object-contain shadow-sm border border-black/5 cursor-pointer hover:opacity-90 transition-opacity"
                   )}
                   style={m.isSticker ? { maxHeight: "none" } : { maxHeight: "300px" }}
-                  onClick={() => onExpandImage && onExpandImage(decryptedImage!)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setReactToMsgId(m.id);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isLongPressActive.current) return;
+                    if (m.isSticker) {
+                      setReactToMsgId(reactToMsgId === m.id ? null : m.id);
+                    } else if (onExpandImage) {
+                      onExpandImage(decryptedImage!);
+                    }
+                  }}
                 />
               ) : null}
               {decryptedText && (
                 <span
                   className="text-[15px] font-medium leading-relaxed break-words"
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setReactToMsgId(m.id);
-                  }}
-                  onTouchStart={handleTouchStart}
-                  onTouchEnd={handleTouchEnd}
                 >
                   {decryptedText}
                 </span>
@@ -501,31 +633,38 @@ function ChatMessage({
                   >
                     <Reply size={18} />
                   </button>
-                  {isMe && (
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (!roomId) return;
-                        if (!window.confirm("Delete this message?")) return;
-                        try {
-                          await deleteDoc(
-                            doc(db, "pairs", roomId, "chatMessages", m.id),
-                          );
-                          sensory.tap();
-                          setReactToMsgId(null);
-                        } catch (err) {
-                          handleFirestoreError(
-                            err,
-                            "delete",
-                            `pairs/${roomId}/chatMessages/${m.id}`,
-                          );
-                        }
-                      }}
-                      className="p-1.5 text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/10 rounded-full active:scale-90 transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  )}
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!roomId) return;
+                      if (!window.confirm("Delete this message? This will mark it as deleted for both you and your partner.")) return;
+                      try {
+                        await updateDoc(
+                          doc(db, "pairs", roomId, "chatMessages", m.id),
+                          {
+                            isDeleted: true,
+                            text: "This message was deleted",
+                            image: deleteField(),
+                            isSticker: deleteField(),
+                            reactions: deleteField(),
+                            replyTo: deleteField()
+                          }
+                        );
+                        sensory.tap();
+                        setReactToMsgId(null);
+                      } catch (err) {
+                        handleFirestoreError(
+                          err,
+                          "update",
+                          `pairs/${roomId}/chatMessages/${m.id}`,
+                        );
+                      }
+                    }}
+                    className="p-1.5 text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/10 rounded-full active:scale-90 transition-all"
+                    title="Delete message"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setReactToMsgId(null); }}
                     className="p-1.5 text-text/50 hover:text-text/80 active:scale-90 transition-all rounded-full hover:bg-black/5"
