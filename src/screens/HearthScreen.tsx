@@ -228,6 +228,7 @@ export function HearthScreen({ socket }: HearthProps) {
       className="flex-1 w-full bg-bg relative overflow-x-hidden pt-0 pb-32"
     >
       <FloatingHearts />
+
       {/* Soft gradient bg for modern cute look */}
       <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/5 blur-[80px] pointer-events-none z-0 translate-x-1/3 -translate-y-1/3" />
       <div className="absolute bottom-20 left-0 w-[300px] h-[300px] rounded-full bg-rose-400/5 blur-[80px] pointer-events-none z-0 -translate-x-1/3" />

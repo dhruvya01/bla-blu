@@ -103,13 +103,32 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
         }
 
         let isAtHome = false;
+        
+        // Check official home coords
         if (homeCoords && typeof homeCoords.lat === 'number' && typeof homeCoords.lng === 'number') {
           const distToHomeMeters = haversine(lat, lng, homeCoords.lat, homeCoords.lng);
           if (distToHomeMeters < 50) {
             isAtHome = true;
-            avgSpeed = 0; // Force zero speed when at home
-            (window as any)._speedBuffer = []; // Reset buffer
           }
+        }
+        
+        // Check any favorite place that contains "home" or "house" in its name as a fallback home zone
+        if (!isAtHome && state.favPlaces && Array.isArray(state.favPlaces)) {
+          for (const place of state.favPlaces) {
+            if (place.name && (place.name.toLowerCase().includes('home') || place.name.toLowerCase().includes('house'))) {
+              const distToHomeMeters = haversine(lat, lng, place.lat, place.lng);
+              if (distToHomeMeters < 50) {
+                isAtHome = true;
+                break;
+              }
+            }
+          }
+        }
+        
+        if (isAtHome) {
+          avgSpeed = 0; // Force zero speed when at home (within 50m radius)
+          (window as any)._speedBuffer = []; // Reset buffer safely
+          currentSpeed = 0;
         }
 
         // ── ADVANCED GEOFENCING SYSTEM (ALL PLACES - DECOUPLED) ───────────────────────────

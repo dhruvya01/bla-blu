@@ -344,6 +344,26 @@ export function JourneyTrackerScreen() {
                     ))}
                   </div>
                 </div>
+                
+                {/* Home Zone Toggle */}
+                <div className="flex items-center justify-between mt-4 p-3 bg-primary/5 rounded-xl border border-primary/10">
+                   <div>
+                     <p className="text-sm font-bold text-text flex items-center gap-2"><Home size={16} className="text-primary" /> Set as Home Zone</p>
+                     <p className="text-xs text-text/50 mt-0.5 max-w-[200px]">Disables speeding alerts automatically within a 50m radius.</p>
+                   </div>
+                   <button 
+                     onClick={() => setIsHomeZone(!isHomeZone)}
+                     className={cn("w-12 h-6 md:w-14 md:h-7 rounded-full p-1 transition-colors duration-300 relative", isHomeZone ? "bg-primary" : "bg-border shadow-inner")}
+                   >
+                     <motion.div 
+                       layout
+                       className="w-4 h-4 md:w-5 md:h-5 bg-bg rounded-full shadow-sm"
+                       animate={{ x: isHomeZone ? (typeof window !== "undefined" && window.innerWidth > 768 ? 24 : 20) : 0 }}
+                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                     />
+                   </button>
+                </div>
+
                 <div className="pt-2">
                   <button onClick={handleAddPlace} disabled={!newPlaceName.trim()} className="w-full py-4 rounded-xl font-bold text-sm bg-text text-bg disabled:opacity-50 active:scale-95 transition-all">Save Location</button>
                 </div>

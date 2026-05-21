@@ -404,6 +404,7 @@ export function CoupleMap({
             longitude={userLoc.lng}
             latitude={userLoc.lat}
             anchor="bottom"
+            style={{ zIndex: 40 }}
           >
             <div className="flex flex-col items-center justify-end relative w-24 h-24 pb-2 group z-30">
               {/* Radar Sonar pulsing rings on the ground */}
@@ -453,6 +454,7 @@ export function CoupleMap({
             longitude={partnerLoc.lng}
             latitude={partnerLoc.lat}
             anchor="bottom"
+            style={{ zIndex: 30 }}
           >
             <div className="flex flex-col items-center justify-end relative w-24 h-24 pb-2 group z-20">
               {/* Ground Shadow/Pulse */}
@@ -525,15 +527,16 @@ export function CoupleMap({
             longitude={user.homeLocation.lng}
             latitude={user.homeLocation.lat}
             anchor="bottom"
+            style={{ zIndex: 0 }}
           >
-            <div className="relative flex flex-col items-center justify-end group cursor-pointer active:scale-95 transition-transform w-24 h-24 pb-2 z-10">
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-16 h-4 bg-emerald-500/20 blur-md rounded-full pointer-events-none shadow-[0_0_15px_rgba(16,185,129,0.3)]" />
-              <div className="relative z-10 flex flex-col items-center group-hover:-translate-y-2 transition-transform duration-300">
-                <div className="w-14 h-14 bg-gradient-to-br from-white dark:from-card to-emerald-50 dark:to-emerald-900/20 rounded-[20px] border-[3px] border-emerald-400 shadow-[0_10px_25px_rgba(52,211,153,0.3)] flex items-center justify-center text-3xl transform rotate-3">
+            <div className="relative flex flex-col items-center justify-end group cursor-pointer active:scale-95 transition-transform w-16 h-16 pb-1 z-0" style={{ transform: 'translateY(-10px) scale(0.85)' }}>
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-12 h-3 bg-emerald-500/20 blur-md rounded-full pointer-events-none shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
+              <div className="relative z-10 flex flex-col items-center group-hover:-translate-y-1 transition-transform duration-300">
+                <div className="w-10 h-10 bg-gradient-to-br from-white dark:from-card to-emerald-50 dark:to-emerald-900/20 rounded-[14px] border-2 border-emerald-400 shadow-[0_6px_15px_rgba(52,211,153,0.3)] flex items-center justify-center text-xl transform rotate-3">
                   🏡
                 </div>
-                <div className="mt-2 bg-emerald-500 text-white px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg border border-white/20">
-                  Our Home
+                <div className="mt-1 bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg border border-white/20 whitespace-nowrap">
+                  Home
                 </div>
               </div>
             </div>

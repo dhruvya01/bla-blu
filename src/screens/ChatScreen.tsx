@@ -1360,49 +1360,6 @@ export function ChatScreen({ socket }: ChatProps) {
               );
             })}
 
-            {/* Typing Indicator */}
-            <AnimatePresence>
-              {(isPartnerTyping || isTypingLocal) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="self-start mb-4"
-                >
-                  <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1.5 items-center">
-                    <motion.div
-                      animate={{ y: [0, -6, 0] }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                      className="w-2 h-2 bg-primary/40 rounded-full"
-                    />
-                    <motion.div
-                      animate={{ y: [0, -6, 0] }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: 0.15,
-                      }}
-                      className="w-2 h-2 bg-primary/40 rounded-full"
-                    />
-                    <motion.div
-                      animate={{ y: [0, -6, 0] }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: 0.3,
-                      }}
-                      className="w-2 h-2 bg-primary/40 rounded-full"
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
             <div ref={messagesEndRef} />
           </div>
         )}

@@ -1,26 +1,40 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import path from "path";
 import * as admin from "firebase-admin";
 
 let isFirebaseAdminInitialized = false;
 
-// Initialize Firebase Admin if Service Account is provided
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    isFirebaseAdminInitialized = true;
-    console.log("Firebase Admin initialized successfully.");
-  } catch (error) {
-    console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON. Please check the environment variable format.");
+  // Initialize Firebase Admin if Service Account is provided
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      let accountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
+      
+      // If it's not a JSON string, try decoding from base64
+      if (accountStr && !accountStr.trim().startsWith('{')) {
+        try {
+          accountStr = Buffer.from(accountStr, 'base64').toString('utf8');
+        } catch (e) {
+          // Ignore, fallback to original string
+        }
+      }
+
+      const serviceAccount = JSON.parse(accountStr);
+      if (serviceAccount && typeof serviceAccount.private_key === 'string') {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      isFirebaseAdminInitialized = true;
+      console.log("Firebase Admin initialized successfully.");
+    } catch (error: any) {
+      console.error("⚠️ Failed to parse/initialize FIREBASE_SERVICE_ACCOUNT:", error.message);
+    }
   }
-}
 
 async function start() {
   const app = express();
@@ -104,6 +118,7 @@ async function start() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   } else {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"

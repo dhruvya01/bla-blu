@@ -617,10 +617,13 @@ export function VaultScreen() {
           }}
           toolbar={{
             buttons: [
-              <div key="badge" className="mr-auto ml-4 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center gap-2">
-                 <ShieldCheck size={14} className="text-emerald-400" />
-                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hidden sm:inline-block">Encrypted Vault</span>
-              </div>,
+              <button 
+                  key="back"
+                  onClick={() => setSelectedPhoto(null)}
+                  className="p-2 ml-2 mr-auto text-white flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
+              >
+                 <ChevronLeft size={28} />
+              </button>,
               <button 
                   key="download"
                   onClick={handleDownload}
@@ -644,8 +647,7 @@ export function VaultScreen() {
                   ) : (
                      <Trash2 size={22} />
                   )}
-              </button>,
-              "close",
+              </button>
             ]
           }}
         />
