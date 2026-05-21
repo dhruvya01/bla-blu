@@ -4,6 +4,10 @@ import { Lock } from "lucide-react";
 import { initE2E } from "../utils/e2ee";
 import { sensory } from "../utils/sensory";
 
+import { useAppStore } from "../store";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
+
 export function E2EESetupModal({ onComplete }: { onComplete: () => void }) {
   const [passphrase, setPassphrase] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -12,6 +16,16 @@ export function E2EESetupModal({ onComplete }: { onComplete: () => void }) {
     if (!passphrase.trim()) return;
     try {
       await initE2E(passphrase.trim());
+      const roomId = useAppStore.getState().roomId;
+      if (roomId) {
+        try {
+          await updateDoc(doc(db, "pairs", roomId), {
+            e2eePasscode: passphrase.trim()
+          });
+        } catch (err) {
+          console.error("Failed to sync passcode to pair:", err);
+        }
+      }
       sensory.play("success");
       onComplete();
     } catch (e: any) {

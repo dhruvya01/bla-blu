@@ -87,6 +87,40 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
         const pairData = { id: docSnap.id, ...docSnap.data() } as Pair;
         setPair(pairData);
         
+        // Auto-sync E2EE passcode
+        const sharedPasscode = (pairData as any).e2eePasscode;
+        const localPasscode = localStorage.getItem('blablu_e2ee_secret');
+        
+        if (sharedPasscode) {
+          if (localPasscode !== sharedPasscode) {
+            import('../utils/e2ee').then(({ initE2E }) => {
+              initE2E(sharedPasscode).then(() => {
+                const store = useAppStore.getState();
+                if (store.setE2eReady) store.setE2eReady(true);
+              }).catch(err => console.error("Auto E2EE init failed", err));
+            });
+          }
+        } else {
+          if (localPasscode) {
+            import('firebase/firestore').then(({ updateDoc }) => {
+              updateDoc(doc(db, 'pairs', roomId), { e2eePasscode: localPasscode })
+                .catch(err => console.error("Failed to upload E2EE passcode", err));
+            });
+          } else {
+            const defaultPasscode = "blablu_love_passcode_999";
+            import('../utils/e2ee').then(({ initE2E }) => {
+              initE2E(defaultPasscode).then(() => {
+                const store = useAppStore.getState();
+                if (store.setE2eReady) store.setE2eReady(true);
+                import('firebase/firestore').then(({ updateDoc }) => {
+                  updateDoc(doc(db, 'pairs', roomId), { e2eePasscode: defaultPasscode })
+                    .catch(err => console.error("Failed to upload default E2EE passcode", err));
+                });
+              }).catch(err => console.error("Auto E2EE init failed", err));
+            });
+          }
+        }
+        
         const pId = pairData.partnerIds?.find((id: string) => id !== userId);
         if (pId) {
           if (partnerUnsubRef.current) partnerUnsubRef.current();

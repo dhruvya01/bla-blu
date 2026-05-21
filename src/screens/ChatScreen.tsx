@@ -1036,7 +1036,7 @@ export function ChatScreen({ socket }: ChatProps) {
     setShowMenu(false);
   };
 
-  const handleResetE2EE = () => {
+  const handleResetE2EE = async () => {
     if (
       window.confirm(
         "Are you sure you want to reset your E2EE passcode? Your messages are secure, but you will need to re-enter your passcode (and make sure your partner enters the exact same one) to decrypt messages again.",
@@ -1045,6 +1045,15 @@ export function ChatScreen({ socket }: ChatProps) {
       clearE2E();
       setE2eReady(false);
       setShowMenu(false);
+      if (roomId) {
+        try {
+          await updateDoc(doc(db, "pairs", roomId), {
+            e2eePasscode: deleteField()
+          });
+        } catch (err) {
+          console.error("Failed to reset database E2EE passcode", err);
+        }
+      }
     }
   };
 
