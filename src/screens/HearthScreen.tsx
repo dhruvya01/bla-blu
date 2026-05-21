@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Heart, MessageCircle, Droplets, Mail, AlertTriangle,
-  Send, X, Calendar, ChevronRight, History, MapPin, Zap, Lock, Compass, Smile, Sparkles, Navigation, Play
+  Send, X, Calendar, ChevronRight, History, MapPin, Zap, Lock, Compass, Smile, Sparkles, Navigation, Play, Palette
 } from "lucide-react";
 import { getDistance, formatDistance } from "../utils/geo";
 import { Socket } from "socket.io-client";
@@ -360,16 +360,20 @@ export function HearthScreen({ socket }: HearthProps) {
                { id: 'chat', label: 'Notes', sub: 'Shared Space', icon: <MessageCircle size={22} className="text-blue-500" />, view: 'chat', bg: "bg-blue-500/10", border: 'border-blue-500/20' },
                { id: 'planner', label: 'Dates', sub: 'Our Plans', icon: <Calendar size={22} className="text-emerald-500" />, view: 'planner', bg: "bg-emerald-500/10", border: 'border-emerald-500/20' },
                { id: 'journey', label: 'Map', sub: 'Location bg', icon: <Navigation size={22} className="text-amber-500" />, view: 'journey', bg: "bg-amber-500/10", border: 'border-amber-500/20' },
-               { id: 'period', label: 'Cycle', sub: 'Health Hub', icon: <Droplets size={22} className="text-rose-500" />, view: 'period', bg: "bg-rose-500/10", border: 'border-rose-500/20' }
+               { id: 'period', label: 'Cycle', sub: 'Health Hub', icon: <Droplets size={22} className="text-rose-500" />, view: 'period', bg: "bg-rose-500/10", border: 'border-rose-500/20' },
+               { id: 'doodle', label: 'Doodle Canvas', sub: 'Draw together in real-time 🎨', icon: <Palette size={22} className="text-pink-500" />, view: 'doodle', bg: "bg-pink-500/10", border: 'border-pink-500/20', className: "col-span-2 flex flex-row gap-4 items-center justify-start text-left p-4.5 pr-6" }
              ].map(item => (
                <motion.button 
                  key={item.id} 
                  whileTap={{ scale: 0.98 }} 
                  onClick={() => { sensory.play('pop'); setView(item.view as any) }} 
-                 className="bg-card rounded-[32px] p-5 flex flex-col items-center gap-3 border shadow-sm border-white/50 dark:border-white/5 active:brightness-95 transition-all text-center relative overflow-hidden group"
+                 className={cn(
+                   "bg-card rounded-[32px] border shadow-sm border-white/50 dark:border-white/5 active:brightness-95 transition-all relative overflow-hidden group",
+                   (item as any).className || "p-5 flex flex-col items-center gap-3 text-center"
+                 )}
                >
                   <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className={cn("w-14 h-14 rounded-[22px] flex items-center justify-center shadow-sm border", item.bg, item.border)}>
+                  <div className={cn("w-14 h-14 rounded-[22px] flex items-center justify-center shadow-sm border shrink-0", item.bg, item.border)}>
                      {item.icon}
                   </div>
                   <div>

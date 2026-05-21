@@ -330,6 +330,6 @@ export interface LoveTrailPoint {
   wasTogether: boolean;
 }
 
-export type ViewType = "home" | "habits" | "period" | "chat" | "settings" | "login" | "calendar" | "history" | "planner" | "timeline" | "jar" | "babygame" | "pulse" | "map" | "journey" | "sanctuary" | "vault";
+export type ViewType = "home" | "habits" | "period" | "chat" | "settings" | "login" | "calendar" | "history" | "planner" | "timeline" | "jar" | "babygame" | "pulse" | "map" | "journey" | "sanctuary" | "vault" | "doodle";
 export type CareTabType = "summary" | "period" | "calendar" | "history" | "planner" | "map";
 export type ThemeType = "pink" | "lavender" | "cream" | "dark" | "amoled" | "mint" | "peach" | "sakura" | "ocean" | "honey" | "rose" | "midnight" | "aurora" | "mocha" | "berry";

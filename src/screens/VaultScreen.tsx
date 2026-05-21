@@ -230,7 +230,7 @@ export function VaultScreen() {
     );
     const unsubChat = onSnapshot(chatQuery, (snapshot) => {
       const photos = snapshot.docs
-        .filter(doc => doc.data().image)
+        .filter(doc => doc.data().image && !doc.data().isSticker)
         .map(doc => ({
           id: doc.id,
           url: doc.data().image,

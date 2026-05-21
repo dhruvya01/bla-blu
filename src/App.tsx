@@ -37,6 +37,7 @@ import { JarScreen } from "./screens/JarScreen";
 import { VaultScreen } from "./screens/VaultScreen";
 import { BabyGameScreen } from "./screens/BabyGameScreen";
 import { JourneyTrackerScreen } from "./screens/JourneyTrackerScreen";
+import { DoodleScreen } from "./screens/DoodleScreen";
 import { cn } from "./utils";
 import { doc, setDoc, updateDoc, getDoc, onSnapshot } from "firebase/firestore";
 import { db, auth, handleFirestoreError } from "./firebase/config";
@@ -597,6 +598,7 @@ export default function App() {
             {view === "journey" && <JourneyTrackerScreen key="journey" />}
             {view === "settings" && <SettingsScreen key="settings" />}
             {view === "vault" && <VaultScreen key="vault" />}
+            {view === "doodle" && <DoodleScreen key="doodle" />}
           </AnimatePresence>
         </main>
 
@@ -608,6 +610,7 @@ export default function App() {
           view !== "settings" &&
           view !== "babygame" &&
           view !== "vault" &&
+          view !== "doodle" &&
           view !== "jar" && <Navigation />}
 
         <SurprisesManager />
