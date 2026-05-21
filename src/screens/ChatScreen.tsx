@@ -673,7 +673,17 @@ function ChatMessage({
                       setShowConfirmDelete(false);
                       if (!roomId) return;
                       try {
-                        await deleteDoc(doc(db, "pairs", roomId, "chatMessages", m.id));
+                        await updateDoc(
+                          doc(db, "pairs", roomId, "chatMessages", m.id),
+                          {
+                            isDeleted: true,
+                            text: "This message was deleted",
+                            image: deleteField(),
+                            isSticker: deleteField(),
+                            reactions: deleteField(),
+                            replyTo: deleteField()
+                          }
+                        );
                         sensory.tap();
                         setReactToMsgId(null);
                       } catch (err) {
