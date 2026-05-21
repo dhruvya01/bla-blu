@@ -243,39 +243,14 @@ function ChatMessage({
     return () => observer.disconnect();
   }, [m.id, m.status, isMe, onVisible]);
 
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
   const longPressTimerRef = useRef<any>(null);
   const isLongPressActive = useRef<boolean>(false);
   const touchStartPos = useRef<{ x: number, y: number }>({ x: 0, y: 0 });
 
-  const handleDelete = async () => {
-    if (!roomId) return;
-    const confirmMessage = m.isSticker 
-      ? "Delete this sticker for both of you?" 
-      : "Delete this message for both of you?";
-      
-    if (!window.confirm(confirmMessage)) return;
-    
-    try {
-      await updateDoc(
-        doc(db, "pairs", roomId, "chatMessages", m.id),
-        {
-          isDeleted: true,
-          text: "This message was deleted",
-          image: deleteField(),
-          isSticker: deleteField(),
-          reactions: deleteField(),
-          replyTo: deleteField()
-        }
-      );
-      sensory.tap();
-      setReactToMsgId(null);
-    } catch (err) {
-      handleFirestoreError(
-        err,
-        "update",
-        `pairs/${roomId}/chatMessages/${m.id}`,
-      );
-    }
+  const handleDelete = () => {
+    setShowConfirmDelete(true);
   };
 
   const startPressTimer = (clientX: number, clientY: number) => {
@@ -287,7 +262,7 @@ function ChatMessage({
     longPressTimerRef.current = setTimeout(() => {
       isLongPressActive.current = true;
       sensory.success();
-      handleDelete();
+      setReactToMsgId(m.id);
     }, 600); // 600ms long press
   };
 
@@ -634,31 +609,9 @@ function ChatMessage({
                     <Reply size={18} />
                   </button>
                   <button
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       e.stopPropagation();
-                      if (!roomId) return;
-                      if (!window.confirm("Delete this message? This will mark it as deleted for both you and your partner.")) return;
-                      try {
-                        await updateDoc(
-                          doc(db, "pairs", roomId, "chatMessages", m.id),
-                          {
-                            isDeleted: true,
-                            text: "This message was deleted",
-                            image: deleteField(),
-                            isSticker: deleteField(),
-                            reactions: deleteField(),
-                            replyTo: deleteField()
-                          }
-                        );
-                        sensory.tap();
-                        setReactToMsgId(null);
-                      } catch (err) {
-                        handleFirestoreError(
-                          err,
-                          "update",
-                          `pairs/${roomId}/chatMessages/${m.id}`,
-                        );
-                      }
+                      handleDelete();
                     }}
                     className="p-1.5 text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/10 rounded-full active:scale-90 transition-all"
                     title="Delete message"
@@ -670,6 +623,70 @@ function ChatMessage({
                     className="p-1.5 text-text/50 hover:text-text/80 active:scale-90 transition-all rounded-full hover:bg-black/5"
                   >
                     <X size={18} />
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showConfirmDelete && (
+            <>
+              <div 
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999]" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowConfirmDelete(false);
+                }} 
+              />
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border border-border p-6 rounded-3xl shadow-xl z-[1000] w-[90%] max-w-sm flex flex-col items-center text-center gap-4 text-text"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-3 bg-rose-500/10 rounded-full text-rose-500">
+                  <Trash2 size={32} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-text font-sans">Delete message?</h3>
+                  <p className="text-sm text-text/60 mt-1">
+                    This will permanently delete this message or sticker for both you and your partner from the backend.
+                  </p>
+                </div>
+                <div className="flex w-full gap-2 mt-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowConfirmDelete(false);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl border border-border hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all text-sm font-semibold select-none cursor-pointer text-text/80"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      setShowConfirmDelete(false);
+                      if (!roomId) return;
+                      try {
+                        await deleteDoc(doc(db, "pairs", roomId, "chatMessages", m.id));
+                        sensory.tap();
+                        setReactToMsgId(null);
+                      } catch (err) {
+                        handleFirestoreError(
+                          err,
+                          "delete",
+                          `pairs/${roomId}/chatMessages/${m.id}`,
+                        );
+                      }
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white font-semibold shadow-sm hover:bg-rose-600 active:scale-95 transition-all text-sm select-none cursor-pointer"
+                  >
+                    Delete
                   </button>
                 </div>
               </motion.div>
