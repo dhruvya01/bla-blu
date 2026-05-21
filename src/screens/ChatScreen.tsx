@@ -946,6 +946,7 @@ export function ChatScreen({ socket }: ChatProps) {
   const stickerInputRef = useRef<HTMLInputElement>(null);
   const longPressTimeoutRef = useRef<any>(null);
   const isLongPressRef = useRef<boolean>(false);
+  const lastStickerSentTimeRef = useRef<number>(0);
 
   const handleAddCustomSticker = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1283,6 +1284,13 @@ export function ChatScreen({ socket }: ChatProps) {
 
   const sendSticker = async (stickerSrc: string) => {
     if (!user || !roomId) return;
+    const nowTime = Date.now();
+    if (nowTime - lastStickerSentTimeRef.current < 450) {
+      console.log("[DEBUG] sendSticker blocked duplicate tap within 450ms");
+      return;
+    }
+    lastStickerSentTimeRef.current = nowTime;
+    
     addCoins(2); // Dynamic sticker rewards!
     try {
       const encryptedImage = await encryptData(stickerSrc);
