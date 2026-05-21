@@ -33,6 +33,9 @@ import {
   Sparkles,
   Maximize2,
   Minimize2,
+  Search,
+  Layers,
+  Smile,
 } from "lucide-react";
 import {
   collection,
@@ -345,6 +348,22 @@ function ChatMessage({
   const [decryptedText, setDecryptedText] = useState(m.text || "");
   const [decryptedImage, setDecryptedImage] = useState(m.image || "");
   const [decryptedAudio, setDecryptedAudio] = useState(m.audio || "");
+  const [isHighlighted, setIsHighlighted] = useState(false);
+
+  useEffect(() => {
+    const handleHighlight = (e: any) => {
+      if (e.detail?.id === m.id) {
+        setIsHighlighted(true);
+        setTimeout(() => {
+          setIsHighlighted(false);
+        }, 3000);
+      }
+    };
+    window.addEventListener("highlight-msg" as any, handleHighlight);
+    return () => {
+      window.removeEventListener("highlight-msg" as any, handleHighlight);
+    };
+  }, [m.id]);
 
   useEffect(() => {
     let active = true;
@@ -560,7 +579,12 @@ function ChatMessage({
 
   return (
     <div
-      className={cn("flex w-full mb-2", isMe ? "justify-end" : "justify-start")}
+      id={`msg-${m.id}`}
+      className={cn(
+        "flex w-full mb-2 transition-all duration-300", 
+        isMe ? "justify-end" : "justify-start",
+        isHighlighted && "scale-[1.03] duration-500"
+      )}
     >
       <div
         ref={messageRef}
@@ -611,7 +635,8 @@ function ChatMessage({
                 : "px-4 py-2.5 rounded-2xl relative transition-all cursor-pointer",
               !m.isSticker && (isMe
                 ? "bg-primary text-white rounded-br-sm shadow-sm"
-                : "bg-card text-text border border-border rounded-bl-sm shadow-sm")
+                : "bg-card text-text border border-border rounded-bl-sm shadow-sm"),
+              isHighlighted && "ring-4 ring-amber-400 ring-offset-2 dark:ring-offset-[#0d0a15] shadow-[0_0_15px_rgba(245,158,11,0.5)] z-20"
             )}
           >
             {repliedMsg && (
@@ -1260,7 +1285,7 @@ function LiveSnapCamera({ onCapture, onClose }: LiveSnapCameraProps) {
               className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all active:scale-90"
               title="Gallery"
             >
-              <Smile size={20} className="text-white/80" />
+              <ImageIcon size={20} className="text-white/80" />
             </button>
 
             {/* Shutter Button with snap animation */}
@@ -1327,6 +1352,42 @@ export function ChatScreen({ socket }: ChatProps) {
   });
   const [showWallpaperSelector, setShowWallpaperSelector] = useState(false);
   const [isLiveCameraOpen, setIsLiveCameraOpen] = useState(false);
+
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showStarredDrawer, setShowStarredDrawer] = useState(false);
+  const [decryptedMap, setDecryptedMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let active = true;
+    messages.forEach((m: any) => {
+      if (m.text && !decryptedMap[m.id]) {
+        if (m.text.startsWith && m.text.startsWith("E2EE:")) {
+          decryptData(m.text).then((t) => {
+            if (active) {
+              setDecryptedMap((prev) => ({ ...prev, [m.id]: t }));
+            }
+          });
+        } else {
+          setDecryptedMap((prev) => ({ ...prev, [m.id]: m.text || "" }));
+        }
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [messages, decryptedMap]);
+
+  const handleScrollToMessage = (msgId: string) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("highlight-msg", { detail: { id: msgId } }));
+      }, 300);
+      sensory.success();
+    }
+  };
 
   const DEFAULT_QUICK_MESSAGES = [
     { id: "eat", type: "eat", label: "Ask to eat", icon: "Utensils" },
@@ -2030,8 +2091,10 @@ export function ChatScreen({ socket }: ChatProps) {
       </div>
 
       {/* ADVANCED HEADER */}
-      <div className="fixed top-0 left-0 right-0 z-[100] pt-safe-top px-4 py-3 bg-bg/85 backdrop-blur-2xl border-b border-border/40 shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="fixed top-0 left-0 right-0 z-[100] pt-safe-top bg-bg/85 backdrop-blur-2xl border-b border-border/40 shadow-sm flex flex-col">
+        {/* Primary Row Container */}
+        <div className="px-4 py-3 flex items-center justify-between w-full">
+          <div className="flex items-center gap-3">
           <button
             onClick={() => setView("home")}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border text-text shadow-sm active:scale-90 transition-all hover:bg-black/5"
@@ -2140,6 +2203,26 @@ export function ChatScreen({ socket }: ChatProps) {
                     <button
                       onClick={() => {
                         setShowMenu(false);
+                        setIsSearchExpanded(true);
+                        sensory.tap();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 rounded-xl transition-colors flex items-center gap-2"
+                    >
+                      <Search size={16} /> Search Messages
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowStarredDrawer(true);
+                        sensory.tap();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 rounded-xl transition-colors flex items-center gap-2"
+                    >
+                      <Star size={16} className="text-amber-500 fill-amber-500/20" /> Starred Memories
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
                         setShowWallpaperSelector(true);
                         sensory.tap();
                       }}
@@ -2159,7 +2242,201 @@ export function ChatScreen({ socket }: ChatProps) {
             )}
           </AnimatePresence>
         </div>
+        </div>
+
+        {/* Search Expansion Panel */}
+        <AnimatePresence>
+          {isSearchExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="px-4 pb-3 overflow-hidden bg-bg/50"
+            >
+              <div className="relative flex items-center gap-2 mt-1">
+                <Search size={16} className="absolute left-3 text-text/40" />
+                <input
+                  type="text"
+                  placeholder="Search decrypted chat history..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    sensory.tap();
+                  }}
+                  className="w-full pl-9 pr-8 py-2 text-xs bg-black/5 dark:bg-white/5 border border-border/60 rounded-xl focus:outline-none focus:border-primary transition-colors text-text font-medium"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => { setSearchQuery(""); sensory.tap(); }}
+                    className="absolute right-3 text-text/40 hover:text-text/60"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Instant Search Matches list dropdown */}
+              {searchQuery && (
+                <div className="mt-2 max-h-48 overflow-y-auto bg-card rounded-2xl border border-border shadow-md p-1.5 flex flex-col gap-1 select-none no-scrollbar">
+                  {(() => {
+                    const matches = messages.filter((m: any) => {
+                      const text = (decryptedMap[m.id] || "").toLowerCase();
+                      return text.includes(searchQuery.toLowerCase());
+                    });
+                    if (matches.length === 0) {
+                      return <span className="text-xs text-text/40 text-center p-3 font-semibold">No sweet memories found</span>;
+                    }
+                    return matches.map((m: any) => {
+                      const text = decryptedMap[m.id] || "";
+                      const displaySender = m.senderId === user?.uid ? "You" : partner?.nickname || "Them";
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => {
+                            handleScrollToMessage(m.id);
+                          }}
+                          className="w-full text-left p-2.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors flex flex-col gap-0.5"
+                        >
+                          <div className="flex items-center justify-between text-[10px] font-bold text-primary opacity-90">
+                            <span>{displaySender}</span>
+                            <span className="font-mono text-text/40 lowercase">{m.timestamp ? formatBubbleTime(m.timestamp) : "Just now"}</span>
+                          </div>
+                          <span className="text-xs text-text/80 truncate font-medium max-w-full">
+                            {text}
+                          </span>
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* STARRED MEMORIES DRAWER */}
+      <AnimatePresence>
+        {showStarredDrawer && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-[250] backdrop-blur-sm"
+              onClick={() => setShowStarredDrawer(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="fixed bottom-0 left-0 right-0 z-[260] bg-card border-t border-border rounded-t-[2.5rem] shadow-2xl p-6 flex flex-col max-w-md mx-auto h-[80vh]"
+            >
+              {/* Top pull bar */}
+              <div className="w-12 h-1.5 bg-border rounded-full mb-5 cursor-pointer self-center" onClick={() => setShowStarredDrawer(false)} />
+              
+              <div className="flex items-center gap-2 mb-1 self-center">
+                <Star className="text-amber-400 fill-amber-400" size={22} />
+                <h3 className="font-display font-bold text-lg text-text">Memory Treasure Box</h3>
+              </div>
+              <p className="text-xs text-text/50 mb-5 text-center px-6 font-medium">Your bookmarked romantic chats, snaps, and sweet letters</p>
+
+              {/* Starred items content list */}
+              <div className="flex-1 overflow-y-auto no-scrollbar space-y-3.5 pr-1 pb-4">
+                {(() => {
+                  const starred = messages.filter((m: any) => m.isStarred);
+                  if (starred.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-16 text-center opacity-45 px-6">
+                        <div className="w-14 h-14 rounded-full bg-amber-400/10 flex items-center justify-center mb-3">
+                          <Star size={24} className="text-amber-400" />
+                        </div>
+                        <p className="text-sm font-semibold text-text mb-1">Your memory box is empty</p>
+                        <p className="text-xs text-text/70 leading-relaxed max-w-[210px] font-medium">Long-press any message bubble and tap Star to highlight your favorite couple moments.</p>
+                      </div>
+                    );
+                  }
+                  return starred.map((m: any) => {
+                    const text = decryptedMap[m.id] || m.text || "";
+                    const isMe = m.senderId === user?.uid;
+                    const senderNickname = isMe ? "You" : partner?.nickname || "Them";
+                    return (
+                      <div
+                        key={m.id}
+                        className="bg-bg/50 border border-border/50 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-xs hover:border-primary/20 transition-all cursor-pointer group"
+                        onClick={() => {
+                          setShowStarredDrawer(false);
+                          setTimeout(() => {
+                            handleScrollToMessage(m.id);
+                          }, 250);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full overflow-hidden bg-white flex items-center justify-center text-[10px] font-bold border border-border">
+                              {isMe ? (
+                                user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" /> : "ME"
+                              ) : (
+                                partner?.avatarUrl ? <img src={partner.avatarUrl} className="w-full h-full object-cover" /> : "P"
+                              )}
+                            </div>
+                            <span className="text-[11px] font-bold text-text/70">{senderNickname}</span>
+                          </div>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              sensory.tap();
+                              try {
+                                await toggleStarMessage(m.id, true);
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }}
+                            className="p-1 text-amber-500 hover:text-text/30 active:scale-90 transition-all"
+                            title="Unstar memory"
+                          >
+                            <Star size={14} fill="currentColor" />
+                          </button>
+                        </div>
+
+                        <div className="text-xs text-text/80 font-medium break-words px-1">
+                          {m.image ? (
+                            <div className="flex items-center gap-2 text-primary">
+                              <ImageIcon size={14} />
+                              <span className="font-semibold text-[11px]">Secure Image Attachment</span>
+                            </div>
+                          ) : m.audio ? (
+                            <div className="flex items-center gap-2 text-primary">
+                              <Mic size={14} />
+                              <span className="font-semibold text-[11px]">Secure Voice Memo</span>
+                            </div>
+                          ) : (
+                            text
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[9px] text-text/40 hover:text-primary transition-colors font-semibold uppercase tracking-wider leading-none mt-1">
+                          <span>{m.timestamp ? formatBubbleTime(m.timestamp) : "Just now"}</span>
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold leading-none text-primary normal-case">Jump to message &rarr;</span>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+
+              <button
+                onClick={() => setShowStarredDrawer(false)}
+                className="w-full mt-4 py-3.5 bg-neutral-100 dark:bg-white/5 text-text/80 hover:bg-neutral-200 dark:hover:bg-white/10 font-bold rounded-2xl active:scale-95 transition-all text-xs border border-border"
+              >
+                Close Treasure Box
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* WALLPAPER SELECTOR MODAL */}
       <AnimatePresence>
@@ -2189,11 +2466,11 @@ export function ChatScreen({ socket }: ChatProps) {
 
               <div className="grid grid-cols-2 gap-4 w-full">
                 {[
-                  { id: "default", label: "Cozy Slate", class: "bg-bg shadow-sm border border-border", text: "text-text" },
-                  { id: "sakura", label: "Sakura Love", class: "bg-gradient-to-tr from-pink-100 to-rose-200 text-[#c2185b]", icon: "🌸" },
-                  { id: "sunset", label: "Sunset Kiss", class: "bg-gradient-to-tr from-amber-100 via-rose-100 to-purple-200 text-[#9c27b0]", icon: "🌅" },
-                  { id: "midnight", label: "Starry Night", class: "bg-gradient-to-b from-indigo-950 to-purple-950 text-white", icon: "🌌" },
-                  { id: "mint", label: "Mint Grid", class: "bg-emerald-50 text-[#0f5132]", icon: "🌿" },
+                  { id: "default", label: "Cozy Slate", class: "bg-bg shadow-sm border border-border", icon: <Layers size={22} className="text-text/70" /> },
+                  { id: "sakura", label: "Sakura Love", class: "bg-gradient-to-tr from-pink-100 to-rose-200", icon: <Heart size={22} className="text-rose-600 fill-rose-600/30" /> },
+                  { id: "sunset", label: "Sunset Kiss", class: "bg-gradient-to-tr from-amber-100 via-rose-100 to-purple-200", icon: <Sun size={22} className="text-amber-600" /> },
+                  { id: "midnight", label: "Starry Night", class: "bg-gradient-to-b from-indigo-950 to-purple-950", icon: <Sparkles size={22} className="text-amber-400" /> },
+                  { id: "mint", label: "Mint Grid", class: "bg-emerald-50", icon: <Palette size={22} className="text-emerald-700" /> },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -2211,7 +2488,7 @@ export function ChatScreen({ socket }: ChatProps) {
                   >
                     <div className={cn("absolute inset-0 opacity-85 group-hover:opacity-100 transition-opacity", item.class)} />
                     <div className="relative z-10 flex flex-col items-center">
-                      <span className="text-2xl mb-1">{item.icon || "🏡"}</span>
+                      <span className="mb-1 flex items-center justify-center">{item.icon}</span>
                       <span className="text-xs font-bold font-sans text-text">{item.label}</span>
                     </div>
                   </button>
@@ -2312,6 +2589,31 @@ export function ChatScreen({ socket }: ChatProps) {
                 </React.Fragment>
               );
             })}
+
+            {(isPartnerTyping || isTypingLocal) && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                className="flex items-end gap-2.5 mb-4 max-w-[70%]"
+              >
+                {/* Partner Avatar */}
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-card border border-border flex items-center justify-center shrink-0 shadow-xs">
+                  {partner?.avatarUrl ? (
+                    <img src={partner.avatarUrl} alt="partner avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-xs font-bold text-primary">{partner?.nickname?.[0]?.toUpperCase() || "P"}</div>
+                  )}
+                </div>
+                
+                {/* Animated Bubble */}
+                <div className="bg-card border border-border/60 rounded-2xl rounded-bl-none px-4 py-2.5 shadow-xs flex items-center gap-1.5 h-[34px]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-bounce" style={{   animation : "bounce 1s infinite" }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-bounce" style={{   animation : "bounce 1s infinite", animationDelay: "150ms" }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-bounce" style={{   animation : "bounce 1s infinite", animationDelay: "300ms" }} />
+                </div>
+              </motion.div>
+            )}
 
             <div ref={messagesEndRef} />
           </div>
@@ -2593,7 +2895,7 @@ export function ChatScreen({ socket }: ChatProps) {
             )}
             title="Stickers Center"
           >
-            <span className="text-lg leading-none">💝</span>
+            <Smile size={20} className={cn(showStickers ? "text-white" : "text-primary")} />
           </button>
           
           <div className="relative">
