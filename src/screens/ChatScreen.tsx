@@ -336,10 +336,12 @@ function ChatMessage({
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             className={cn(
-              "px-4 py-2.5 rounded-2xl relative transition-all",
-              isMe
+              m.isSticker
+                ? "p-0 bg-transparent border-none shadow-none relative select-none"
+                : "px-4 py-2.5 rounded-2xl relative transition-all",
+              !m.isSticker && (isMe
                 ? "bg-primary text-white rounded-br-sm shadow-sm"
-                : "bg-card text-text border border-border rounded-bl-sm shadow-sm",
+                : "bg-card text-text border border-border rounded-bl-sm shadow-sm")
             )}
           >
             {repliedMsg && (
@@ -369,11 +371,17 @@ function ChatMessage({
                   <span className="text-xs font-semibold text-center leading-tight">Verification<br/>Failed</span>
                 </div>
               ) : decryptedImage ? (
-                <img
+                <motion.img
+                  whileHover={{ scale: m.isSticker ? 1.15 : 1, rotate: m.isSticker ? 2 : 0 }}
+                  whileTap={{ scale: m.isSticker ? 0.95 : 1 }}
                   src={decryptedImage}
-                  alt="Image"
-                  className="mt-1 mb-1 max-w-full rounded-xl object-contain shadow-sm border border-black/5 cursor-pointer hover:opacity-90 transition-opacity"
-                  style={{ maxHeight: "300px" }}
+                  alt={m.isSticker ? "Sticker" : "Image"}
+                  className={cn(
+                    m.isSticker
+                      ? "w-28 h-28 md:w-32 md:h-32 object-contain filter drop-shadow-md cursor-pointer pointer-events-auto"
+                      : "mt-1 mb-1 max-w-full rounded-xl object-contain shadow-sm border border-black/5 cursor-pointer hover:opacity-90 transition-opacity"
+                  )}
+                  style={m.isSticker ? { maxHeight: "none" } : { maxHeight: "300px" }}
                   onClick={() => onExpandImage && onExpandImage(decryptedImage!)}
                 />
               ) : null}
@@ -605,6 +613,69 @@ const detectRomanticEffect = (text: string) => {
   return null;
 };
 
+export const getClownCatStickerDataUrl = () => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+    <defs>
+      <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+        <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-opacity="0.15"/>
+      </filter>
+      <radialGradient id="faceGrad" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FFFFFF"/>
+        <stop offset="100%" stop-color="#F3F4F6"/>
+      </radialGradient>
+    </defs>
+
+    <!-- Ears -->
+    <path d="M 28 42 L 15 15 L 45 32 Z" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+    <path d="M 31 39 L 20 20 L 42 32 Z" fill="#FDA4AF"/>
+    <path d="M 92 42 L 105 15 L 75 32 Z" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+    <path d="M 89 39 L 100 20 L 78 32 Z" fill="#FDA4AF"/>
+
+    <!-- Head -->
+    <ellipse cx="60" cy="65" rx="42" ry="34" fill="url(#faceGrad)" stroke="#E2E8F0" stroke-width="2" filter="url(#shadow)"/>
+
+    <!-- Rainbow Wig -->
+    <g filter="url(#shadow)">
+      <circle cx="42" cy="30" r="12" fill="#EF4444"/>
+      <circle cx="54" cy="24" r="13" fill="#F97316"/>
+      <circle cx="68" cy="24" r="13" fill="#EAB308"/>
+      <circle cx="80" cy="31" r="12" fill="#22C55E"/>
+      <circle cx="60" cy="18" r="14" fill="#3B82F6"/>
+      <circle cx="48" cy="20" r="11" fill="#A855F7"/>
+      <circle cx="72" cy="20" r="11" fill="#EC4899"/>
+    </g>
+
+    <polygon points="38,48 42,65 38,82 34,65" fill="#38BDF8" opacity="0.8"/>
+    <polygon points="82,48 86,65 82,82 78,65" fill="#38BDF8" opacity="0.8"/>
+
+    <circle cx="38" cy="63" r="6" fill="#1E293B"/>
+    <circle cx="36" cy="61" r="2" fill="#FFFFFF"/>
+    <circle cx="82" cy="63" r="6" fill="#1E293B"/>
+    <circle cx="80" cy="61" r="2" fill="#FFFFFF"/>
+
+    <path d="M 33,60 Q 28,57 26,61" stroke="#0F172A" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M 32,58 Q 27,53 26,56" stroke="#0F172A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M 35,57 Q 31,51 32,53" stroke="#0F172A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+    <path d="M 87,60 Q 92,57 94,61" stroke="#0F172A" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M 88,58 Q 93,53 94,56" stroke="#0F172A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M 85,57 Q 89,51 88,53" stroke="#0F172A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+    <circle cx="28" cy="74" r="7" fill="#F87171" opacity="0.6"/>
+    <circle cx="92" cy="74" r="7" fill="#F87171" opacity="0.6"/>
+
+    <circle cx="60" cy="67" r="9" fill="#EF4444" filter="url(#shadow)"/>
+    <circle cx="57" cy="64" r="3" fill="#FFFFFF" opacity="0.6"/>
+
+    <path d="M 54 75 Q 60 78 60 75 Q 60 78 66 75" stroke="#475569" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <line x1="22" y1="71" x2="10" y2="70" stroke="#94A3B8" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="22" y1="75" x2="8" y2="76" stroke="#94A3B8" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="98" y1="71" x2="110" y2="70" stroke="#94A3B8" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="98" y1="75" x2="112" y2="76" stroke="#94A3B8" stroke-width="1.2" stroke-linecap="round"/>
+  </svg>`;
+  return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+};
+
 interface ChatProps {
   socket: Socket | null;
 }
@@ -696,6 +767,41 @@ export function ChatScreen({ socket }: ChatProps) {
     { id: string; emoji: string }[]
   >([]);
   const [showCare, setShowCare] = useState(false);
+  const [showStickers, setShowStickers] = useState(false);
+  const [customStickers, setCustomStickers] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("blablu_custom_stickers");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const stickerInputRef = useRef<HTMLInputElement>(null);
+  const longPressTimeoutRef = useRef<any>(null);
+  const isLongPressRef = useRef<boolean>(false);
+
+  const handleAddCustomSticker = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      const updated = [...customStickers, base64];
+      setCustomStickers(updated);
+      localStorage.setItem("blablu_custom_stickers", JSON.stringify(updated));
+      sensory.success();
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCustomSticker = (index: number) => {
+    const updated = customStickers.filter((_, i) => i !== index);
+    setCustomStickers(updated);
+    localStorage.setItem("blablu_custom_stickers", JSON.stringify(updated));
+    sensory.tap();
+  };
+
   const [isTypingLocal, setIsPartnerTypingLocal] = useState(false);
   const [tick, setTick] = useState(0);
   const [imageFile, setImageFile] = useState<string | null>(null);
@@ -997,6 +1103,47 @@ export function ChatScreen({ socket }: ChatProps) {
         .setError(
           `Send failed: ${err?.code || err?.message || "unknown error"}`,
         );
+    }
+  };
+
+  const sendSticker = async (stickerSrc: string) => {
+    if (!user || !roomId) return;
+    addCoins(2); // Dynamic sticker rewards!
+    try {
+      const encryptedImage = await encryptData(stickerSrc);
+      await addDoc(collection(db, "pairs", roomId, "chatMessages"), {
+        senderId: user.uid,
+        status: "sent",
+        timestamp: serverTimestamp(),
+        image: encryptedImage,
+        isSticker: true
+      });
+
+      if (partner?.fcmToken) {
+        const privacy = useAppStore.getState().privacyModeEnabled;
+        const title = "Blablu Sticker";
+        const body = privacy
+          ? "blablubla blu 🌈"
+          : `${user.nickname || "Partner"} sent you a sticker 🤩`;
+
+        fetch(`${CONFIG.SERVER_URL}/api/notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: partner.fcmToken,
+            title,
+            body,
+            data: { roomId, senderId: user.uid, type: "chat" },
+          }),
+        }).catch(() => {});
+      }
+
+      sensory.play("pop");
+      sensory.tap();
+      socket?.emit("stop-typing", { roomId, userId: user.uid });
+      updateDoc(doc(db, "users", user.uid), { lastActive: Date.now() }).catch(() => {});
+    } catch (err: any) {
+      console.error("sendSticker failed:", err);
     }
   };
 
@@ -1412,99 +1559,192 @@ export function ChatScreen({ socket }: ChatProps) {
           )}
         </AnimatePresence>
 
-        {/* Care Buttons Row */}
+        {/* Stickers & Care Hub */}
         <AnimatePresence>
-          {showCare && (
+          {showStickers && (
             <motion.div
               initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-              animate={{ opacity: 1, height: "auto", marginBottom: 8 }}
+              animate={{ opacity: 1, height: "auto", marginBottom: 12 }}
               exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              className="overflow-hidden"
+              className="overflow-hidden bg-card border border-border rounded-2xl p-3 shadow-md"
             >
-              <div className="flex gap-2 overflow-x-auto no-scrollbar px-1 py-1">
-                {quickMessages.map((care: any) => {
-                  let IconComponent = MessageSquare;
-                  if (care.icon === "Utensils") IconComponent = Utensils;
-                  else if (care.icon === "Droplet") IconComponent = Droplet;
-                  else if (care.icon === "Pill") IconComponent = Pill;
+              <div className="flex items-center justify-between mb-3 border-b border-border pb-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-black text-text flex items-center gap-1">
+                    ✨ Sticker Center
+                  </span>
+                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">
+                    Couple Pack
+                  </span>
+                </div>
+                <button
+                  onClick={() => stickerInputRef.current?.click()}
+                  className="bg-primary hover:bg-primary/95 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 active:scale-95 transition-all shadow-sm"
+                >
+                  <Plus size={10} /> Add from Gallery
+                </button>
+              </div>
 
-                  return (
-                    <div
-                      key={care.id}
-                      className="relative flex shrink-0 items-stretch bg-card border border-border rounded-full shadow-sm hover:border-primary/20 transition-all"
+              {/* Scrollable grid of stickers */}
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 max-h-40 overflow-y-auto pr-1 no-scrollbar py-1 mb-3">
+                {/* Custom gallery stickers */}
+                {customStickers.map((src, i) => (
+                  <div
+                    key={`custom-${i}`}
+                    className="aspect-square bg-card border border-border rounded-xl p-1.5 flex items-center justify-center hover:scale-105 hover:border-primary/40 transition-all shadow-sm group relative"
+                  >
+                    <button
+                      onMouseDown={(e) => {
+                        if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
+                        isLongPressRef.current = false;
+                        longPressTimeoutRef.current = setTimeout(() => {
+                          isLongPressRef.current = true;
+                          sensory.success();
+                          if (window.confirm("Are you sure you want to delete this custom sticker?")) {
+                            handleRemoveCustomSticker(i);
+                          }
+                        }, 650);
+                      }}
+                      onMouseUp={() => {
+                        if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
+                        if (!isLongPressRef.current) {
+                          sendSticker(src);
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
+                      }}
+                      onTouchStart={() => {
+                        if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
+                        isLongPressRef.current = false;
+                        longPressTimeoutRef.current = setTimeout(() => {
+                          isLongPressRef.current = true;
+                          sensory.success();
+                          if (window.confirm("Are you sure you want to delete this custom sticker?")) {
+                            handleRemoveCustomSticker(i);
+                          }
+                        }, 650);
+                      }}
+                      onTouchEnd={() => {
+                        if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
+                        if (!isLongPressRef.current) {
+                          sendSticker(src);
+                        }
+                      }}
+                      className="w-full h-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform select-none"
+                      title="Long press to delete this sticker"
                     >
-                      <button
-                        onClick={async () => {
-                          if (!user || !roomId) return;
-                          await addDoc(
-                            collection(db, "pairs", roomId, "chatMessages"),
-                            {
-                              senderId: user.uid,
-                              text:
-                                care.type === "custom"
-                                  ? care.label
-                                  : `Honey, please ${care.type === "eat" ? "eat something" : care.type === "water" ? "drink water" : "take your medicine"} 🫂`,
-                              isCareBtn: true,
-                              careType: care.type,
-                              timestamp: serverTimestamp(),
-                            },
-                          );
-                          sensory.tap();
-                          setShowCare(false);
-                        }}
-                        className="px-3 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 text-text/70 active:scale-95"
+                      <img
+                        src={src}
+                        alt="Custom Sticker"
+                        className="w-full h-full object-contain pointer-events-none"
+                      />
+                    </button>
+                    {/* Delete button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveCustomSticker(i);
+                      }}
+                      className="absolute -top-1.5 -right-1.5 bg-rose-500/90 text-white w-4 h-4 flex items-center justify-center rounded-full hover:scale-110 active:scale-90 transition-transform shadow-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                      title="Delete sticker"
+                    >
+                      <X size={8} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Quick Care Messages Section built right in */}
+              <div className="border-t border-border/50 pt-2">
+                <span className="text-[10px] uppercase tracking-wider text-text/40 font-bold block mb-2">
+                  Quick Care alerts
+                </span>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
+                  {quickMessages.map((care: any) => {
+                    let IconComponent = MessageSquare;
+                    if (care.icon === "Utensils") IconComponent = Utensils;
+                    else if (care.icon === "Droplet") IconComponent = Droplet;
+                    else if (care.icon === "Pill") IconComponent = Pill;
+
+                    return (
+                      <div
+                        key={care.id}
+                        className="relative flex shrink-0 items-stretch bg-background border border-border rounded-full shadow-sm hover:border-primary/20 transition-all"
                       >
-                        <IconComponent size={12} className="text-primary/60" />
-                        {care.label}
+                        <button
+                          onClick={async () => {
+                            if (!user || !roomId) return;
+                            await addDoc(
+                              collection(db, "pairs", roomId, "chatMessages"),
+                              {
+                                senderId: user.uid,
+                                text:
+                                  care.type === "custom"
+                                    ? care.label
+                                    : `Honey, please ${care.type === "eat" ? "eat something" : care.type === "water" ? "drink water" : "take your medicine"} 🫂`,
+                                isCareBtn: true,
+                                careType: care.type,
+                                timestamp: serverTimestamp(),
+                              },
+                            );
+                            sensory.tap();
+                            setShowStickers(false);
+                          }}
+                          className="px-3 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 text-text/70 active:scale-95"
+                        >
+                          <IconComponent size={12} className="text-primary/60" />
+                          {care.label}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteQM(care.id);
+                          }}
+                          className="pr-2 pl-1 flex items-center justify-center text-text/40 hover:text-rose-500 active:scale-95 border-l border-border/50"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {isAddingQM ? (
+                    <div className="shrink-0 flex items-center gap-1 bg-background border border-border rounded-full pl-3 pr-1 py-1 shadow-sm">
+                      <input
+                        type="text"
+                        value={newQMLabel}
+                        onChange={(e) => setNewQMLabel(e.target.value)}
+                        placeholder="New message..."
+                        className="bg-transparent border-none outline-none text-[11px] w-24 text-text"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAddQM();
+                          if (e.key === "Escape") setIsAddingQM(false);
+                        }}
+                      />
+                      <button
+                        onClick={handleAddQM}
+                        className="bg-primary/20 text-primary p-1 rounded-full active:scale-90 transition-all"
+                      >
+                        <Check size={12} />
                       </button>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteQM(care.id);
-                        }}
-                        className="pr-2 pl-1 flex items-center justify-center text-text/40 hover:text-rose-500 active:scale-95 border-l border-border/50"
+                        onClick={() => setIsAddingQM(false)}
+                        className="bg-rose-500/10 text-rose-500 p-1 rounded-full active:scale-90 transition-all"
                       >
                         <X size={12} />
                       </button>
                     </div>
-                  );
-                })}
-
-                {isAddingQM ? (
-                  <div className="shrink-0 flex items-center gap-1 bg-card border border-border rounded-full pl-3 pr-1 py-1 shadow-sm">
-                    <input
-                      type="text"
-                      value={newQMLabel}
-                      onChange={(e) => setNewQMLabel(e.target.value)}
-                      placeholder="New message..."
-                      className="bg-transparent border-none outline-none text-[11px] w-24 text-text"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleAddQM();
-                        if (e.key === "Escape") setIsAddingQM(false);
-                      }}
-                    />
+                  ) : (
                     <button
-                      onClick={handleAddQM}
-                      className="bg-primary/20 text-primary p-1 rounded-full active:scale-90 transition-all"
+                      onClick={() => setIsAddingQM(true)}
+                      className="shrink-0 bg-primary/5 border border-primary/30 border-dashed rounded-full px-3 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 text-primary/70 active:scale-95 transition-all"
                     >
-                      <Check size={12} />
+                      <Plus size={12} /> Add Alert
                     </button>
-                    <button
-                      onClick={() => setIsAddingQM(false)}
-                      className="bg-rose-500/10 text-rose-500 p-1 rounded-full active:scale-90 transition-all"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setIsAddingQM(true)}
-                    className="shrink-0 bg-primary/5 border border-primary/30 border-dashed rounded-full px-3 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 text-primary/70 active:scale-95 transition-all"
-                  >
-                    <Plus size={12} /> Add
-                  </button>
-                )}
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
@@ -1536,10 +1776,18 @@ export function ChatScreen({ socket }: ChatProps) {
 
         <div className="flex items-end gap-2 relative">
           <button
-            onClick={() => setShowCare(!showCare)}
-            className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 active:scale-95 transition-all mb-0.5"
+            onClick={() => {
+              setShowStickers(!showStickers);
+            }}
+            className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 active:scale-95 transition-all mb-0.5 shadow-sm border border-border/50",
+              showStickers 
+                ? "bg-primary text-white" 
+                : "bg-primary/10 text-primary hover:bg-primary/20"
+            )}
+            title="Stickers Center"
           >
-            <span className="text-xl leading-none">+</span>
+            <span className="text-lg leading-none">💝</span>
           </button>
           
           <div className="relative">
@@ -1605,6 +1853,13 @@ export function ChatScreen({ socket }: ChatProps) {
             className="hidden"
             ref={fileInputRef}
             onChange={handleImageSelect}
+          />
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            ref={stickerInputRef}
+            onChange={handleAddCustomSticker}
           />
           <textarea
             value={input}
