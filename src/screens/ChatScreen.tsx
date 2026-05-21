@@ -33,7 +33,6 @@ import {
   Sparkles,
   Maximize2,
   Minimize2,
-  Search,
   Layers,
   Smile,
 } from "lucide-react";
@@ -62,6 +61,8 @@ import { useNow } from "../hooks/useNow";
 import { getDistance, formatDistance } from "../utils/geo";
 import { compressImage } from "../utils/imageUtils";
 import { encryptData, decryptData, clearE2E } from "../utils/e2ee";
+
+import { DoodleScreen } from "./DoodleScreen";
 
 const isUserOnline = (u: any, now: number) => {
   if (!u?.lastActive) return false;
@@ -1352,9 +1353,7 @@ export function ChatScreen({ socket }: ChatProps) {
   });
   const [showWallpaperSelector, setShowWallpaperSelector] = useState(false);
   const [isLiveCameraOpen, setIsLiveCameraOpen] = useState(false);
-
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [showDoodleCreator, setShowDoodleCreator] = useState(false);
   const [showStarredDrawer, setShowStarredDrawer] = useState(false);
   const [decryptedMap, setDecryptedMap] = useState<Record<string, string>>({});
 
@@ -1377,6 +1376,24 @@ export function ChatScreen({ socket }: ChatProps) {
       active = false;
     };
   }, [messages, decryptedMap]);
+
+  const sendDoodle = async (base64: string) => {
+    if (!roomId || !user) return;
+    try {
+      sensory.success();
+      const encryptedImage = await encryptData(base64);
+      await addDoc(collection(db, "pairs", roomId, "chatMessages"), {
+        senderId: user.uid,
+        image: encryptedImage,
+        timestamp: serverTimestamp(),
+        status: "sent",
+      });
+      setShowDoodleCreator(false);
+      setShowAttachmentMenu(false);
+    } catch (err) {
+      console.error("Failed to send doodle", err);
+    }
+  };
 
   const handleScrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
@@ -2203,16 +2220,6 @@ export function ChatScreen({ socket }: ChatProps) {
                     <button
                       onClick={() => {
                         setShowMenu(false);
-                        setIsSearchExpanded(true);
-                        sensory.tap();
-                      }}
-                      className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 rounded-xl transition-colors flex items-center gap-2"
-                    >
-                      <Search size={16} /> Search Messages
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
                         setShowStarredDrawer(true);
                         sensory.tap();
                       }}
@@ -2244,76 +2251,6 @@ export function ChatScreen({ socket }: ChatProps) {
         </div>
         </div>
 
-        {/* Search Expansion Panel */}
-        <AnimatePresence>
-          {isSearchExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="px-4 pb-3 overflow-hidden bg-bg/50"
-            >
-              <div className="relative flex items-center gap-2 mt-1">
-                <Search size={16} className="absolute left-3 text-text/40" />
-                <input
-                  type="text"
-                  placeholder="Search decrypted chat history..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    sensory.tap();
-                  }}
-                  className="w-full pl-9 pr-8 py-2 text-xs bg-black/5 dark:bg-white/5 border border-border/60 rounded-xl focus:outline-none focus:border-primary transition-colors text-text font-medium"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => { setSearchQuery(""); sensory.tap(); }}
-                    className="absolute right-3 text-text/40 hover:text-text/60"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-
-              {/* Instant Search Matches list dropdown */}
-              {searchQuery && (
-                <div className="mt-2 max-h-48 overflow-y-auto bg-card rounded-2xl border border-border shadow-md p-1.5 flex flex-col gap-1 select-none no-scrollbar">
-                  {(() => {
-                    const matches = messages.filter((m: any) => {
-                      const text = (decryptedMap[m.id] || "").toLowerCase();
-                      return text.includes(searchQuery.toLowerCase());
-                    });
-                    if (matches.length === 0) {
-                      return <span className="text-xs text-text/40 text-center p-3 font-semibold">No sweet memories found</span>;
-                    }
-                    return matches.map((m: any) => {
-                      const text = decryptedMap[m.id] || "";
-                      const displaySender = m.senderId === user?.uid ? "You" : partner?.nickname || "Them";
-                      return (
-                        <button
-                          key={m.id}
-                          onClick={() => {
-                            handleScrollToMessage(m.id);
-                          }}
-                          className="w-full text-left p-2.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors flex flex-col gap-0.5"
-                        >
-                          <div className="flex items-center justify-between text-[10px] font-bold text-primary opacity-90">
-                            <span>{displaySender}</span>
-                            <span className="font-mono text-text/40 lowercase">{m.timestamp ? formatBubbleTime(m.timestamp) : "Just now"}</span>
-                          </div>
-                          <span className="text-xs text-text/80 truncate font-medium max-w-full">
-                            {text}
-                          </span>
-                        </button>
-                      );
-                    });
-                  })()}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* STARRED MEMORIES DRAWER */}
@@ -2677,9 +2614,10 @@ export function ChatScreen({ socket }: ChatProps) {
               className="overflow-hidden bg-card border border-border rounded-2xl p-3 shadow-md"
             >
               <div className="flex items-center justify-between mb-3 border-b border-border pb-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-black text-text flex items-center gap-1">
-                    ✨ Sticker Center
+                <div className="flex items-center gap-1.5 text-text">
+                  <Sparkles size={16} className="text-primary" />
+                  <span className="text-sm font-black flex items-center gap-1">
+                    Sticker Center
                   </span>
                   <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">
                     Couple Pack
@@ -2918,6 +2856,17 @@ export function ChatScreen({ socket }: ChatProps) {
                     <button
                       onClick={() => {
                         setShowAttachmentMenu(false);
+                        setShowDoodleCreator(true);
+                        sensory.tap();
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-black/5 active:bg-black/10 transition-colors flex items-center gap-3 border-b border-border/50"
+                    >
+                      <Palette size={18} className="text-primary" />
+                      Open Doodle Studio
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAttachmentMenu(false);
                         setIsLiveCameraOpen(true);
                         sensory.tap();
                       }}
@@ -3043,6 +2992,23 @@ export function ChatScreen({ socket }: ChatProps) {
           onClose={() => setIsLiveCameraOpen(false)}
         />
       )}
+
+      <AnimatePresence>
+        {showDoodleCreator && (
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[500] bg-bg"
+          >
+            <DoodleScreen 
+              onSend={sendDoodle} 
+              onClose={() => setShowDoodleCreator(false)} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

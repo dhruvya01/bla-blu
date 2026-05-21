@@ -27,7 +27,12 @@ interface Stroke {
   width: number;
 }
 
-export function DoodleScreen() {
+interface DoodleScreenProps {
+  onSend?: (base64: string) => void;
+  onClose?: () => void;
+}
+
+export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   const { setView, roomId, user, partner } = useAppStore((state) => ({
     setView: state.setView,
     roomId: state.roomId,
@@ -39,44 +44,65 @@ export function DoodleScreen() {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
-  const [currentColor, setCurrentColor] = useState("#f43f5e"); // Pink/sakura default
+  const [currentColor, setCurrentColor] = useState("#f43f5e"); 
   const [currentWidth, setCurrentWidth] = useState(4);
   const [currentTool, setCurrentTool] = useState<"brush" | "eraser">("brush");
   const [isDrawing, setIsDrawing] = useState(false);
   
   // Status states
   const [syncStatus, setSyncStatus] = useState<"idle" | "saving" | "synced">("synced");
-  const [partnerStatus, setPartnerStatus] = useState<string | null>(null);
+  const [showGrid, setShowGrid] = useState(true);
   
   // Scrapbook saving modal
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [doodleTitle, setDoodleTitle] = useState("");
   const [isSavingToScrapbook, setIsSavingToScrapbook] = useState(false);
 
-  // Refs for tracking active coordinates and Firestore synchronizations
+  // Refs for tracking active coordinates
   const strokesRef = useRef<Stroke[]>([]);
   strokesRef.current = strokes;
   const currentPathRef = useRef<{ x: number; y: number }[]>([]);
-  const lastWriteTimeRef = useRef<number>(0);
-  const lastSyncHashRef = useRef<string>("");
-  const writeDebounceTimerRef = useRef<any>(null);
 
   // Sound and Haptics comfort helper
   const triggerHaptic = () => {
     sensory.tap();
   };
 
-  // Cute color palette
+  // Enhanced Color Palette
   const COLORS = [
     { name: "Sakura", hex: "#f43f5e" },
-    { name: "Pink", hex: "#ec4899" },
+    { name: "Rose", hex: "#fb7185" },
     { name: "Lavender", hex: "#a855f7" },
-    { name: "Cornflower", hex: "#3b82f6" },
+    { name: "Royal", hex: "#6366f1" },
+    { name: "Sky", hex: "#38bdf8" },
     { name: "Mint", hex: "#10b981" },
-    { name: "Sunny", hex: "#eab308" },
-    { name: "Peach", hex: "#f97316" },
-    { name: "Soot", hex: "#0f172a" },
+    { name: "Leaf", hex: "#22c55e" },
+    { name: "Sunny", hex: "#fbbf24" },
+    { name: "Orange", hex: "#f97316" },
+    { name: "Latte", hex: "#a16207" },
+    { name: "Soot", hex: "#334155" },
+    { name: "Midnight", hex: "#0f172a" },
   ];
+
+  // Persistence: Load/Save draft from LocalStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(`blablu_doodle_draft_${user?.uid}`);
+    if (saved) {
+      try {
+        setStrokes(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load draft", e);
+      }
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (strokes.length > 0) {
+      localStorage.setItem(`blablu_doodle_draft_${user?.uid}`, JSON.stringify(strokes));
+    } else {
+      localStorage.removeItem(`blablu_doodle_draft_${user?.uid}`);
+    }
+  }, [strokes, user?.uid]);
 
   // Canvas Setup & Resize listener
   useEffect(() => {
@@ -133,147 +159,88 @@ export function DoodleScreen() {
     ctx.clearRect(0, 0, width, height);
 
     // Draw grid background for cozy sketchbook feeling
-    ctx.save();
-    ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
-    ctx.lineWidth = 1;
-    const gridSize = 25;
-    for (let x = 0; x < width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
+    if (showGrid) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
+      ctx.lineWidth = 1;
+      const gridSize = 25;
+      for (let x = 0; x < width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
-    for (let y = 0; y < height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-    ctx.restore();
 
-    // Draw all completed strokes
+    // Draw all completed strokes with smoothing
     strokesRef.current.forEach((stroke) => {
       if (stroke.points.length < 1) return;
+      
       ctx.beginPath();
-      const firstPoint = stroke.points[0];
-      ctx.moveTo(firstPoint.x * width, firstPoint.y * height);
-
-      stroke.points.forEach((point) => {
-        ctx.lineTo(point.x * width, point.y * height);
-      });
-
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = stroke.width;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
+
+      if (stroke.points.length < 3) {
+        const p = stroke.points[0];
+        ctx.moveTo(p.x * width, p.y * height);
+        stroke.points.forEach(p => ctx.lineTo(p.x * width, p.y * height));
+        ctx.stroke();
+        return;
+      }
+
+      ctx.moveTo(stroke.points[0].x * width, stroke.points[0].y * height);
+      
+      for (let i = 1; i < stroke.points.length - 2; i++) {
+        const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2 * width;
+        const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2 * height;
+        ctx.quadraticCurveTo(stroke.points[i].x * width, stroke.points[i].y * height, xc, yc);
+      }
+      
+      // For the last 2 points
+      const last2 = stroke.points[stroke.points.length - 2];
+      const last = stroke.points[stroke.points.length - 1];
+      ctx.quadraticCurveTo(last2.x * width, last2.y * height, last.x * width, last.y * height);
       ctx.stroke();
     });
 
-    // Draw current active stroke
+    // Draw current active stroke with smoothing
     if (isDrawing && currentPathRef.current.length > 0) {
       ctx.beginPath();
-      const firstPoint = currentPathRef.current[0];
-      ctx.moveTo(firstPoint.x * width, firstPoint.y * height);
-
-      currentPathRef.current.forEach((point) => {
-        ctx.lineTo(point.x * width, point.y * height);
-      });
-
       ctx.strokeStyle = currentTool === "eraser" ? "#ffffff" : currentColor;
       ctx.lineWidth = currentWidth;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.stroke();
-    }
-  };
 
-  // Subscribe to real-time additions securely
-  useEffect(() => {
-    if (!roomId) return;
-
-    setSyncStatus("idle");
-    const syncDocRef = doc(db, "pairs", roomId, "doodle_canvas", "current");
-
-    const unsubscribe = onSnapshot(syncDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        
-        // Listen to others drawing activity status
-        if (data.drawingUser && data.drawingUser !== user?.uid) {
-          const name = partner?.nickname || "Your partner";
-          setPartnerStatus(`${name} is sketching... ✏️`);
-        } else {
-          setPartnerStatus(null);
-        }
-
-        // De-serialize and verify coordinates to prevent re-drawing if we're active
-        if (data.strokesHash && data.strokesHash === lastSyncHashRef.current) {
-          setSyncStatus("synced");
-          return;
-        }
-
-        if (data.strokes) {
-          setStrokes(data.strokes);
-          lastSyncHashRef.current = data.strokesHash || "";
-          setSyncStatus("synced");
-        }
+      if (currentPathRef.current.length < 3) {
+        const p = currentPathRef.current[0];
+        ctx.moveTo(p.x * width, p.y * height);
+        currentPathRef.current.forEach(p => ctx.lineTo(p.x * width, p.y * height));
+        ctx.stroke();
       } else {
-        // Initial setup for the pair's canvas
-        setDoc(syncDocRef, {
-          strokes: [],
-          strokesHash: "empty",
-          updatedAt: Date.now(),
-        });
+        ctx.moveTo(currentPathRef.current[0].x * width, currentPathRef.current[0].y * height);
+        for (let i = 1; i < currentPathRef.current.length - 2; i++) {
+          const xc = (currentPathRef.current[i].x + currentPathRef.current[i + 1].x) / 2 * width;
+          const yc = (currentPathRef.current[i].y + currentPathRef.current[i + 1].y) / 2 * height;
+          ctx.quadraticCurveTo(currentPathRef.current[i].x * width, currentPathRef.current[i].y * height, xc, yc);
+        }
+        const last2 = currentPathRef.current[currentPathRef.current.length - 2];
+        const last = currentPathRef.current[currentPathRef.current.length - 1];
+        ctx.quadraticCurveTo(last2.x * width, last2.y * height, last.x * width, last.y * height);
+        ctx.stroke();
       }
-    });
-
-    return () => {
-      unsubscribe();
-      if (writeDebounceTimerRef.current) clearTimeout(writeDebounceTimerRef.current);
-    };
-  }, [roomId, partner]);
-
-  // Highly optimized write synchronization helper
-  const syncToFirestore = async (updatedStrokes: Stroke[], isDrawingActive: boolean = false) => {
-    if (!roomId) return;
-
-    if (writeDebounceTimerRef.current) {
-      clearTimeout(writeDebounceTimerRef.current);
-    }
-
-    setSyncStatus("saving");
-
-    // Compute a lightweight representation hash to optimize checks back and forth
-    const compactString = JSON.stringify(updatedStrokes);
-    const strokesHash = btoa(encodeURIComponent(compactString)).slice(0, 32);
-    lastSyncHashRef.current = strokesHash;
-
-    const performWrite = async () => {
-      try {
-        const syncDocRef = doc(db, "pairs", roomId, "doodle_canvas", "current");
-        await setDoc(
-          syncDocRef,
-          {
-            strokes: updatedStrokes,
-            strokesHash,
-            updatedAt: Date.now(),
-            drawingUser: isDrawingActive ? (user?.uid || "") : "",
-          },
-          { merge: true }
-        );
-        setSyncStatus("synced");
-      } catch (err) {
-        console.error("Firestore sync error:", err);
-      }
-    };
-
-    // If drawing is going on, we debounce. If stroke is completed (drawing finish), we write immediately
-    if (isDrawingActive) {
-      writeDebounceTimerRef.current = setTimeout(performWrite, 1800);
-    } else {
-      await performWrite();
     }
   };
+
+  const [showClearModal, setShowClearModal] = useState(false);
 
   // Drawing event trackers
   const getCanvasCoords = (e: React.MouseEvent | React.TouchEvent) => {
@@ -286,8 +253,8 @@ export function DoodleScreen() {
 
     if (e.nativeEvent instanceof TouchEvent) {
       if (e.nativeEvent.touches.length === 0) return null;
-      clientX = e.nativeEvent.touches[0].clientX;
-      clientY = e.nativeEvent.touches[0].clientY;
+      clientX = (e.nativeEvent as TouchEvent).touches[0].clientX;
+      clientY = (e.nativeEvent as TouchEvent).touches[0].clientY;
     } else {
       const mouseEvent = e as React.MouseEvent;
       clientX = mouseEvent.clientX;
@@ -314,9 +281,6 @@ export function DoodleScreen() {
     
     // Trigger faint haptic
     triggerHaptic();
-
-    // Notify partner that drawing is in progress
-    syncToFirestore(strokesRef.current, true);
     drawStrokesOnCanvas();
   };
 
@@ -329,25 +293,11 @@ export function DoodleScreen() {
     const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
     if (lastPoint) {
       const dist = Math.hypot(coords.x - lastPoint.x, coords.y - lastPoint.y);
-      // Optimize out extremely redundant adjacent pixel writes
-      if (dist < 0.003) return;
+      if (dist < 0.002) return;
     }
 
     currentPathRef.current.push(coords);
     drawStrokesOnCanvas();
-
-    // Slow and optimized drawing debounce update to partner
-    const timeNow = Date.now();
-    if (timeNow - lastWriteTimeRef.current > 2000) {
-      lastWriteTimeRef.current = timeNow;
-      // Temporary stroke bundled on-fly (optimistic merge to partner)
-      const mockStroke: Stroke = {
-        points: currentPathRef.current,
-        color: currentTool === "eraser" ? "#ffffff" : currentColor,
-        width: currentWidth,
-      };
-      syncToFirestore([...strokesRef.current, mockStroke], true);
-    }
   };
 
   const handleEndDrawing = () => {
@@ -361,16 +311,10 @@ export function DoodleScreen() {
         width: currentWidth,
       };
 
-      const updatedStrokes = [...strokes, newStroke];
-      setStrokes(updatedStrokes);
+      setStrokes(prev => [...prev, newStroke]);
       currentPathRef.current = [];
-
-      // Safe immediate push on stroke completion
-      syncToFirestore(updatedStrokes, false);
     } else {
       currentPathRef.current = [];
-      // Clean presence indicator
-      syncToFirestore(strokesRef.current, false);
     }
   };
 
@@ -378,29 +322,47 @@ export function DoodleScreen() {
   const handleUndo = () => {
     if (strokes.length === 0) return;
     triggerHaptic();
-    const updated = strokes.slice(0, -1);
-    setStrokes(updated);
-    syncToFirestore(updated, false);
+    setStrokes(prev => prev.slice(0, -1));
   };
 
   const handleClear = () => {
     if (strokes.length === 0) return;
-    if (window.confirm("Are you sure you want to clear the canvas? This clears it for your partner too!")) {
-      sensory.alert();
-      setStrokes([]);
-      syncToFirestore([], false);
-    }
+    setShowClearModal(true);
   };
 
-  // Save the Canvas Drawing directly into the shared scrapbook!
-  const saveToScrapbook = async () => {
+  const confirmClear = () => {
+    sensory.alert();
+    setStrokes([]);
+    setShowClearModal(false);
+  };
+
+  // Open the save modal with basic validation
+  const saveToScrapbook = () => {
     if (strokes.length === 0) {
       alert("Please draw something before saving 🎨");
       return;
     }
-
     setShowSaveModal(true);
     triggerHaptic();
+  };
+
+  // Send current canvas to chat or scrapbook
+  const handleFinalSend = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    triggerHaptic();
+    const dataUrl = canvas.toDataURL("image/png");
+
+    if (onSend) {
+      onSend(dataUrl);
+      setStrokes([]); // Clear after sending from chat
+      localStorage.removeItem(`blablu_doodle_draft_${user?.uid}`);
+      return;
+    }
+
+    // Default to scrapbook if used as standalone view
+    saveToScrapbook();
   };
 
   const handleConfirmSaveToScrapbook = async () => {
@@ -451,7 +413,11 @@ export function DoodleScreen() {
           <button
             onClick={() => {
               triggerHaptic();
-              setView("home");
+              if (onClose) {
+                onClose();
+              } else {
+                setView("home");
+              }
             }}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-text transition-all"
             title="Go home"
@@ -460,36 +426,20 @@ export function DoodleScreen() {
           </button>
           
           <div className="flex flex-col">
-            <span className="text-xs font-black tracking-tight text-text">Doodle Pad</span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-text/40">Canvas Shared</span>
+            <span className="text-xs font-black tracking-tight text-text">Doodle Studio</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-text/40">Private Creation</span>
           </div>
         </div>
 
-        {/* Sync Indicator */}
-        <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-white/5 px-2.5 py-1 rounded-full border border-border/20 text-[9px] font-bold">
-          <div
-            className={`w-1.5 h-1.5 rounded-full ${
-              syncStatus === "synced"
-                ? "bg-emerald-500 animate-pulse"
-                : syncStatus === "saving"
-                ? "bg-amber-500 animate-spin"
-                : "bg-slate-300"
-            }`}
-          />
-          <span className="text-text/60 font-sans tracking-wide">
-            {syncStatus === "synced" ? "Synced" : syncStatus === "saving" ? "Sharing..." : "Connecting"}
-          </span>
-        </div>
-
         <div className="flex items-center gap-1.5">
-          {/* Timeline Saver */}
-          <button
-            onClick={saveToScrapbook}
-            className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl border border-primary/20 text-[10px] font-bold flex items-center gap-1 active:scale-95 transition-all"
-            title="Save to Memory Box"
-          >
-            <Camera size={12} /> Save
-          </button>
+          {strokes.length > 0 && (
+            <button
+              onClick={handleFinalSend}
+              className="px-4 py-1.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-primary/20"
+            >
+              {onSend ? "Send to Partner" : "Save to Memories"}
+            </button>
+          )}
           <button
             onClick={handleClear}
             className="w-8 h-8 flex items-center justify-center text-text/40 hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition-colors"
@@ -500,128 +450,106 @@ export function DoodleScreen() {
         </div>
       </div>
 
-      {/* Partner Typing / Drawing indicators */}
-      <AnimatePresence>
-        {partnerStatus && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute top-16 left-1/2 -translate-x-1/2 z-40 bg-pink/90 text-white text-[10px] px-3.5 py-1 rounded-full shadow-md font-bold tracking-tight backdrop-blur-xs flex items-center gap-1.5 border border-white/20"
-          >
-            <Sparkles size={11} className="animate-spin text-amber-200" />
-            {partnerStatus}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* DRAWING BOARD AREA */}
-      <div 
-        ref={containerRef}
-        className="flex-1 w-full relative bg-white dark:bg-[#0c0a15] overflow-hidden border-b border-border/20 touch-none shadow-inner"
-        style={{ cursor: "crosshair" }}
-      >
-        <canvas
-          ref={canvasRef}
-          onMouseDown={handleStartDrawing}
-          onMouseMove={handleDrawMove}
-          onMouseUp={handleEndDrawing}
-          onMouseLeave={handleEndDrawing}
-          onTouchStart={handleStartDrawing}
-          onTouchMove={handleDrawMove}
-          onTouchEnd={handleEndDrawing}
-          className="absolute inset-0 block w-full h-full"
-        />
-
-        {strokes.length === 0 && !isDrawing && (
-          <div className="absolute inset-x-8 top-1/3 -translate-y-1/2 pointer-events-none text-center flex flex-col items-center select-none opacity-30 select-none">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4 animate-bounce">
-              <Palette size={28} />
-            </div>
-            <h3 className="font-semibold text-text text-sm mb-1">Our Cozy Drawing Book</h3>
-            <p className="text-xs text-text max-w-xs leading-relaxed">
-              Sketch lovely hearts, notes, or pet names together in real-time. Everything syncs instantly with loved ones!
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* TOOLBAR CONTROLS */}
-      <div className="px-4 py-4 bg-white/90 dark:bg-card/90 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] border-t border-border/40 flex flex-col gap-3">
-        {/* Row 1: Brush size weights & Eraser & Undo */}
-        <div className="flex items-center justify-between">
+      <div className="flex-1 flex w-full relative overflow-hidden bg-white dark:bg-[#0c0a15] touch-none">
+        {/* VERTICAL TOOLBAR - ADVANCED DRAWING */}
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-4 bg-white/80 dark:bg-card/80 backdrop-blur-lg p-2.5 rounded-3xl border border-border/50 shadow-2xl">
           {/* Tool selectors */}
-          <div className="flex items-center bg-slate-100 dark:bg-white/5 p-1 rounded-xl gap-1">
+          <div className="flex flex-col gap-2">
             <button
-              onClick={() => {
-                triggerHaptic();
-                setCurrentTool("brush");
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                currentTool === "brush"
-                  ? "bg-white dark:bg-neutral-800 text-primary shadow-xs"
-                  : "text-text/50 hover:text-text"
+              onClick={() => { triggerHaptic(); setCurrentTool("brush"); }}
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+                currentTool === "brush" ? "bg-primary text-white shadow-lg scale-110" : "text-text/40 hover:bg-slate-100 dark:hover:bg-neutral-800"
               }`}
             >
-              Brush
+              <Palette size={18} />
             </button>
             <button
-              onClick={() => {
-                triggerHaptic();
-                setCurrentTool("eraser");
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                currentTool === "eraser"
-                  ? "bg-white dark:bg-neutral-800 text-rose-500 shadow-xs"
-                  : "text-text/50 hover:text-text"
+              onClick={() => { triggerHaptic(); setCurrentTool("eraser"); }}
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+                currentTool === "eraser" ? "bg-rose-500 text-white shadow-lg scale-110" : "text-text/40 hover:bg-slate-100 dark:hover:bg-neutral-800"
               }`}
             >
-              Eraser
+              <div className="w-5 h-5 rounded-sm border-2 border-current" />
             </button>
           </div>
 
-          {/* Sizing Weight Indicators */}
-          <div className="flex items-center gap-3">
-            {[2, 4, 8, 14].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  triggerHaptic();
-                  setCurrentWidth(size);
-                }}
-                className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all ${
-                  currentWidth === size
-                    ? "border-primary bg-primary/10"
-                    : "border-transparent bg-slate-100 dark:bg-white/5 text-text/40"
-                }`}
-                title={`Brush size ${size}`}
-              >
-                <div
-                  className="rounded-full bg-slate-800 dark:bg-slate-200"
-                  style={{ width: `${Math.max(2, size)}px`, height: `${Math.max(2, size)}px` }}
-                />
-              </button>
-            ))}
+          <div className="w-6 h-px bg-border/50" />
+
+          {/* Vertical Brush Slider */}
+          <div className="flex flex-col items-center gap-3 py-2">
+            <div className="text-[9px] font-black uppercase text-text/30 vertical-text rotate-180">Size</div>
+            <input
+              type="range"
+              min="1"
+              max="40"
+              step="1"
+              value={currentWidth}
+              onChange={(e) => setCurrentWidth(Number(e.target.value))}
+              className="vertical-range accent-primary w-24 h-1.5 my-8 appearance-none bg-slate-200 dark:bg-white/10 rounded-full cursor-pointer"
+              style={{ transform: "rotate(-90deg)" }}
+            />
+            <div 
+              className="w-5 h-5 rounded-full bg-text transition-all border border-border" 
+              style={{ transform: `scale(${0.2 + (currentWidth/40)})` }}
+            />
           </div>
 
-          {/* Undo action button */}
+          <div className="w-6 h-px bg-border/50" />
+
+          {/* Grid Toggle */}
+          <button
+            onClick={() => { triggerHaptic(); setShowGrid(!showGrid); }}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+              showGrid ? "bg-slate-100 text-primary dark:bg-white/10" : "text-text/20 hover:bg-slate-100 dark:hover:bg-neutral-800"
+            }`}
+          >
+            <Layers size={18} />
+          </button>
+
+          <div className="w-6 h-px bg-border/50" />
+
+          {/* Undo */}
           <button
             onClick={handleUndo}
             disabled={strokes.length === 0}
-            className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
-              strokes.length > 0
-                ? "bg-slate-100 dark:bg-white/5 text-text border-border hover:bg-slate-200"
-                : "text-text/20 border-transparent cursor-not-allowed opacity-40"
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+              strokes.length > 0 ? "text-text hover:bg-slate-100 dark:hover:bg-neutral-800" : "text-text/10 cursor-not-allowed"
             }`}
-            title="Undo"
           >
-            <Undo size={14} />
+            <Undo size={18} />
           </button>
         </div>
 
-        {/* Row 2: Colorful paint selections */}
+        <div 
+          ref={containerRef}
+          className="flex-1 w-full h-full relative"
+          style={{ cursor: "crosshair" }}
+        >
+          <canvas
+            ref={canvasRef}
+            onMouseDown={handleStartDrawing}
+            onMouseMove={handleDrawMove}
+            onMouseUp={handleEndDrawing}
+            onMouseLeave={handleEndDrawing}
+            onTouchStart={handleStartDrawing}
+            onTouchMove={handleDrawMove}
+            onTouchEnd={handleEndDrawing}
+            className="absolute inset-0 block w-full h-full"
+          />
+
+          {strokes.length === 0 && !isDrawing && (
+            <div className="absolute inset-x-20 top-1/2 -translate-y-1/2 pointer-events-none text-center flex flex-col items-center select-none opacity-40">
+              <Sparkles size={40} className="text-primary mb-4 animate-pulse" />
+              <h3 className="font-display font-black text-xl text-text mb-1 italic">Canvas is Yours</h3>
+              <p className="text-xs text-text max-w-xs font-medium">Draw something beautiful for them...</p>
+            </div>
+          )}
+        </div>
+
+        {/* BOTTOM COLOR BAR */}
         {currentTool === "brush" && (
-          <div className="flex items-center justify-between gap-1 overflow-x-auto py-1 no-scrollbar select-none">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[85%] bg-white/80 dark:bg-card/80 backdrop-blur-lg p-2 rounded-3xl border border-border/50 shadow-2xl flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth">
             {COLORS.map((color) => (
               <button
                 key={color.hex}
@@ -629,18 +557,11 @@ export function DoodleScreen() {
                   triggerHaptic();
                   setCurrentColor(color.hex);
                 }}
-                className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center transition-all ${
-                  currentColor === color.hex && currentTool === "brush"
-                    ? "scale-110 ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-900"
-                    : "hover:scale-105"
+                className={`w-9 h-9 rounded-2xl shrink-0 transition-all ${
+                  currentColor === color.hex ? "scale-110 shadow-lg ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-900" : "hover:scale-105 opacity-80"
                 }`}
                 style={{ backgroundColor: color.hex }}
-                title={color.name}
-              >
-                {currentColor === color.hex && currentTool === "brush" && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
-                )}
-              </button>
+              />
             ))}
           </div>
         )}
@@ -708,6 +629,58 @@ export function DoodleScreen() {
                   ) : (
                     "Confirm"
                   )}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* CLEAR CANVAS POPUP MODAL */}
+      <AnimatePresence>
+        {showClearModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black z-[990]"
+              onClick={() => setShowClearModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed bottom-10 inset-x-4 max-w-sm mx-auto bg-card rounded-[2rem] border border-border shadow-2xl p-6 z-[1000] flex flex-col gap-4 text-center"
+            >
+              <div className="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center self-center">
+                <Trash2 size={24} />
+              </div>
+
+              <div>
+                <h4 className="font-display font-black text-base text-text">Clear everything?</h4>
+                <p className="text-xs text-text/50 mt-1 font-medium italic">
+                  "One wipe, clean slate. But our memories stay great."
+                </p>
+                <p className="text-[10px] text-rose-500/70 mt-2 font-bold uppercase tracking-wider">
+                  This clears it for both you and your partner!
+                </p>
+              </div>
+
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClearModal(false)}
+                  className="flex-1 py-3 border border-border text-xs font-bold rounded-xl text-text hover:bg-slate-50 transition-colors"
+                >
+                  Keep it
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmClear}
+                  className="flex-1 py-3 bg-rose-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-rose-600 active:scale-95 transition-all shadow-sm"
+                >
+                  Clear Pad
                 </button>
               </div>
             </motion.div>
