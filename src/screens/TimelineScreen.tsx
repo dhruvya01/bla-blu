@@ -28,6 +28,8 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
+  setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { cn } from "../utils";
@@ -111,7 +113,7 @@ const MonthRecap = ({ entries, month }: { entries: TimelineEntry[], month: strin
   );
 };
 
-function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index }: { entry: TimelineEntry; deleteEntry: (id: string, e: React.MouseEvent) => void; onExpand: (url: string, caption?: string) => void; onReact: (id: string, emoji: string) => void; index: number }) {
+function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index, onDragEnd }: { entry: TimelineEntry; deleteEntry: (id: string, e: React.MouseEvent) => void; onExpand: (url: string, caption?: string) => void; onReact: (id: string, emoji: string) => void; index: number; onDragEnd?: (id: string, info: any) => void; }) {
   const { user, partner } = useAppStore();
   const [decryptedContent, setDecryptedContent] = useState("");
   const [decryptedCaption, setDecryptedCaption] = useState("");
@@ -136,66 +138,32 @@ function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index }: { entry:
     return () => { active = false; window.removeEventListener('e2ee-ready', attempt); };
   }, [entry.content, entry.caption]);
 
-  const creator = entry.createdBy === user?.uid ? user : (entry.createdBy === 'System (Baby)' ? null : partner);
-  const isSystem = entry.createdBy === 'System (Baby)';
-  
-  // Layout logic: alternate sides and slight random rotations
-  const isLeft = index % 2 === 0;
+  // Layout logic
   const rotation = (index % 3 === 0 ? -6 : index % 3 === 1 ? 7 : -3) + (Math.random() * 4 - 2);
-  const xOffset = (index % 4 === 0 ? 4 : index % 4 === 1 ? -4 : 0);
-
-  if (entry.type === 'milestone' as any) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        className={cn(
-          "relative z-10 mb-6 max-w-[150px]",
-          isLeft ? "mr-auto ml-2" : "ml-auto mr-2"
-        )}
-        style={{ rotate: rotation, x: xOffset }}
-      >
-        <WashiTape className="-top-3 left-1/2 -ml-6 rotate-12 opacity-30" />
-        <div className="bg-white p-4 rounded-xl border border-primary/10 shadow-squishy relative overflow-hidden text-center">
-           <div className="absolute top-1 right-1 text-primary/5"><Sparkles size={40} /></div>
-           <h3 className="text-base font-scrapbook font-bold text-primary italic uppercase tracking-tighter mb-1 leading-tight">
-              {decryptedContent}
-           </h3>
-           <p className="font-handlee text-xs text-text/60 leading-tight">
-              {decryptedCaption}
-           </p>
-           <div className="mt-2 pt-1 border-t border-primary/5 flex justify-between items-center">
-             <span className="text-[7px] font-bold uppercase tracking-widest text-primary/30">
-               {new Date(entry.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
-             </span>
-             <button onClick={(e) => deleteEntry(entry.id, e)} className="text-rose-200 hover:text-rose-500"><Trash2 size={10} /></button>
-           </div>
-        </div>
-      </motion.div>
-    );
-  }
 
   return (
     <motion.div
+      drag
+      dragConstraints={{ left: -150, right: 150, top: -200, bottom: 200 }} // Constrained board
+      dragElastic={0.1}
+      onDragEnd={(_, info) => onDragEnd?.(entry.id, info)}
       initial={{ opacity: 0, scale: 0.9 }}
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true, margin: "-50px" }}
       whileHover={{ scale: 1.05, zIndex: 50, rotate: rotation * 0.5 }}
       className={cn(
-        "relative group z-10 mb-6 max-w-[130px]",
-        isLeft ? "mr-auto ml-2" : "ml-auto mr-2"
+        "relative group z-10 cursor-grab active:cursor-grabbing max-w-[120px]", // Smaller image
       )}
-      style={{ rotate: rotation, x: xOffset }}
+      style={{ rotate: rotation }}
     >
-      <WashiTape className={cn("-top-4", isLeft ? "right-1" : "left-1", index % 2 === 0 ? "rotate-6" : "-rotate-12")} />
+      <WashiTape className={cn("-top-4", index % 2 === 0 ? "right-1 rotate-6" : "left-1 -rotate-12")} />
 
       <div className={cn(
-        "polaroid-frame flex flex-col gap-2 relative",
-        entry.type === 'note' ? "sticky-note-bg !p-4 !pb-6 rounded-sm border-l-2 border-primary/10" : "bg-white"
-      )}>
+        "polaroid-frame flex flex-col gap-1 relative overflow-hidden",
+        entry.type === 'note' ? "sticky-note-bg !p-3 !pb-5 rounded-sm border-l-2 border-primary/10" : "bg-white"
+      )} style={{ backgroundColor: entry.color }}>
         {entry.type === "photo" ? (
-          <div className="relative aspect-square bg-bg overflow-hidden cursor-zoom-in group/img" onClick={() => onExpand(decryptedContent, decryptedCaption)}>
+          <div className="relative aspect-square overflow-hidden cursor-zoom-in group/img" onClick={() => onExpand(decryptedContent, decryptedCaption)}>
             <motion.img
               src={decryptedContent}
               alt={decryptedCaption}
@@ -204,47 +172,21 @@ function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index }: { entry:
               animate={{ opacity: isLoaded ? 1 : 0 }}
               className="w-full h-full object-cover"
             />
-            {entry.stickers?.map((sticker) => (
-              <div
-                key={sticker.id}
-                className="absolute drop-shadow-[0_2px_5px_rgba(0,0,0,0.15)] pointer-events-none"
-                style={{
-                  left: `${sticker.x}%`,
-                  top: `${sticker.y}%`,
-                  transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg) scale(${sticker.scale})`,
-                  width: "30px",
-                  height: "30px",
-                }}
-              >
-                <img src={sticker.emoji} className="w-full h-full object-contain" />
-              </div>
-            ))}
-            <div className="absolute top-1 right-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
-               <button onClick={(e) => { e.stopPropagation(); onReact(entry.id, '❤️'); }} className="w-6 h-6 rounded-full bg-white shadow-lg flex items-center justify-center text-primary border border-primary/10">
-                  <Heart size={12} fill="currentColor" />
-               </button>
-            </div>
           </div>
         ) : (
-          <div className="relative flex items-center justify-center text-center py-2">
-            <p className="text-sm font-scrapbook font-medium italic text-on-surface/80 leading-relaxed">
+          <div className="relative flex items-center justify-center text-center py-1">
+            <p className="text-[11px] font-scrapbook font-medium italic text-on-surface/80 leading-relaxed">
               {decryptedContent}
             </p>
           </div>
         )}
 
-        <div className="space-y-1">
+        <div className="space-y-0.5 px-1 pb-1">
           {decryptedCaption && (
-            <p className="font-scrapbook text-[9px] text-text/80 leading-tight text-center italic line-clamp-2">
+            <p className="font-scrapbook text-[9px] text-text/80 leading-tight text-center italic line-clamp-1">
               {decryptedCaption}
             </p>
           )}
-          <div className="flex items-center justify-between pt-1 border-t border-black/5">
-             <span className="text-[7px] font-medium text-text/30">
-               {new Date(entry.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
-             </span>
-             <button onClick={(e) => deleteEntry(entry.id, e)} className="text-rose-200 hover:text-rose-500 opacity-0 group-hover:opacity-100"><Trash2 size={8} /></button>
-          </div>
         </div>
       </div>
     </motion.div>
@@ -266,6 +208,9 @@ export function TimelineScreen(_props: {}) {
 
   const [isUploading, setIsUploading] = useState(false);
   const [composerStickers, setComposerStickers] = useState<TimelineSticker[]>([]);
+  const [selectedColor, setSelectedColor] = useState("#ffffff");
+
+  const colors = ["#ffffff", "#fce4ec", "#fff9c4", "#e1f5fe", "#e8f5e9", "#f3e5f5"];
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -323,17 +268,25 @@ export function TimelineScreen(_props: {}) {
       const entryData: any = {
         type: composerType,
         content: await encryptData(contentUrl),
-        caption: (composerType === "photo" || composerType === "milestone") ? await encryptData(caption.trim()) : undefined,
         date,
         createdAt: serverTimestamp(),
         createdBy: user.uid,
         stickers: composerType === "photo" ? composerStickers : [],
+        x: 10 + Math.random() * 70, // Random initial placement
+        y: 10 + Math.random() * 70,
+        color: selectedColor // Updated
       };
 
-      if (composerType === "milestone") {
-        const lines = caption.split('\n');
+      if (composerType === "photo") {
+        entryData.caption = await encryptData(caption.trim());
+      } else if (composerType === "milestone") {
+        const lines = caption.split("\n");
         entryData.content = await encryptData(lines[0].trim());
-        entryData.caption = await encryptData(lines.slice(1).join('\n').trim() || "A special day in our story.");
+        entryData.caption = await encryptData(lines.slice(1).join("\n").trim() || "A special day in our story.");
+      } else {
+        // For notes, we don't have a separate caption field in the DB schema, 
+        // the content field holds the note itself.
+        entryData.caption = ""; 
       }
 
       await addDoc(collection(db, "pairs", roomId, "timeline"), entryData);
@@ -346,6 +299,11 @@ export function TimelineScreen(_props: {}) {
   const deleteEntry = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation(); if (!roomId) return; sensory.play("pop");
     try { await deleteDoc(doc(db, "pairs", roomId, "timeline", id)); } catch (e) { console.error(e); }
+  };
+
+  const updateEntryPosition = async (id: string, x: number, y: number) => {
+    if (!roomId) return;
+    try { await setDoc(doc(db, "pairs", roomId, "timeline", id), { x, y }, { merge: true }); } catch (e) { console.error(e); }
   };
 
   const handleReact = (id: string, emoji: string) => { sensory.tap(); sensory.play("sparkle"); };
@@ -428,27 +386,39 @@ export function TimelineScreen(_props: {}) {
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ type: "spring", damping: 30, stiffness: 300 }}
                   className="w-full max-w-[360px] bg-card rounded-[3rem] p-8 shadow-squishy relative min-h-[600px] border border-white/50"
+                  id="board"
                 >
                    {/* Dashed Timeline Line inside the board */}
                    <div className="absolute left-1/2 top-10 bottom-10 w-[1.5px] border-l border-dashed border-secondary/20 z-0 -translate-x-1/2" />
 
                    {/* Layout the items for this month */}
-                   <div className="relative z-10 space-y-2">
+                   <div className="relative z-10 w-full h-[600px]">
                       {currentEntries.map((entry, idx) => (
-                        <PolaroidCard 
-                          key={entry.id} 
-                          entry={entry} 
-                          deleteEntry={deleteEntry} 
-                          index={idx}
-                          onExpand={(url, cap) => setExpandedPhoto({ url, caption: cap || "" })} 
-                          onReact={handleReact} 
-                        />
+                        <div 
+                          key={entry.id}
+                          style={{
+                            position: 'absolute',
+                            left: `${entry.x || 10}%`,
+                            top: `${entry.y || 10}%`,
+                          }}
+                        >
+                          <PolaroidCard 
+                            entry={entry} 
+                            deleteEntry={deleteEntry} 
+                            index={idx}
+                            onExpand={(url, cap) => setExpandedPhoto({ url, caption: cap || "" })} 
+                            onReact={handleReact}
+                            onDragEnd={(id, info) => {
+                               const rect = (document.getElementById('board') as HTMLElement)?.getBoundingClientRect();
+                               if (rect) {
+                                  const newX = ((info.point.x - rect.left) / rect.width) * 100;
+                                  const newY = ((info.point.y - rect.top) / rect.height) * 100;
+                                  updateEntryPosition(id, newX, newY);
+                               }
+                            }}
+                          />
+                        </div>
                       ))}
-                      
-                      {/* Decorative Central Heart Icon along the timeline if board is empty-ish */}
-                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-secondary pointer-events-none">
-                         <Heart size={16} fill="currentColor" className="opacity-15" />
-                      </div>
                    </div>
                 </motion.div>
              </AnimatePresence>
@@ -548,6 +518,13 @@ export function TimelineScreen(_props: {}) {
                     <div className="space-y-2"><label className="flex items-center gap-2 text-[10px] font-bold text-primary/40 uppercase tracking-[0.3em] ml-2"><Award size={12} /> Event Story</label><textarea placeholder="Title: Date Night\nDescription: We went to..." value={caption} onChange={(e) => setCaption(e.target.value)} className="w-full bg-primary/[0.02] border border-primary/10 rounded-2xl p-5 min-h-[150px] font-handlee text-lg text-text outline-none shadow-inner resize-none focus:border-primary/30 transition-all placeholder:text-primary/10" /></div>
                  )}
                  <div className="space-y-2"><label className="flex items-center gap-2 text-[10px] font-bold text-primary/40 uppercase tracking-[0.3em] ml-2"><Calendar size={12} /> Date</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-primary/[0.02] border border-primary/10 rounded-xl p-4 text-sm font-bold uppercase tracking-widest text-primary outline-none shadow-inner focus:border-primary/30 transition-all" /></div>
+                 <div className="space-y-2"><label className="flex items-center gap-2 text-[10px] font-bold text-primary/40 uppercase tracking-[0.3em] ml-2">Frame Color</label>
+                    <div className="flex gap-2">
+                       {colors.map(c => (
+                          <button key={c} onClick={() => setSelectedColor(c)} className={cn("w-8 h-8 rounded-full border-2 transition-transform", selectedColor === c ? "border-primary scale-110" : "border-transparent")} style={{ backgroundColor: c }} />
+                       ))}
+                    </div>
+                 </div>
               </div>
               <footer className="p-6 pt-4 border-t border-primary/5 bg-white/80 backdrop-blur-xl shrink-0"><button onClick={handleUpload} disabled={isUploading || (composerType === "photo" && !file) || (composerType !== "photo" && !caption.trim())} className="w-full bg-primary text-white py-4 rounded-xl font-bold uppercase tracking-[0.3em] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-[10px]">{isUploading ? <Loader2 className="animate-spin" /> : <Sparkles size={16} />}{isUploading ? "Saving..." : "Pin to Scrapbook"}</button></footer>
             </motion.div>

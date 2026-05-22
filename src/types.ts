@@ -303,6 +303,9 @@ export interface TimelineEntry {
   createdAt: any;
   createdBy: string;
   stickers?: TimelineSticker[];
+  x?: number; // Added
+  y?: number; // Added
+  color?: string; // Added
 }
 export interface FavoritePlace {
   id: string;
