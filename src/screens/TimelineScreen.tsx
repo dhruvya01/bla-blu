@@ -152,7 +152,7 @@ function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index, onDragEnd 
       viewport={{ once: true, margin: "-50px" }}
       whileHover={{ scale: 1.05, zIndex: 50, rotate: rotation * 0.5 }}
       className={cn(
-        "relative group z-10 cursor-grab active:cursor-grabbing max-w-[120px]", // Smaller image
+        "relative group z-10 cursor-grab active:cursor-grabbing w-[30vw] min-w-[90px] max-w-[150px]", // More responsive width
       )}
       style={{ rotate: rotation }}
     >
@@ -385,7 +385,7 @@ export function TimelineScreen(_props: {}) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                  className="w-full max-w-[360px] bg-card rounded-[3rem] p-8 shadow-squishy relative min-h-[600px] border border-white/50"
+                  className="w-[95vw] max-w-[400px] bg-card rounded-[2rem] p-6 shadow-squishy relative min-h-[500px] border border-white/50"
                   id="board"
                 >
                    {/* Dashed Timeline Line inside the board */}
