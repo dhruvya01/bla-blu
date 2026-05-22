@@ -195,17 +195,42 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
       }
     );
 
-    // 8. ONE-TIME FETCHES for non-real-time data (Save Quota!)
+    // 8. Sync for Scrapbook (ONE-TIME FETCH to save quota and prevent drag flicker)
     import('firebase/firestore').then(async ({ getDocs }) => {
-       const fetchTimeline = getDocs(query(collection(db, 'pairs', roomId, 'timeline'), orderBy('date', 'desc'), limit(30)));
-       const fetchEnvelopes = getDocs(query(collection(db, 'pairs', roomId, 'envelopes'), orderBy('createdAt', 'desc'), limit(15)));
-       const fetchHealth = getDocs(collection(db, 'pairs', roomId, 'healthIssues'));
-       
-       const [timelineSnap, envelopeSnap, healthSnap] = await Promise.all([fetchTimeline, fetchEnvelopes, fetchHealth]);
-       
-       setTimelineEntries(timelineSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-       setEnvelopes(envelopeSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-       setHealthIssues(healthSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const q = query(collection(db, 'pairs', roomId, 'timeline'), orderBy('date', 'desc'), limit(50));
+      const snap = await getDocs(q);
+      setTimelineEntries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    // 9. Sync for Letters (REAL-TIME)
+    const unsubEnvelopes = onSnapshot(query(collection(db, 'pairs', roomId, 'envelopes'), orderBy('createdAt', 'desc'), limit(30)), (snap) => {
+      setEnvelopes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    // 10. Sync for Health (REAL-TIME - CRITICAL for tracker to work)
+    const unsubHealthIssues = onSnapshot(collection(db, 'pairs', roomId, 'healthIssues'), (snap) => {
+      setHealthIssues(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    const unsubPeriodEntries = onSnapshot(collection(db, "pairs", roomId, "periodEntries"), (snap) => {
+      const entries = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      setHealth({ periodEntries: entries });
+    });
+
+    const unsubDailyHealthLogs = onSnapshot(collection(db, "pairs", roomId, "dailyHealthLogs"), (snap) => {
+      const logs: any = {};
+      snap.docs.forEach(d => { logs[d.id] = d.data(); });
+      setHealth({ dailyHealthLogs: logs });
+    });
+
+    // Sync habit logs for the tracker (MUST BE ARRAY for store)
+    const unsubHabitLogs = onSnapshot(collection(db, "pairs", roomId, "habitLogs"), (snap) => {
+      const logs = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      setHabitLogs(logs); // This is the separate state for the board
+    });
+
+    const unsubCustomHabits = onSnapshot(collection(db, "pairs", roomId, "customHabits"), (snap) => {
+      setHabits(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
     });
 
     return () => {
@@ -217,6 +242,12 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
       unsubBabyEvolution();
       unsubMapStatus();
       unsubPings();
+      unsubEnvelopes();
+      unsubHealthIssues();
+      unsubPeriodEntries();
+      unsubDailyHealthLogs();
+      unsubHabitLogs();
+      unsubCustomHabits();
       if (partnerUnsubRef.current) partnerUnsubRef.current();
     };
   }, [roomId, userId]);

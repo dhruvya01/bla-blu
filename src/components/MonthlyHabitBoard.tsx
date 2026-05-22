@@ -155,11 +155,7 @@ export function MonthlyHabitBoard({ pairId }: MonthlyHabitBoardProps) {
   const toggleQuickHabit = React.useCallback(async (day: number, habitId: string) => {
     if (!effectivePairId) return;
 
-    // Restrict ticking to today only
-    const realToday = new Date();
-    const isToday = day === realToday.getDate() && month === realToday.getMonth() && year === realToday.getFullYear();
-    if (!isToday) return;
-    
+    // Allow clicking any day in the current month view
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const logId = `${dateStr}_${habitId}`;
     const existingLog = safeLogs.find(l => l.id === logId);

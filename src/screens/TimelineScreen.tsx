@@ -113,7 +113,7 @@ const MonthRecap = ({ entries, month }: { entries: TimelineEntry[], month: strin
   );
 };
 
-function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index, onDragEnd }: { entry: TimelineEntry; deleteEntry: (id: string, e: React.MouseEvent) => void; onExpand: (url: string, caption?: string) => void; onReact: (id: string, emoji: string) => void; index: number; onDragEnd?: (id: string, info: any) => void; }) {
+function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index }: { entry: TimelineEntry; deleteEntry: (id: string, e: React.MouseEvent) => void; onExpand: (url: string, caption?: string) => void; onReact: (id: string, emoji: string) => void; index: number; }) {
   const { user, partner } = useAppStore();
   const [decryptedContent, setDecryptedContent] = useState("Decrypting...");
   const [decryptedCaption, setDecryptedCaption] = useState("...");
@@ -138,28 +138,24 @@ function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index, onDragEnd 
     return () => { active = false; window.removeEventListener('e2ee-ready', attempt); };
   }, [entry.content, entry.caption]);
 
-  // Layout logic
-  const rotation = (index % 3 === 0 ? -6 : index % 3 === 1 ? 7 : -3) + (Math.random() * 4 - 2);
+  // Layout logic for grid rotation
+  const rotation = (index % 3 === 0 ? -2 : index % 3 === 1 ? 2 : -1);
 
   return (
     <motion.div
-      drag
-      dragConstraints={{ left: -150, right: 150, top: -200, bottom: 200 }} // Constrained board
-      dragElastic={0.1}
-      onDragEnd={(_, info) => onDragEnd?.(entry.id, info)}
       initial={{ opacity: 0, scale: 0.9 }}
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true, margin: "-50px" }}
-      whileHover={{ scale: 1.05, zIndex: 50, rotate: rotation * 0.5 }}
+      whileHover={{ scale: 1.05, zIndex: 10 }}
       className={cn(
-        "relative group z-10 cursor-grab active:cursor-grabbing w-[30vw] min-w-[90px] max-w-[150px]", // More responsive width
+        "relative group w-full",
       )}
       style={{ rotate: rotation }}
     >
       <WashiTape className={cn("-top-4", index % 2 === 0 ? "right-1 rotate-6" : "left-1 -rotate-12")} />
 
       <div className={cn(
-        "polaroid-frame flex flex-col gap-1 relative overflow-hidden",
+        "polaroid-frame flex flex-col gap-1 relative overflow-hidden h-full shadow-sm",
         entry.type === 'note' ? "sticky-note-bg !p-3 !pb-5 rounded-sm border-l-2 border-primary/10" : "bg-white"
       )} style={{ backgroundColor: entry.color }}>
         {entry.type === "photo" ? (
@@ -174,12 +170,19 @@ function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index, onDragEnd 
             />
           </div>
         ) : (
-          <div className="relative flex items-center justify-center text-center py-1">
+          <div className="relative flex items-center justify-center text-center p-2 min-h-[100px]">
             <p className="text-[11px] font-scrapbook font-medium italic text-on-surface/80 leading-relaxed">
               {decryptedContent}
             </p>
           </div>
         )}
+
+        <button 
+          onClick={(e) => deleteEntry(entry.id, e)}
+          className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-20"
+        >
+          <X size={10} />
+        </button>
 
         <div className="space-y-0.5 px-1 pb-1">
           {decryptedCaption && (
@@ -218,7 +221,7 @@ export function TimelineScreen(_props: {}) {
   useEffect(() => {
     if (!roomId) return;
     const unsub = onSnapshot(collection(db, "pairs", roomId, "babyMemories"), snap => {
-      const memories = snap.docs.map(doc => {
+      const memories = snap.docs.map((doc, idx) => {
         const d = doc.data();
         return {
           id: doc.id,
@@ -229,6 +232,8 @@ export function TimelineScreen(_props: {}) {
           createdAt: d.date,
           createdBy: "System (Baby)",
           stickers: d.stickers,
+          x: d.x || (20 + (idx * 15) % 60), // Semi-random but spread out
+          y: d.y || (20 + (Math.floor(idx / 4) * 20) % 60),
         } as TimelineEntry;
       });
       setLocalBabyMemories(memories);
@@ -296,15 +301,21 @@ export function TimelineScreen(_props: {}) {
     } finally { setIsUploading(false); }
   };
 
-  const deleteEntry = async (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation(); if (!roomId) return; sensory.play("pop");
-    try { await deleteDoc(doc(db, "pairs", roomId, "timeline", id)); } catch (e) { console.error(e); }
-  };
+   const deleteEntry = async (id: string, e?: React.MouseEvent, isBaby: boolean = false) => {
+     e?.stopPropagation(); if (!roomId) return; sensory.play("pop");
+     try { 
+       const collectionName = isBaby ? "babyMemories" : "timeline";
+       await deleteDoc(doc(db, "pairs", roomId, collectionName, id)); 
+     } catch (e) { console.error(e); }
+   };
 
-  const updateEntryPosition = async (id: string, x: number, y: number) => {
-    if (!roomId) return;
-    try { await setDoc(doc(db, "pairs", roomId, "timeline", id), { x, y }, { merge: true }); } catch (e) { console.error(e); }
-  };
+   const updateEntryPosition = async (id: string, x: number, y: number, isBaby: boolean) => {
+     if (!roomId) return;
+     try { 
+       const collectionName = isBaby ? "babyMemories" : "timeline";
+       await setDoc(doc(db, "pairs", roomId, collectionName, id), { x, y }, { merge: true }); 
+     } catch (e) { console.error(e); }
+   };
 
   const handleReact = (id: string, emoji: string) => { sensory.tap(); sensory.play("sparkle"); };
 
@@ -374,6 +385,7 @@ export function TimelineScreen(_props: {}) {
         ) : (
           <div className="w-full flex flex-col items-center min-h-[600px]">
              <div className="text-center mb-8">
+                <MonthRecap entries={currentEntries} month={currentMonth || "This Month"} />
                 <h2 className="text-lg font-scrapbook font-bold text-text mb-1 italic">Memories Board</h2>
                 <div className="h-[2.5px] bg-secondary/40 w-32 rounded-full mx-auto" />
              </div>
@@ -385,37 +397,17 @@ export function TimelineScreen(_props: {}) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                  className="w-[98vw] max-w-[500px] bg-card rounded-[2.5rem] p-4 sm:p-6 shadow-squishy relative min-h-[70vh] border border-white/50 mx-auto"
-                  id="board"
+                  className="w-full max-w-lg bg-card rounded-[2.5rem] p-6 sm:p-8 shadow-squishy relative min-h-[60vh] border border-white/50"
                 >
-                   {/* Dashed Timeline Line inside the board */}
-                   <div className="absolute left-1/2 top-10 bottom-10 w-[1.5px] border-l border-dashed border-secondary/20 z-0 -translate-x-1/2" />
-
-                   {/* Layout the items for this month */}
-                   <div className="relative z-10 w-full min-h-[600px]">
+                   <div className="grid grid-cols-2 gap-x-4 gap-y-10 relative z-10 w-full pt-4">
                       {currentEntries.map((entry, idx) => (
-                        <div 
-                          key={entry.id}
-                          style={{
-                            position: 'absolute',
-                            left: `${entry.x || 10}%`,
-                            top: `${entry.y || 10}%`,
-                          }}
-                        >
+                        <div key={entry.id} className="w-full flex justify-center">
                           <PolaroidCard 
                             entry={entry} 
-                            deleteEntry={deleteEntry} 
+                            deleteEntry={(id, e) => deleteEntry(id, e, entry.createdBy === "System (Baby)")} 
                             index={idx}
                             onExpand={(url, cap) => setExpandedPhoto({ url, caption: cap || "" })} 
                             onReact={handleReact}
-                            onDragEnd={(id, info) => {
-                               const rect = (document.getElementById('board') as HTMLElement)?.getBoundingClientRect();
-                               if (rect) {
-                                  const newX = ((info.point.x - rect.left) / rect.width) * 100;
-                                  const newY = ((info.point.y - rect.top) / rect.height) * 100;
-                                  updateEntryPosition(id, newX, newY);
-                               }
-                            }}
                           />
                         </div>
                       ))}

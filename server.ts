@@ -91,16 +91,20 @@ async function start() {
       console.log("[BLABLU] Push notification sent successfully:", response);
       return res.status(200).json({ success: true, messageId: response });
     } catch (error: any) {
+      const errorMessage = error?.message || String(error);
+      const errorCode = error?.code || "";
+
       // Handle the "Requested entity was not found" (token not registered) error
-      if (error.code === 'messaging/registration-token-not-registered' || 
-          error.message?.includes('Requested entity was not found') ||
-          error.code === 'messaging/invalid-registration-token') {
+      if (errorCode === 'messaging/registration-token-not-registered' || 
+          errorCode === 'messaging/invalid-registration-token' ||
+          errorMessage.includes('Requested entity was not found') ||
+          errorMessage.includes('registration-token-not-registered')) {
         console.warn(`[BLABLU] Push failed: Token is invalid or not registered. Target: ${req.body.token || req.body.to}`);
-        return res.status(410).json({ error: "Token no longer valid", code: error.code });
+        return res.status(410).json({ error: "Token no longer valid", code: errorCode || 'token_expired' });
       }
       
-      console.error("[BLABLU] Error sending push notification:", error);
-      return res.status(500).json({ error: error.message, code: error.code });
+      console.error("[BLABLU] Error sending push notification:", errorMessage, error);
+      return res.status(500).json({ error: errorMessage, code: errorCode });
     }
   });
 
@@ -139,28 +143,27 @@ async function start() {
     });
   });
 
-  const isProduction = process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT || process.env.RENDER || process.cwd().includes('/app');
+  const isProduction = process.env.NODE_ENV === "production";
   
   if (isProduction) {
-    const distPath = path.join(process.cwd(), 'dist');
-    console.log(`[BLABLU] Serving static files from: ${distPath}`);
-    if (express.static(distPath)) {
-      app.use(express.static(distPath));
-      app.get('*', (req, res) => {
-        const indexPath = path.join(distPath, 'index.html');
-        res.sendFile(indexPath);
-      });
-    } else {
-      console.error("[BLABLU] Static directory not found or inaccessible!");
-    }
-  } else {
-    console.log("[BLABLU] Starting in DEVELOPMENT mode (Vite Middleware)");
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa"
+    const distPath = path.join(process.cwd(), "dist");
+    console.log(`[BLABLU] Running in PRODUCTION mode. Serving: ${distPath}`);
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
     });
-    app.use(vite.middlewares);
+  } else {
+    console.log("[BLABLU] Running in DEVELOPMENT mode (Vite Middleware)");
+    try {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa"
+      });
+      app.use(vite.middlewares);
+    } catch (e) {
+      console.error("[BLABLU] Failed to load Vite middleware. Check if 'vite' is installed.", e);
+    }
   }
 
   const PORT = 3000;

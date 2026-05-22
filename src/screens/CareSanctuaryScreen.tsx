@@ -114,7 +114,7 @@ export function CareSanctuaryScreen({ socket }: SanctuaryProps) {
 
         <div className="px-6 pt-2 space-y-6">
           {(view === "habits" || view === "sanctuary") && (isHer ? <HabitTrackerView /> : <HisCareView socket={socket} />)}
-          {(view === "period" || view === "calendar") && (isHer ? <PeriodTrackerView /> : <HisPeriodSummaryView />)}
+          {(view === "period" || view === "calendar") && <PeriodTrackerView />}
           {view === "history" && <HistoryView />}
         </div>
       </div>
@@ -183,9 +183,17 @@ function HisCareView({ socket }: { socket: Socket | null }) {
 
       {/* Monthly Habit Board (Partner Perspective) */}
       <div className="space-y-4">
-         <div className="flex items-center gap-2 ml-1">
-            <Calendar size={12} className="text-primary/40" />
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-text/30">{pName}'s Habit Board</h3>
+         <div className="flex items-center justify-between ml-1">
+            <div className="flex items-center gap-2">
+              <Calendar size={12} className="text-primary/40" />
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-text/30">{pName}'s Habit Board</h3>
+            </div>
+            <button 
+              onClick={() => setView('period')}
+              className="text-[10px] font-black uppercase tracking-widest text-rose-400 bg-rose-400/10 px-3 py-1 rounded-full border border-rose-400/20 active:scale-95 transition-all"
+            >
+              Log Period
+            </button>
          </div>
          <div className="bg-card rounded-[32px] border border-border overflow-hidden shadow-sm">
             <MonthlyHabitBoard pairId={roomId || ""} />
