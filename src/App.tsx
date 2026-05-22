@@ -465,7 +465,8 @@ export default function App() {
           view !== "settings" &&
           view !== "map" &&
           view !== "journey" &&
-          view !== "timeline" && (
+          view !== "timeline" &&
+          view !== "reels" && (
             <motion.header
               initial={{ y: -100 }}
               animate={{ y: 0 }}
