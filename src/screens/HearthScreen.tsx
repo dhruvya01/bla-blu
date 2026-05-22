@@ -225,7 +225,7 @@ export function HearthScreen({ socket }: HearthProps) {
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0 }} 
-      className="flex-1 w-full bg-bg relative overflow-x-hidden pt-0 pb-32"
+      className="flex-1 w-full bg-bg relative overflow-x-hidden pt-0 pb-6"
     >
       <FloatingHearts />
 

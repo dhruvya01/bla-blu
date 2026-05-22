@@ -280,7 +280,7 @@ export function JarScreen(_props: {}) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex-1 w-full min-h-screen bg-bg relative overflow-x-hidden flex flex-col pt-4 pb-32"
+      className="flex-1 w-full min-h-screen bg-bg relative overflow-x-hidden flex flex-col pt-4 pb-6"
     >
       {/* Floating Header Buttons */}
       <button 

@@ -197,7 +197,7 @@ export function BabyGameScreen() {
   const tasksCompleted = DAILY_TASKS.filter(t=>home.dailyTasks[t.id]).length;
 
   return (
-    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex-1 w-full bg-bg overflow-y-auto no-scrollbar pb-32">
+    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex-1 w-full bg-bg overflow-y-auto no-scrollbar pb-6">
       {/* Gamified Header */}
       <div className="sticky top-0 z-30 bg-bg/80 backdrop-blur-2xl pt-safe-top pb-4 px-5 border-b border-white/10 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3 mt-2">

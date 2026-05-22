@@ -500,7 +500,7 @@ export default function App() {
               initial={{ y: -100 }}
               animate={{ y: 0 }}
               transition={{ type: "spring", stiffness: 280, damping: 22 }}
-              className="fixed top-0 left-0 right-0 z-[100] pt-safe-top px-2 py-3 flex items-center justify-between bg-bg/60 backdrop-blur-xl border-b border-border/30"
+              className="fixed top-0 left-0 right-0 z-[100] pt-[calc(env(safe-area-inset-top,0px)+6px)] px-3 py-1.5 flex items-center justify-between bg-bg/60 backdrop-blur-xl border-b border-border/30"
             >
               <div className="flex items-center gap-2 mt-1">
                 <motion.button
@@ -611,7 +611,7 @@ export default function App() {
               view !== "vault" &&
               view !== "timeline" &&
               view !== "reels" &&
-              "pt-[calc(env(safe-area-inset-top,0px)+72px)] pb-[calc(env(safe-area-inset-bottom,0px)+96px)]",
+              "pt-[calc(env(safe-area-inset-top,0px)+62px)] pb-[calc(env(safe-area-inset-bottom,0px)+84px)]",
           )}
         >
           <AnimatePresence mode="sync">

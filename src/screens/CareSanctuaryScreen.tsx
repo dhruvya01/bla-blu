@@ -1051,7 +1051,7 @@ function HistoryView() {
   };
 
   return (
-    <div className="space-y-6 pb-32">
+    <div className="space-y-6 pb-6">
       <div className="flex flex-col">
         <h2 className="font-display text-2xl text-text capitalize">{pair?.houseName || "bondu's house"}</h2>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text/30 mt-1">Care History & Health Logs</p>
