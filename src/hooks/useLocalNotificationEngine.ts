@@ -84,6 +84,11 @@ export const useLocalNotificationEngine = (
 
     checkPermissions();
 
+    const handleCustomNotification = (e: any) => {
+      triggerAlert(e.detail);
+    };
+    window.addEventListener('blablu-notification', handleCustomNotification);
+
     // Listen to native Local Notification Action Clicks
     let handleNotificationClick: any;
     if (Capacitor.isNativePlatform()) {
@@ -101,6 +106,7 @@ export const useLocalNotificationEngine = (
 
     return () => {
       handleStateChange.then((h) => h.remove());
+      window.removeEventListener('blablu-notification', handleCustomNotification);
       if (handleNotificationClick) {
         handleNotificationClick.then((h: any) => h.remove());
       }
@@ -136,7 +142,12 @@ export const useLocalNotificationEngine = (
         // App is ACTIVE (Foreground): Suppress system banner, show custom glass in-app toast
         // Show real content inside the app as requested!
         console.log(`[NotificationEngine] Suppressing native banner. App is ACTIVE. Showing in-app popup for: ${params.title}`);
-        if (onActiveToast && params.type !== "chat") {
+        
+        // Only show chat toast if NOT on the chat screen
+        const currentView = useAppStore.getState().view;
+        const shouldShowChatToast = params.type === "chat" && currentView !== "chat";
+        
+        if (onActiveToast && (params.type !== "chat" || shouldShowChatToast)) {
           onActiveToast({
             id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             title: params.title,

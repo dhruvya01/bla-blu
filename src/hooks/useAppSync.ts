@@ -5,6 +5,7 @@ import { db, handleFirestoreError } from '../firebase/config';
 import { useShallow } from 'zustand/react/shallow';
 import { User, Pair, SafeArrival, FavoritePlace } from '../types';
 import { io, Socket } from 'socket.io-client';
+import { sensory } from '../utils/sensory';
 
 import { CONFIG } from '../config';
 
@@ -41,12 +42,45 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
     const s = io(CONFIG.SERVER_URL);
     setSocket(s);
 
-    s.on('ping', (data: { type: "heartbeat" | "hug" | "sparkle" }) => {
-      const { setLatestPing } = useAppStore.getState();
-      setLatestPing({ id: Date.now(), type: data.type });
+    s.emit('join-room', roomId);
+
+    s.on('chat_message', (data) => {
+      if (data.senderId !== userId) {
+        window.dispatchEvent(new CustomEvent('blablu-notification', {
+          detail: {
+            title: data.senderName || "Partner",
+            body: data.text,
+            type: "chat",
+            view: "chat",
+            emoji: "💬"
+          }
+        }));
+      }
     });
 
-    s.emit('join-room', roomId);
+    s.on('ping', (data: { type: "heartbeat" | "hug" | "sparkle", fromId?: string }) => {
+      const { setLatestPing } = useAppStore.getState();
+      if (data.fromId !== userId) {
+        setLatestPing({ id: Date.now(), type: data.type });
+        sensory.play('pop');
+        sensory.tap();
+        
+        let emoji = "✨";
+        let bodyText = "Sent you a cute poke!";
+        if (data.type === "heartbeat") { emoji = "❤️"; bodyText = "Sent you a heartbeat!"; }
+        else if (data.type === "hug") { emoji = "🤗"; bodyText = "Sent you a hug!"; }
+        
+        window.dispatchEvent(new CustomEvent('blablu-notification', {
+          detail: {
+            title: "Partner Nudge",
+            body: bodyText,
+            type: "nudge",
+            view: "home",
+            emoji: emoji
+          }
+        }));
+      }
+    });
 
     // 1. Sync Current User Profile
     const unsubUser = onSnapshot(doc(db, 'users', userId), (snap) => {

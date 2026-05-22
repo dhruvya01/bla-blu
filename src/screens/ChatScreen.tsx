@@ -1328,7 +1328,6 @@ export function ChatScreen({ socket }: ChatProps) {
     partnerLoc,
     messages,
     roomId,
-    isPartnerTyping,
     setView,
     addCoins,
     setE2eReady,
@@ -1340,7 +1339,6 @@ export function ChatScreen({ socket }: ChatProps) {
       partnerLoc: state.partnerLoc,
       messages: state.messages,
       roomId: state.roomId,
-      isPartnerTyping: state.isPartnerTyping,
       setView: state.setView,
       addCoins: state.addCoins,
       setE2eReady: state.setE2eReady,
@@ -1781,6 +1779,16 @@ export function ChatScreen({ socket }: ChatProps) {
 
       await addDoc(collection(db, "pairs", roomId, "chatMessages"), msgData);
 
+      if (socket) {
+        socket.emit("chat_message", {
+          roomId,
+          senderId: user.uid,
+          senderName: user.nickname || "Partner",
+          text: textToSend || "Sent you a file 📎",
+          type: "chat"
+        });
+      }
+
       if (partner?.fcmToken) {
         const privacy = useAppStore.getState().privacyModeEnabled;
         fetch(`${CONFIG.SERVER_URL}/api/notify`, {
@@ -1818,6 +1826,16 @@ export function ChatScreen({ socket }: ChatProps) {
         image: encryptedImage,
         isSticker: true
       });
+
+      if (socket) {
+        socket.emit("chat_message", {
+          roomId,
+          senderId: user.uid,
+          senderName: user.nickname || "Partner",
+          text: "Sent you a sticker 🤩",
+          type: "chat"
+        });
+      }
 
       if (partner?.fcmToken) {
         const privacy = useAppStore.getState().privacyModeEnabled;

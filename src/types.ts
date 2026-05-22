@@ -51,6 +51,7 @@ export interface User {
   tokenType?: string;
   tokenUpdatedAt?: number;
   homeLocation?: { lat: number; lng: number };
+  createdAt?: number;
 }
 
 export interface Pair {

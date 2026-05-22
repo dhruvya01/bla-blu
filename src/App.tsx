@@ -605,8 +605,7 @@ export default function App() {
         </main>
 
         {/* Persistent Navigation */}
-        {view !== "login" &&
-          view !== "chat" &&
+        {view !== "chat" &&
           view !== "map" &&
           view !== "journey" &&
           view !== "settings" &&

@@ -13,9 +13,16 @@ export const useNotifications = (roomId: string | null, user: User | null, setVi
   useEffect(() => {
     if (!userId || initialized.current) return;
     
-    // Only proceed if we are on a real Android/iOS device
+    // Handle Native VS Web logic
     if (!Capacitor.isNativePlatform()) {
-      console.log('[DEBUG-PUSH] Non-Native platform. FCM Native Push skipped.');
+      console.log('[DEBUG-PUSH] Non-Native platform. Checking browser notifications...');
+      if ("Notification" in window) {
+        if (Notification.permission === "default") {
+          Notification.requestPermission().then(permission => {
+            console.log('[DEBUG-PUSH] Browser Notification Permission:', permission);
+          });
+        }
+      }
       return;
     }
 

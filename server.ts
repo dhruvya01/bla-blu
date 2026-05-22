@@ -45,8 +45,14 @@ async function start() {
   app.use(express.json()); // Enable JSON body parsing for API requests
   
   // Custom API endpoint for sending push notifications
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", firebase: isFirebaseAdminInitialized });
+  });
+
   app.post("/api/notify", async (req, res) => {
+    console.log("[BLABLU] /api/notify request received:", req.body);
     if (!isFirebaseAdminInitialized) {
+      console.warn("[BLABLU] Notification skipped: Firebase Admin not initialized");
       return res.status(500).json({ error: "Firebase Admin is not configured. Missing FIREBASE_SERVICE_ACCOUNT." });
     }
 
@@ -54,13 +60,16 @@ async function start() {
       const { token, to, title, body, data } = req.body;
       const targetToken = token || to;
       
-      if (!targetToken || !title) {
-        return res.status(400).json({ error: "Missing required fields (token/to, title)." });
+      if (!targetToken) {
+        console.warn("[BLABLU] Notification skipped: Missing target token");
+        return res.status(400).json({ error: "Missing required fields (token/to)." });
       }
+
+      console.log(`[BLABLU] Sending push to ${targetToken.substring(0, 8)}...`);
 
       const message = {
         token: targetToken,
-        notification: { title, body },
+        notification: { title: title || "Blablu", body: body || "New message" },
         data: data || {},
         android: {
           notification: {
@@ -78,9 +87,10 @@ async function start() {
       };
 
       const response = await getMessaging().send(message);
+      console.log("[BLABLU] Push notification sent successfully:", response);
       return res.status(200).json({ success: true, messageId: response });
     } catch (error: any) {
-      console.error("Error sending push notification:", error);
+      console.error("[BLABLU] Error sending push notification:", error);
       return res.status(500).json({ error: error.message });
     }
   });
@@ -91,8 +101,9 @@ async function start() {
   });
 
   io.on("connection", (socket) => {
-    socket.on("join_room", (roomId) => {
+    socket.on("join-room", (roomId) => {
       socket.join(roomId);
+      console.log(`Socket ${socket.id} joined room ${roomId}`);
     });
 
     socket.on("sensor_event", (data) => {
@@ -112,6 +123,11 @@ async function start() {
     socket.on("location_pong", (data) => {
       socket.to(data.roomId).emit("location_pong", data);
     });
+
+    socket.on("chat_message", (data) => {
+      const { roomId } = data;
+      socket.to(roomId).emit("chat_message", data);
+    });
   });
 
   if (process.env.NODE_ENV === "production") {
@@ -130,7 +146,17 @@ async function start() {
   }
 
   const PORT = 3000;
-  server.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`[BLABLU] Server listening on 0.0.0.0:${PORT}`);
+    console.log(`[BLABLU] NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`[BLABLU] CWD: ${process.cwd()}`);
+  }).on('error', (err) => {
+    console.error("[BLABLU] Server fail to start:", err);
+    process.exit(1);
+  });
 }
 
-start();
+start().catch(err => {
+  console.error("[BLABLU] Fatal startup error:", err);
+  process.exit(1);
+});
