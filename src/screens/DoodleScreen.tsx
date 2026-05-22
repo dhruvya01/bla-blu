@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Trash2,
   Undo,
+  Redo,
   Camera,
   Layers,
   Sparkles,
@@ -38,7 +39,7 @@ export interface Stroke {
   color: string;
   width: number;
   opacity: number;
-  tool: "pencil" | "brush" | "neon" | "eraser" | "spray";
+  tool: "pencil" | "brush" | "neon" | "eraser" | "spray" | "highlighter";
   shape?: "none" | "line" | "dashed-line" | "rect" | "circle";
 }
 
@@ -59,6 +60,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [redoStack, setRedoStack] = useState<Stroke[]>([]);
   const [currentColor, setCurrentColor] = useState("#f43f5e"); 
   const [currentWidth, setCurrentWidth] = useState(4);
   const [currentOpacity, setCurrentOpacity] = useState(1);
@@ -69,8 +71,8 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   const [isSmoothing, setIsSmoothing] = useState(true);
   const [activeTab, setActiveTab] = useState<"tools" | "colors" | "settings">("tools");
   const [canvasBg, setCanvasBg] = useState("#ffffff");
+  const [bgPattern, setBgPattern] = useState<"none" | "grid" | "dots" | "ruled">("none");
   const [isDrawing, setIsDrawing] = useState(false);
-  const [showGrid, setShowGrid] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [doodleTitle, setDoodleTitle] = useState("");
   const [showClearModal, setShowClearModal] = useState(false);
@@ -125,7 +127,9 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
       try {
         const parsed = JSON.parse(saved);
         setStrokes(parsed.strokes || []);
-        setCanvasBg(parsed.bg || "#ffffff");
+        if (parsed.bg) setCanvasBg(parsed.bg);
+        if (parsed.pattern) setBgPattern(parsed.pattern);
+        setRedoStack([]);
       } catch (e) {
         console.error("Failed to load draft", e);
       }
@@ -133,10 +137,11 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (strokes.length > 0 || canvasBg !== "#ffffff") {
+    if (strokes.length > 0 || canvasBg !== "#ffffff" || bgPattern !== "none") {
       localStorage.setItem(`blablu_doodle_draft_${user?.uid}`, JSON.stringify({
         strokes,
-        bg: canvasBg
+        bg: canvasBg,
+        pattern: bgPattern
       }));
     } else {
       localStorage.removeItem(`blablu_doodle_draft_${user?.uid}`);
@@ -185,7 +190,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   }, []);
 
   // Sync state values
-  useEffect(() => drawStrokesOnCanvas(), [strokes, canvasBg, showGrid, isMirrorMode, radialSymmetry, isSmoothing]);
+  useEffect(() => drawStrokesOnCanvas(), [strokes, canvasBg, bgPattern, isMirrorMode, radialSymmetry, isSmoothing]);
 
   // Core Render Method
   const renderStroke = (ctx: CanvasRenderingContext2D, width: number, height: number, s: Stroke, symmetryOptions: { mirror?: boolean; rotation?: number } = {}) => {
@@ -216,9 +221,14 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
         ctx.shadowBlur = s.width * 2.5;
         ctx.shadowColor = drawColor;
       } else if (s.tool === "pencil") {
-        ctx.globalAlpha = s.opacity; // Sharp pen feel
+        ctx.globalAlpha = s.opacity; 
       } else if (s.tool === "spray") {
         ctx.globalAlpha = s.opacity * 0.5;
+      } else if (s.tool === "highlighter") {
+        ctx.globalAlpha = s.opacity * 0.4;
+        ctx.lineJoin = "bevel";
+        ctx.lineCap = "square";
+        ctx.globalCompositeOperation = "multiply";
       }
 
       if (s.shape && s.shape !== "none" && s.points.length >= 2) {
@@ -321,16 +331,30 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
     ctx.fillStyle = canvasBg;
     ctx.fillRect(0, 0, width, height);
 
-    if (showGrid) {
+    if (bgPattern !== "none") {
       ctx.save();
-      ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.15)";
+      ctx.fillStyle = "rgba(148, 163, 184, 0.15)";
       ctx.lineWidth = 1;
       const gridSize = 40;
-      for (let x = 0; x < width; x += gridSize) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
-      }
-      for (let y = 0; y < height; y += gridSize) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+      
+      if (bgPattern === "grid") {
+        for (let x = 0; x < width; x += gridSize) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+        }
+        for (let y = 0; y < height; y += gridSize) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+        }
+      } else if (bgPattern === "ruled") {
+        for (let y = gridSize; y < height; y += gridSize) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+        }
+      } else if (bgPattern === "dots") {
+        for (let x = gridSize / 2; x < width; x += gridSize) {
+          for (let y = gridSize / 2; y < height; y += gridSize) {
+             ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI * 2); ctx.fill();
+          }
+        }
       }
       ctx.restore();
     }
@@ -468,7 +492,15 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   const handleUndo = () => {
     if (strokes.length === 0) return;
     triggerHaptic();
+    setRedoStack(prev => [strokes[strokes.length - 1], ...prev]);
     setStrokes(prev => prev.slice(0, -1));
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length === 0) return;
+    triggerHaptic();
+    setStrokes(prev => [...prev, redoStack[0]]);
+    setRedoStack(prev => prev.slice(1));
   };
 
   const handleClear = () => {
@@ -589,6 +621,16 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
               >
                 <Undo size={18} />
               </button>
+              
+              <button
+                onClick={handleRedo}
+                disabled={redoStack.length === 0}
+                className={`w-10 h-10 flex items-center justify-center rounded-2xl bg-white/80 dark:bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg transition-all ${
+                  redoStack.length > 0 ? "text-text active:scale-95" : "text-text/20"
+                }`}
+              >
+                <Redo size={18} />
+              </button>
 
               <button
                 onClick={handleFinalSend}
@@ -661,10 +703,11 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
                   className="bg-white/90 dark:bg-card/90 backdrop-blur-2xl p-4 rounded-[2.5rem] border border-border/50 shadow-2xl pointer-events-auto flex flex-col gap-5 max-w-2xl mx-auto w-full"
                 >
                   {/* Tool Selection Row */}
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-6 gap-2">
                     {[
                       { id: "pencil", icon: <Pen size={18} />, label: "Pen" },
                       { id: "brush", icon: <Palette size={18} />, label: "Brush" },
+                      { id: "highlighter", icon: <Highlighter size={18} />, label: "Glow" },
                       { id: "spray", icon: <Sparkles size={18} />, label: "Spray" },
                       { id: "neon", icon: <Zap size={18} />, label: "Neon" },
                       { id: "eraser", icon: <Trash2 size={18} />, label: "Erase" }
@@ -716,6 +759,16 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
                   className="bg-white/90 dark:bg-card/90 backdrop-blur-2xl p-5 rounded-[2.5rem] border border-border/50 shadow-2xl pointer-events-auto max-w-2xl mx-auto w-full"
                 >
                   <div className="flex flex-wrap justify-center gap-3">
+                    <div className="relative w-11 h-11 rounded-full shrink-0 transition-all overflow-hidden border-2 border-border/50">
+                      <input
+                        type="color"
+                        value={currentColor}
+                        onChange={(e) => { setCurrentColor(e.target.value); if (currentTool === "eraser") setCurrentTool("brush"); }}
+                        className="absolute inset-0 w-[200%] h-[200%] -top-2 -left-2 cursor-pointer opacity-0"
+                        style={{ WebkitAppearance: "none" }}
+                      />
+                      <div className="w-full h-full pointer-events-none" style={{ backgroundColor: currentColor }} />
+                    </div>
                     {COLORS.map((color) => (
                       <button
                         key={color.hex}
@@ -768,17 +821,26 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
                     </div>
                   </div>
 
+                  {/* Background Patterns */}
+                  <div className="space-y-3">
+                     <span className="text-[10px] font-black uppercase text-text/30">Background Pattern</span>
+                     <div className="grid grid-cols-4 gap-2">
+                        {["none", "grid", "ruled", "dots"].map(pat => (
+                           <button
+                             key={pat}
+                             onClick={() => { triggerHaptic(); setBgPattern(pat as any); }}
+                             className={`h-10 rounded-2xl text-[11px] font-bold uppercase tracking-wider transition-all ${
+                               bgPattern === pat ? "bg-primary text-white shadow-md shadow-primary/20" : "bg-slate-50 dark:bg-white/5 text-text/40 border border-border/50 hover:bg-slate-100 dark:hover:bg-white/10"
+                             }`}
+                           >
+                             {pat}
+                           </button>
+                        ))}
+                     </div>
+                  </div>
+
                   {/* Toggles & Symmetry */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => { triggerHaptic(); setShowGrid(!showGrid); }}
-                      className={`flex items-center gap-3 p-4 rounded-3xl transition-all border ${
-                        showGrid ? "bg-emerald-500/10 border-emerald-500 text-emerald-600" : "bg-slate-50 dark:bg-white/5 border-transparent text-text/40"
-                      }`}
-                    >
-                      <Grid size={18} />
-                      <span className="text-xs font-bold">Show Grid</span>
-                    </button>
+                  <div className="grid grid-cols-1 gap-3">
                     <button
                       onClick={() => { triggerHaptic(); setIsSmoothing(!isSmoothing); }}
                       className={`flex items-center gap-3 p-4 rounded-3xl transition-all border ${
