@@ -39,7 +39,7 @@ export interface Stroke {
   width: number;
   opacity: number;
   tool: "pencil" | "brush" | "neon" | "eraser" | "spray";
-  shape?: "none" | "line" | "rect" | "circle";
+  shape?: "none" | "line" | "dashed-line" | "rect" | "circle";
 }
 
 interface DoodleScreenProps {
@@ -252,6 +252,10 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
         if (s.shape === "line") {
           ctx.moveTo(sx, sy);
           ctx.lineTo(ex, ey);
+        } else if (s.shape === "dashed-line") {
+          ctx.setLineDash([s.width * 2, s.width * 2]);
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
         } else if (s.shape === "rect") {
           ctx.strokeRect(sx, sy, ex - sx, ey - sy);
         } else if (s.shape === "circle") {
@@ -259,6 +263,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
           ctx.arc(sx, sy, radius, 0, Math.PI * 2);
         }
         ctx.stroke();
+        ctx.setLineDash([]); // Reset dash for next strokes
       } else if (s.points.length > 0) {
         if (s.tool === "spray") {
           // Special spray effect - optimized for performance
@@ -654,10 +659,11 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
                   <div className="flex items-center gap-2 px-2">
                     <span className="text-[10px] font-black uppercase text-text/30 mr-2">Shapes</span>
                     {[
-                      { id: "line", icon: <div className="w-5 h-0.5 bg-current" /> },
-                      { id: "rect", icon: <Square size={18} /> },
-                      { id: "circle", icon: <Circle size={18} /> },
-                      { id: "none", icon: <Activity size={18} />, label: "Freehand" }
+                      { id: "none", icon: <Pen size={18} />, label: "Freehand Pen", title: "Freehand" },
+                      { id: "line", icon: <div className="w-5 h-0.5 bg-current" />, title: "Straight Line" },
+                      { id: "dashed-line", icon: <div className="w-5 h-0.5 bg-current border-b border-dashed border-white" style={{ background: 'repeating-linear-gradient(90deg, currentColor, currentColor 4px, transparent 4px, transparent 8px)' }} />, title: "Dashed Line" },
+                      { id: "rect", icon: <Square size={18} />, title: "Square" },
+                      { id: "circle", icon: <Circle size={18} />, title: "Circle" }
                     ].map((s) => (
                       <button
                         key={s.id}
@@ -665,7 +671,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
                         className={`flex-1 h-12 rounded-2xl flex items-center justify-center transition-all ${
                           currentShape === s.id ? "bg-indigo-500 text-white shadow-md active:scale-95" : "text-text/30 hover:bg-slate-100 dark:hover:bg-white/5"
                         }`}
-                        title={s.id === "line" ? "Straight Line" : ""}
+                        title={s.title || ""}
                       >
                         {s.icon}
                       </button>

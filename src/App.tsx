@@ -275,6 +275,10 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
+    
+    // Immediate tick on mount/login
+    tickBabyLogic(false);
+    
     const interval = setInterval(() => {
       tickBabyLogic(false);
     }, 120000);

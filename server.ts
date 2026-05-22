@@ -3,7 +3,8 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import path from "path";
-import * as admin from "firebase-admin";
+import { initializeApp, cert, getApp, getApps } from "firebase-admin/app";
+import { getMessaging } from "firebase-admin/messaging";
 
 let isFirebaseAdminInitialized = false;
 
@@ -26,9 +27,11 @@ let isFirebaseAdminInitialized = false;
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
+      if (getApps().length === 0) {
+        initializeApp({
+          credential: cert(serviceAccount)
+        });
+      }
       isFirebaseAdminInitialized = true;
       console.log("Firebase Admin initialized successfully.");
     } catch (error: any) {
@@ -74,7 +77,7 @@ async function start() {
         }
       };
 
-      const response = await admin.messaging().send(message);
+      const response = await getMessaging().send(message);
       return res.status(200).json({ success: true, messageId: response });
     } catch (error: any) {
       console.error("Error sending push notification:", error);

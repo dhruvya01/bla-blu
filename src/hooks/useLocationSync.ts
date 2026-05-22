@@ -357,26 +357,26 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
           battDiff = Math.abs(lastWritten.current.battery - battery);
           chgChanged = lastWritten.current.isCharging !== isCharging;
           
-          // Calibrated responsive intervals for a fluid 30k-35k daily read/write volume:
-          // Fast driving (>30 km/h): Update every 8 seconds (insanely responsive on maps!)
-          // Normal moving (>10 km/h): Update every 12 seconds
-          // Stationary/Resting: Update every 90 seconds (1.5 minutes) to feel highly real-time
-          // Safely at home: Update every 3 minutes (180,000ms) to maintain a responsive connection
-          let dynamicInterval = speedKmh > 30 ? 15_000 : speedKmh > 10 ? 25_000 : 90_000;
-          if (isAtHome) dynamicInterval = 180_000; 
+          // Calibrated responsive intervals for a more conservative daily write volume:
+          // Fast driving (>30 km/h): Update every 45 seconds
+          // Normal moving (>10 km/h): Update every 90 seconds
+          // Stationary/Resting: Update every 360 seconds (6 minutes)
+          // Safely at home: Update every 900 seconds (15 minutes)
+          let dynamicInterval = speedKmh > 30 ? 45_000 : speedKmh > 10 ? 90_000 : 360_000;
+          if (isAtHome) dynamicInterval = 900_000; 
 
-          // High-Speed Real-Time Map Overlay Override!
+          // Smart Real-Time Map Overlay Override!
           const isViewingMap = state.view === 'map' || state.view === 'journey';
           if (isViewingMap) {
-            dynamicInterval = speedKmh > 10 ? 5_000 : 10_000; // Track nicely when open!
+            dynamicInterval = speedKmh > 10 ? 15_000 : 30_000; // Track nicely but within reason when open!
           }
 
-          // Displacement threshold set to 10 meters for immediate micro-movement tracking
-          const hasSignificantChange = moved > 10 || chgChanged || (battDiff > 1);
+          // Displacement threshold set to 30 meters to ignore GPS jitter and micro-movement
+          const hasSignificantChange = moved > 30 || chgChanged || (battDiff > 2);
           const intervalPassed = elapsed >= dynamicInterval;
 
           // Hard safety cooldown
-          const minCooldown = isViewingMap ? 5000 : 10000;
+          const minCooldown = isViewingMap ? 10000 : 30000;
           if (elapsed < minCooldown) return;
 
           if (!hasSignificantChange && !intervalPassed) return;
@@ -411,9 +411,9 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
 
         await updateDoc(doc(db, "pairs", roomId, "mapStatus", "live"), updateData);
         
-        // Only update the user profile document if the charging status changed, the battery level changed by > 2%,
-        // or if it has been at least 3 minutes since the last written tick!
-        if (!lastWritten.current || chgChanged || battDiff > 2 || elapsed > 180_000) {
+        // Only update the user profile document if the charging status changed, the battery level changed by > 5%,
+        // or if it has been at least 15 minutes since the last written tick!
+        if (!lastWritten.current || chgChanged || battDiff > 5 || elapsed > 900_000) {
           await updateDoc(doc(db, "users", userId), {
             "activity.batteryLevel": battery,
             "activity.isCharging": isCharging,

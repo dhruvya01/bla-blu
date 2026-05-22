@@ -271,6 +271,7 @@ export interface BabyEvolution {
   ukkuBirthdayMs: number; 
   pukkuBirthdayMs: number;
   lastGiftSentAt?: number;
+  lastTick?: number;
 }
 
 export interface Envelope {

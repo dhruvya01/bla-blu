@@ -201,7 +201,14 @@ export function BabyGameScreen() {
       {/* Gamified Header */}
       <div className="sticky top-0 z-30 bg-bg/80 backdrop-blur-2xl pt-safe-top pb-4 px-5 border-b border-white/10 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3 mt-2">
-          <motion.button whileTap={{scale:0.9}} onClick={()=>setView('home')} className="w-10 h-10 rounded-2xl bg-card border border-white/50 dark:border-white/10 flex items-center justify-center shadow-sm"><ArrowLeft size={18} className="text-text/70"/></motion.button>
+          <motion.button 
+            whileTap={{scale:0.9}} 
+            onClick={()=>setView('home')} 
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-white/50 dark:border-white/10 shadow-sm hover:bg-white/5 transition-colors"
+          >
+            <ArrowLeft size={18} className="text-text/70"/>
+            <span className="text-sm font-bold text-text/70">Home</span>
+          </motion.button>
           <div className="px-5 py-2.5 bg-amber-400/20 rounded-[20px] border border-amber-400/30 flex items-center gap-2 shadow-sm">
             <div className="w-7 h-7 rounded-full bg-amber-400 flex items-center justify-center shadow-md">
               <Coins size={14} className="text-amber-900" />
@@ -227,8 +234,8 @@ export function BabyGameScreen() {
         {([
            {id:'dhruvya',n:'Dhruvya',c:'indigo',age:getAgeShort(DHRUVYA_BD), role:'Papa'},
            {id:'anjali',n:'Anjali',c:'emerald',age:getAgeShort(ANJALI_BD), role:'Mumma'},
-           {id:'pukku',n:'Pukku',c:'blue',h:pukkuHunger||0,hy:pukkuHygiene||0,age:getAgeShort(PUKKU_BD)},
-           {id:'ukku',n:'Ukku',c:'rose',h:ukkuHunger||0,hy:ukkuHygiene||0,age:getAgeShort(UKKU_BD)}
+           {id:'pukku',n:'Pukku',c:'blue',h:Math.round(pukkuHunger||0),hy:Math.round(pukkuHygiene||0),age:getAgeShort(PUKKU_BD)},
+           {id:'ukku',n:'Ukku',c:'rose',h:Math.round(ukkuHunger||0),hy:Math.round(ukkuHygiene||0),age:getAgeShort(UKKU_BD)}
          ] as const).map(b=>(
           <motion.div key={b.id} whileHover={{y:-2}} className={cn("bg-card border border-white/50 dark:border-white/5 shadow-sm relative overflow-hidden group flex flex-col justify-between", 'role' in b ? "rounded-[20px] p-3" : "rounded-[32px] p-4")}>
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-current to-transparent opacity-5 rounded-bl-[100px] pointer-events-none" style={{color: b.c === 'blue' ? '#3b82f6' : b.c === 'rose' ? '#f43f5e' : b.c === 'indigo' ? '#6366f1' : '#10b981'}} />

@@ -494,6 +494,17 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     }),
   tickBabyLogic: (isSleeping) =>
     set((state) => {
+      const now = Date.now();
+      const lastTick = state.babyEvolution.lastTick || now;
+      const elapsedMs = now - lastTick;
+      
+      // If elapsed is too small (e.g. less than 30s), don't tick yet to avoid flutter
+      // unless it's the first time
+      if (elapsedMs < 30000 && state.babyEvolution.lastTick) return {};
+
+      // We calculate how many "standard ticks" (2 mins) passed
+      const ticksPassed = Math.max(1, Math.floor(elapsedMs / 120000));
+      
       const {
         ukkuHunger,
         pukkuHunger,
@@ -502,28 +513,46 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         ukkuHygiene,
         pukkuHygiene,
       } = state.babyEvolution;
-      const hungerRate = (isSleeping ? 1 : 2) + Math.random() * 2;
-      const hygieneRate = 1 + Math.random() * 1;
-      const sleepinessRate = isSleeping ? -5 : 2;
+
+      // Slower rates: 100 points should take ~8-12 hours (240-360 standard ticks)
+      // Rate per 2-min tick: 100 / 300 = ~0.33
+      const baseHungerRate = (isSleeping ? 0.1 : 0.25) + Math.random() * 0.1;
+      const baseHygieneRate = 0.15 + Math.random() * 0.1;
+      const baseSleepinessRate = isSleeping ? -2 : 0.5;
+
+      const deltaHunger = baseHungerRate * ticksPassed;
+      const deltaHygiene = baseHygieneRate * ticksPassed;
+      const deltaSleep = baseSleepinessRate * ticksPassed;
+
       const nextEvolution = {
         ...state.babyEvolution,
-        ukkuHunger: Math.max(0, ukkuHunger - hungerRate),
-        pukkuHunger: Math.max(0, pukkuHunger - hungerRate),
+        lastTick: now,
+        ukkuHunger: Math.max(0, ukkuHunger - deltaHunger),
+        pukkuHunger: Math.max(0, pukkuHunger - deltaHunger),
         ukkuSleepiness: Math.max(
           0,
-          Math.min(100, ukkuSleepiness + sleepinessRate),
+          Math.min(100, ukkuSleepiness + deltaSleep),
         ),
         pukkuSleepiness: Math.max(
           0,
-          Math.min(100, pukkuSleepiness + sleepinessRate),
+          Math.min(100, pukkuSleepiness + deltaSleep),
         ),
-        ukkuHygiene: Math.max(0, ukkuHygiene - hygieneRate),
-        pukkuHygiene: Math.max(0, pukkuHygiene - hygieneRate),
+        ukkuHygiene: Math.max(0, ukkuHygiene - deltaHygiene),
+        pukkuHygiene: Math.max(0, pukkuHygiene - deltaHygiene),
       };
+      
       localStorage.setItem(
         "blablu_baby_evolution",
         JSON.stringify(nextEvolution),
       );
+
+      // Sync to Firebase if roomId exists
+      if (state.roomId) {
+        setDoc(doc(db, "pairs", state.roomId, "babyEvolution", "current"), nextEvolution, { merge: true }).catch(
+          (e) => console.error("Sync baby tick failed", e)
+        );
+      }
+
       return { babyEvolution: nextEvolution };
     }),
   addBabyPhoto: (photo) =>

@@ -70,8 +70,24 @@ export function CareSanctuaryScreen({ socket }: SanctuaryProps) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col w-full font-body bg-bg pb-40">
       <div className="flex flex-col w-full">
+        {/* Sticky Header with Home Button */}
+        <div className="sticky top-0 z-30 bg-bg/80 backdrop-blur-2xl pt-safe-top pb-4 px-6 border-b border-white/5 flex items-center justify-between">
+           <motion.button 
+             whileTap={{scale:0.92}} 
+             onClick={()=>setView('home')}
+             className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border shadow-sm active:scale-95 transition-all"
+           >
+              <ArrowLeft size={16} className="text-text/70" />
+              <span className="text-xs font-black uppercase tracking-widest text-text/70">Home</span>
+           </motion.button>
+           <div className="flex flex-col items-end">
+              <span className="text-[10px] font-black uppercase tracking-widest text-text/20">Sanctuary</span>
+              <div className="w-8 h-1 rounded-full bg-primary/20 mt-1" />
+           </div>
+        </div>
+
         {/* Tabs */}
-        <div className="px-6 pt-2 pb-2 space-y-4 shrink-0">
+        <div className="px-6 pt-4 pb-2 space-y-4 shrink-0">
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
             {tabs.map(tab => {
               const isActive = view === tab.id || (tab.id === "period" && view === "calendar") || (tab.id === "habits" && view === "sanctuary");
@@ -363,63 +379,6 @@ function PeriodTrackerView() {
 
   return (
     <div className="space-y-6 pb-20">
-
-
-      {/* CUTE INSIGHT CAROUSEL */}
-      {insights.length > 0 && (
-        <div className="relative h-24 overflow-hidden bg-card/30 border border-border rounded-[32px] p-6 shadow-sm flex items-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={insightIndex}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              transition={{ duration: 0.6, ease: "circOut" }}
-              className="flex items-start gap-4"
-            >
-              <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Sparkles size={18} className="text-primary/60" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-primary/40 mb-1">Wellness Insight</span>
-                <p className="text-xs text-text/70 font-medium leading-relaxed">{insights[insightIndex]}</p>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-          <div className="absolute bottom-3 right-8 flex gap-1">
-            {insights.map((_, idx) => (
-              <div key={idx} className={cn("w-1 h-1 rounded-full transition-all duration-500", idx === insightIndex ? "bg-primary w-3" : "bg-border")} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Preparation Advice (Smart Readiness) */}
-      {prepAdvice && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          className="bg-primary/5 border border-primary/20 rounded-[32px] p-6 space-y-4 shadow-sm"
-        >
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                <Sparkles size={20} />
-             </div>
-             <div>
-                <h3 className="font-display text-lg text-text leading-tight">{prepAdvice.title}</h3>
-                <p className="text-[10px] text-text/40 font-black uppercase tracking-widest mt-0.5">Prepare for your next cycle</p>
-             </div>
-          </div>
-          <div className="space-y-2">
-             {prepAdvice.tips.map((tip, i) => (
-               <div key={i} className="flex items-center gap-3 bg-card/50 p-3 rounded-2xl border border-border/50">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/30 shrink-0" />
-                  <span className="text-xs text-text/60 font-medium">{tip}</span>
-               </div>
-             ))}
-          </div>
-        </motion.div>
-      )}
-
       {/* Irregularity Awareness (Gentle) */}
       {awareness && (
         <motion.div 
@@ -781,6 +740,7 @@ function HisPeriodSummaryView() {
   const guidance = cycle ? getPartnerGuidance(cycle.phase) : [];
   const insights = getWellnessInsights(cycle?.phase || "");
   const [insightIndex, setInsightIndex] = useState(0);
+  const [tipIndex, setTipIndex] = useState(0);
 
   useEffect(() => {
     if (insights.length <= 1) return;
@@ -790,113 +750,55 @@ function HisPeriodSummaryView() {
     return () => clearInterval(interval);
   }, [insights.length]);
 
+  useEffect(() => {
+    if (guidance.length <= 1) return;
+    const interval = setInterval(() => {
+      setTipIndex(prev => (prev + 1) % guidance.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [guidance.length]);
+
   return (
     <div className="space-y-6 pb-20">
-      {/* INSIGHT CAROUSEL (Partner Perspective) */}
-      {insights.length > 0 && (
-        <div className="relative h-24 overflow-hidden bg-primary/5 border border-primary/10 rounded-[32px] p-6 shadow-sm flex items-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={insightIndex}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              transition={{ duration: 0.6, ease: "circOut" }}
-              className="flex items-start gap-4"
-            >
-              <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Sparkles size={18} className="text-primary/60" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-primary/40 mb-1">Support Suggestion</span>
-                <p className="text-xs text-text/70 font-medium leading-relaxed">{insights[insightIndex]}</p>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-          <div className="absolute bottom-3 right-8 flex gap-1">
-            {insights.map((_, idx) => (
-              <div key={idx} className={cn("w-1 h-1 rounded-full transition-all duration-500", idx === insightIndex ? "bg-primary w-3" : "bg-border")} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CARD 1 - Phase Hero Card (Partner Perspective) */}
-      {cycle ? (
-        <div className="relative overflow-hidden rounded-[32px] p-8 border border-border shadow-xl bg-gradient-to-br from-card to-bg/50">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-full bg-bg border border-border shadow-inner flex items-center justify-center text-4xl mb-4">
-              {cycle.phaseEmoji}
-            </div>
-            <h2 className="font-display text-3xl text-text tracking-tight">{cycle.phase}</h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-text/20 mt-1 mb-3">{pName}'s {cycle.season} Season</p>
-            <p className="text-xs text-text/50 font-medium leading-relaxed px-4">
-              {cycle.phaseDesc}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mt-8 pt-6 border-t border-border/50">
-             <div className="flex flex-col items-center text-center">
-                <span className="text-[8px] font-black uppercase tracking-widest text-text/20 mb-1">Cycle Day</span>
-                <span className="text-xs font-bold text-text/60">{cycle.dayInCycle}</span>
-             </div>
-             <div className="flex flex-col items-center text-center border-l border-border/50">
-                <span className="text-[8px] font-black uppercase tracking-widest text-text/20 mb-1">Next Cycle</span>
-                <span className="text-xs font-bold text-text/60">in {cycle.nextPeriodIn}d</span>
-             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-card p-10 rounded-[32px] border border-border shadow-sm text-center">
-          <p className="text-sm text-text/40 italic">Waiting for cycle data... 🌸</p>
-        </div>
-      )}
-
-      {/* Preparation Awareness (Partner Perspective) */}
-      {prepAdvice && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          className={cn("border rounded-[32px] p-6 space-y-4 shadow-sm", isDark ? "bg-rose-950/20 border-rose-900/30" : "bg-rose-50/50 border-rose-100")}
-        >
-          <div className="flex items-center gap-3">
-             <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center", isDark ? "bg-rose-900/40 text-rose-300" : "bg-rose-100 text-rose-500")}>
-                <Heart size={20} />
-             </div>
-             <div>
-                <h3 className="font-display text-lg text-text leading-tight">Preparation Mode</h3>
-                <p className="text-[10px] text-text/40 font-black uppercase tracking-widest mt-0.5">{pName}'s cycle is approaching</p>
-             </div>
-          </div>
-          <div className="space-y-2">
-             <p className="text-[11px] text-text/60 italic px-1 capitalize">How you can prepare {pair?.houseName || "bondu's house"}:</p>
-             {prepAdvice.tips.map((tip, i) => (
-               <div key={i} className={cn("flex items-center gap-3 p-3 rounded-2xl border", isDark ? "bg-white/5 border-white/10" : "bg-white/60 border-rose-100/50")}>
-                  <div className="w-1.5 h-1.5 rounded-full bg-rose-300 shrink-0" />
-                  <span className="text-xs text-text/60 font-medium">{tip}</span>
-               </div>
-             ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Guardian Guidance (Ways to show up) */}
-      <div className="space-y-4">
+      {/* Guardian Guidance (Slider) */}
+      <div className="space-y-3">
          <div className="flex items-center gap-2 ml-1">
             <Heart size={14} className="text-rose-400" />
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-text/30">Guardian Guidance</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-text/30">Protocol Suggestions</h3>
          </div>
-         <div className="grid grid-cols-1 gap-2">
-            {guidance.length > 0 ? guidance.map((tip, i) => (
-              <div key={i} className="bg-card border border-border rounded-2xl p-4 flex items-start gap-3">
-                 <div className="w-1.5 h-1.5 rounded-full bg-rose-200 shrink-0 mt-1.5" />
-                 <p className="text-xs text-text/60 font-medium leading-relaxed">{tip}</p>
-              </div>
-            )) : (
-              <div className="p-4 bg-bg rounded-2xl border border-dashed border-border text-center">
-                 <p className="text-[10px] text-text/40">Log a period to unlock guidance.</p>
-              </div>
-            )}
+         <div className="relative h-28 overflow-hidden">
+            <AnimatePresence mode="wait">
+              {guidance.length > 0 ? (
+                <motion.div 
+                  key={tipIndex}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.5, ease: "circOut" }}
+                  className="absolute inset-0 bg-card border border-border rounded-[2rem] p-5 flex items-start gap-4 shadow-sm"
+                >
+                   <div className="w-10 h-10 rounded-2xl bg-rose-400/10 text-rose-500 flex items-center justify-center shrink-0">
+                      <Sparkles size={18} />
+                   </div>
+                   <div className="flex flex-col flex-1">
+                      <span className="text-[9px] font-black uppercase tracking-[0.15em] text-rose-400/40 mb-1">Live Suggestion</span>
+                      <p className="text-xs text-text/60 font-medium leading-relaxed">{guidance[tipIndex]}</p>
+                   </div>
+                </motion.div>
+              ) : (
+                <div className="h-full bg-bg rounded-2xl border border-dashed border-border flex items-center justify-center">
+                   <p className="text-[10px] text-text/40">Log a period to unlock guidance.</p>
+                </div>
+              )}
+            </AnimatePresence>
          </div>
+         {guidance.length > 1 && (
+           <div className="flex justify-center gap-1.5 mt-1">
+             {guidance.map((_, idx) => (
+                <div key={idx} className={cn("w-1 h-1 rounded-full transition-all duration-300", idx === tipIndex ? "bg-rose-400 w-3" : "bg-border")} />
+             ))}
+           </div>
+         )}
       </div>
 
       {/* Active Period Alert */}
