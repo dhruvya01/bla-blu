@@ -1698,16 +1698,6 @@ export function ChatScreen({ socket }: ChatProps) {
 
   const lastProcessedMsgId = useRef<string | null>(null);
   const lastPushSentRef = useRef<number>(0);
-  const lastTypingWrite = useRef<number>(0);
-
-  // Heartbeat to keep user "online" while in chat
-  useEffect(() => {
-    if (!user?.uid) return;
-    // Immediate update
-    updateDoc(doc(db, "users", user.uid), { lastActive: Date.now() }).catch(
-      (e) => console.error("Heartbeat error", e),
-    );
-  }, [user?.uid]);
 
   // Ticker to refresh "seen Xm ago" labels
   useEffect(() => {
@@ -1734,7 +1724,7 @@ export function ChatScreen({ socket }: ChatProps) {
         .catch((err) =>
           console.error("Failed to mark messages as read/seen:", err),
         );
-      sensory.play("swoosh"); // Subtle sound when receiving/reading new messages
+      sensory.play("swoosh");
     }
   }, [messages.length, roomId, user?.uid]);
 
@@ -1755,32 +1745,11 @@ export function ChatScreen({ socket }: ChatProps) {
   }, [messages, user]);
 
   useEffect(() => {
-    // Small delay to let DOM render first
     const timer = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
     return () => clearTimeout(timer);
   }, [(messages || []).length]);
-
-  // Firestore typing indicator fallback
-  useEffect(() => {
-    if (roomId && user) {
-      const typingRef = doc(db, "pairs", roomId, "presence", "typing");
-      // Read partner typing state
-      const unsubTyping = onSnapshot(typingRef, (snap) => {
-        if (!snap.exists()) return;
-        const data = snap.data();
-        const partnerUid = partner?.uid;
-        if (!partnerUid) return;
-        const partnerTypedAt = data[partnerUid];
-        // Show typing if partner typed in last 10 seconds
-        setIsPartnerTypingLocal(
-          partnerTypedAt && Date.now() - partnerTypedAt < 10000,
-        );
-      });
-      return () => unsubTyping();
-    }
-  }, [roomId, user, partner?.uid]);
 
   const sendMessage = async () => {
     if ((!input.trim() && !imageFile && !recordedAudio) || !user || !roomId) return;
@@ -1788,15 +1757,13 @@ export function ChatScreen({ socket }: ChatProps) {
     const imageToSend = imageFile;
     const audioToSend = recordedAudio;
 
-    setInput(""); // Optimistically clear input
-    setImageFile(null); // Clear image
+    setInput("");
+    setImageFile(null);
     setRecordedAudio(null);
     setReplyToMsgId(null);
-    addCoins(1); // Gain 1 coin per message!
     
-    // Gamification: XP for sweet messages
     const lowerText = textToSend.toLowerCase();
-    const sweetPhrases = ["i love you", "i love you baby", "i love you so much", "i love you so much baby", "i love you more"];
+    const sweetPhrases = ["i love you", "baby"];
     if (sweetPhrases.some(phrase => lowerText.includes(phrase))) {
       useAppStore.getState().addPairXp(10);
     }
@@ -1814,80 +1781,34 @@ export function ChatScreen({ socket }: ChatProps) {
 
       await addDoc(collection(db, "pairs", roomId, "chatMessages"), msgData);
 
-      // RELAYED SECURE PUSH NOTIFICATION
       if (partner?.fcmToken) {
         const privacy = useAppStore.getState().privacyModeEnabled;
-        const title = "Blablu";
-        const body = privacy
-          ? "blablubla blu"
-          : `${user.nickname || "Partner"} sent you a chat`;
-
-        console.log(
-          "[DEBUG-PUSH] Sending Relay Request for partner:",
-          partner.uid,
-        );
-
         fetch(`${CONFIG.SERVER_URL}/api/notify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             to: partner.fcmToken,
-            title: title,
-            body: body,
+            title: "Blablu",
+            body: privacy ? "blablubla blu" : `${user.nickname || "Partner"} sent you a chat`,
             data: { roomId, senderId: user.uid, type: "chat" },
           }),
-        })
-          .then(async (res) => {
-            if (!res.ok) {
-              const text = await res.text();
-              console.error("[DEBUG-PUSH] Relay HTTP Error:", res.status, text);
-              return;
-            }
-            const data = await res.json();
-            console.log("[DEBUG-PUSH] Relay Response:", data);
-          })
-          .catch((err) => {
-            console.error("[DEBUG-PUSH] Relay Failed:", err);
-          });
-      } else {
-        console.log(
-          "[DEBUG-PUSH] Partner has no FCM token. Notification skipped.",
-        );
+        }).catch(() => {});
       }
 
       sensory.play("pop");
       sensory.tap();
-      socket?.emit("stop-typing", { roomId, userId: user.uid });
-      // Update lastActive — fire and forget, don't block message send
-      updateDoc(doc(db, "users", user.uid), { lastActive: Date.now() }).catch(
-        () => {},
-      );
     } catch (err: any) {
-      console.error(
-        "[BLABLU] sendMessage failed:",
-        err?.code,
-        err?.message,
-        err,
-      );
-      setInput(textToSend); // Restore input on failure
-      useAppStore
-        .getState()
-        .setError(
-          `Send failed: ${err?.code || err?.message || "unknown error"}`,
-        );
+      console.error("sendMessage failed:", err);
+      setInput(textToSend);
     }
   };
 
   const sendSticker = async (stickerSrc: string) => {
     if (!user || !roomId) return;
     const nowTime = Date.now();
-    if (nowTime - lastStickerSentTimeRef.current < 450) {
-      console.log("[DEBUG] sendSticker blocked duplicate tap within 450ms");
-      return;
-    }
+    if (nowTime - lastStickerSentTimeRef.current < 450) return;
     lastStickerSentTimeRef.current = nowTime;
     
-    addCoins(2); // Dynamic sticker rewards!
     try {
       const encryptedImage = await encryptData(stickerSrc);
       await addDoc(collection(db, "pairs", roomId, "chatMessages"), {
@@ -1900,18 +1821,13 @@ export function ChatScreen({ socket }: ChatProps) {
 
       if (partner?.fcmToken) {
         const privacy = useAppStore.getState().privacyModeEnabled;
-        const title = "Blablu Sticker";
-        const body = privacy
-          ? "blablubla blu 🌈"
-          : `${user.nickname || "Partner"} sent you a sticker 🤩`;
-
         fetch(`${CONFIG.SERVER_URL}/api/notify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             to: partner.fcmToken,
-            title,
-            body,
+            title: "Blablu Sticker",
+            body: privacy ? "blablubla blu 🌈" : `${user.nickname || "Partner"} sent you a sticker 🤩`,
             data: { roomId, senderId: user.uid, type: "chat" },
           }),
         }).catch(() => {});
@@ -1919,8 +1835,6 @@ export function ChatScreen({ socket }: ChatProps) {
 
       sensory.play("pop");
       sensory.tap();
-      socket?.emit("stop-typing", { roomId, userId: user.uid });
-      updateDoc(doc(db, "users", user.uid), { lastActive: Date.now() }).catch(() => {});
     } catch (err: any) {
       console.error("sendSticker failed:", err);
     }
@@ -1974,17 +1888,6 @@ export function ChatScreen({ socket }: ChatProps) {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
-    if (roomId && user) {
-      socket?.emit("typing", { roomId, userId: user.uid });
-
-      const now = Date.now();
-      // Only write to Firestore at most once every 9 seconds to protect quota!
-      if (now - lastTypingWrite.current > 9000) {
-        lastTypingWrite.current = now;
-        const typingRef = doc(db, "pairs", roomId, "presence", "typing");
-        setDoc(typingRef, { [user.uid]: now }, { merge: true }).catch(() => {});
-      }
-    }
   };
 
   const addReaction = async (msgId: string, emoji: string) => {
@@ -2521,31 +2424,6 @@ export function ChatScreen({ socket }: ChatProps) {
                 </React.Fragment>
               );
             })}
-
-            {(isPartnerTyping || isTypingLocal) && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                className="flex items-end gap-2.5 mb-4 max-w-[70%]"
-              >
-                {/* Partner Avatar */}
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-card border border-border flex items-center justify-center shrink-0 shadow-xs">
-                  {partner?.avatarUrl ? (
-                    <img src={partner.avatarUrl} alt="partner avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-xs font-bold text-primary">{partner?.nickname?.[0]?.toUpperCase() || "P"}</div>
-                  )}
-                </div>
-                
-                {/* Animated Bubble */}
-                <div className="bg-card border border-border/60 rounded-2xl rounded-bl-none px-4 py-2.5 shadow-xs flex items-center gap-1.5 h-[34px]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-bounce" style={{   animation : "bounce 1s infinite" }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-bounce" style={{   animation : "bounce 1s infinite", animationDelay: "150ms" }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/70 animate-bounce" style={{   animation : "bounce 1s infinite", animationDelay: "300ms" }} />
-                </div>
-              </motion.div>
-            )}
 
             <div ref={messagesEndRef} />
           </div>

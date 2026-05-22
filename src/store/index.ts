@@ -75,7 +75,6 @@ interface AppStore {
   healthIssues: any[];
   appIcon: "cat" | "penguin";
   loading: boolean;
-  isPartnerTyping: boolean;
   latestPing: { id: number; type: "heartbeat" | "hug" | "sparkle" } | null;
   debugBirthday: string | null;
   e2eReady: boolean;
@@ -123,7 +122,6 @@ interface AppStore {
   setSafeArrivals: (arrivals: SafeArrival[]) => void;
   setLoveTrail: (trail: LoveTrailPoint[]) => void;
   setSpeedingHistory: (history: any[]) => void;
-  setIsPartnerTyping: (t: boolean) => void;
   setLatestPing: (
     p: { id: number; type: "heartbeat" | "hug" | "sparkle" } | null,
   ) => void;
@@ -281,7 +279,6 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   appIcon:
     (localStorage.getItem("blablu_app_icon") as "cat" | "penguin") || "cat",
   loading: !cachedUserUid,
-  isPartnerTyping: false,
   latestPing: null,
   debugBirthday: null,
   error: null,
@@ -335,7 +332,6 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   },
   setLoading: (loading) => set({ loading }),
   setSpeedingHistory: (speedingHistory) => set({ speedingHistory }),
-  setIsPartnerTyping: (isPartnerTyping) => set({ isPartnerTyping }),
   setLatestPing: (latestPing) => set({ latestPing }),
   setLocationEnabled: (locationEnabled) => set({ locationEnabled }),
   setUserLoc: (userLoc) => set({ userLoc }),
@@ -385,15 +381,21 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     const state = get();
     const next = state.babyEvolution.coins + amount;
     const nextEvolution = { ...state.babyEvolution, coins: next };
+    
+    // Local Update
     localStorage.setItem(
       "blablu_baby_evolution",
       JSON.stringify(nextEvolution),
     );
     set({ babyEvolution: nextEvolution });
+
+    // Atomic Server Update
     if (state.roomId) {
-      setDoc(doc(db, "pairs", state.roomId, "babyEvolution", "current"), { coins: next }, { merge: true }).catch(
-        (e) => console.error("Sync coins failed", e),
-      );
+      import('firebase/firestore').then(({ updateDoc, increment }) => {
+        updateDoc(doc(db, "pairs", state.roomId!, "babyEvolution", "current"), { 
+          coins: increment(amount) 
+        }).catch((e) => console.error("Sync coins failed", e));
+      });
     }
   },
   addPairXp: async (amount: number) => {
@@ -502,8 +504,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       // unless it's the first time
       if (elapsedMs < 30000 && state.babyEvolution.lastTick) return {};
 
-      // We calculate how many "standard ticks" (2 mins) passed
-      const ticksPassed = Math.max(1, Math.floor(elapsedMs / 120000));
+      // We calculate how many "standard ticks" (15 mins) passed
+      const ticksPassed = Math.max(1, Math.floor(elapsedMs / 900000));
       
       const {
         ukkuHunger,
@@ -546,8 +548,8 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         JSON.stringify(nextEvolution),
       );
 
-      // Sync to Firebase if roomId exists
-      if (state.roomId) {
+      // Sync to Firebase if roomId exists AND user is primary (boyfriend role) to prevent double-ticks
+      if (state.roomId && state.user?.role === 'boyfriend') {
         setDoc(doc(db, "pairs", state.roomId, "babyEvolution", "current"), nextEvolution, { merge: true }).catch(
           (e) => console.error("Sync baby tick failed", e)
         );

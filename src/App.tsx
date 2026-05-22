@@ -281,7 +281,7 @@ export default function App() {
     
     const interval = setInterval(() => {
       tickBabyLogic(false);
-    }, 120000);
+    }, 900000);
     return () => clearInterval(interval);
   }, [user, tickBabyLogic]);
 
