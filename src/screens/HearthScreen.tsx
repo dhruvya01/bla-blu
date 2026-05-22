@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Heart, MessageCircle, Droplets, Mail, AlertTriangle,
-  Send, X, Calendar, ChevronRight, History, MapPin, Zap, Lock, Compass, Smile, Sparkles, Navigation, Play, Palette
+  Send, X, Calendar, ChevronRight, History, MapPin, Zap, Lock, Compass, Smile, Sparkles, Navigation, Play, Palette, Battery
 } from "lucide-react";
 import { getDistance, formatDistance } from "../utils/geo";
 import { Socket } from "socket.io-client";
@@ -345,11 +345,26 @@ export function HearthScreen({ socket }: HearthProps) {
                  </p>
                </div>
             </div>
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-end gap-2">
               <div className={cn("px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5", isOnline ? "bg-emerald-500/10 text-emerald-500" : "bg-text/5 text-text/40")}>
                  <div className={cn("w-1.5 h-1.5 rounded-full", isOnline ? "bg-emerald-500" : "bg-text/30")} />
                  {isOnline ? "Live" : "Idle"}
               </div>
+              {partner?.activity?.batteryLevel !== undefined && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-bg/50 rounded-full border border-border/50">
+                  <Battery
+                    size={10}
+                    className={cn(
+                      (partner?.activity?.batteryLevel || 0) < 20
+                        ? "text-rose-500 animate-pulse"
+                        : "text-text/60",
+                    )}
+                  />
+                  <span className="text-[10px] font-bold text-text/60">
+                    {partner.activity.batteryLevel}%
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>

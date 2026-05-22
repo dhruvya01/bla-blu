@@ -469,9 +469,9 @@ export default function App() {
               initial={{ y: -100 }}
               animate={{ y: 0 }}
               transition={{ type: "spring", stiffness: 280, damping: 22 }}
-              className="fixed top-0 left-0 right-0 z-[100] pt-safe-top px-4 py-3 flex items-center justify-between bg-bg/60 backdrop-blur-xl border-b border-border/30"
+              className="fixed top-0 left-0 right-0 z-[100] pt-safe-top px-2 py-3 flex items-center justify-between bg-bg/60 backdrop-blur-xl border-b border-border/30"
             >
-              <div className="flex items-center gap-3 mt-1">
+              <div className="flex items-center gap-2 mt-1">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
@@ -482,7 +482,7 @@ export default function App() {
                 >
                   <Menu size={18} />
                 </motion.button>
-                <div className="flex flex-col ml-1">
+                <div className="flex flex-col ml-0.5">
                   <span className="text-[10px] font-bold tracking-widest text-text/50">
                     {greeting} ✨
                   </span>
@@ -525,22 +525,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 mt-1">
-                {partner?.activity?.batteryLevel !== undefined && (
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-card rounded-full shadow-sm border border-white/50 dark:border-white/10">
-                    <Battery
-                      size={12}
-                      className={cn(
-                        (partner?.activity?.batteryLevel || 0) < 20
-                          ? "text-rose-500 animate-pulse"
-                          : "text-text/60",
-                      )}
-                    />
-                    <span className="text-xs font-bold text-text/60 tracking-wider">
-                      {partner.activity.batteryLevel}%
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center gap-3 mt-1 mr-4">
                 <motion.div
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
