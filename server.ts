@@ -108,6 +108,64 @@ async function start() {
     }
   });
 
+  const crypto = await import("crypto");
+
+  app.post("/api/cloudinary/delete", async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url || !url.includes("cloudinary.com")) {
+        return res.status(400).json({ error: "Invalid Cloudinary URL" });
+      }
+
+      // Extract public_id from URL: /v<timestamp>/<public_id>.<ext>
+      // e.g. https://res.cloudinary.com/dcwl4l70x/video/upload/v1716382902/blablu_videos/sample.mp4
+      // the public_id is usually everything after /upload/v<timestamp>/ up to the extension
+      // Actually with an upload preset "blablu_videos", it might be "blablu_videos/sample"
+      
+      const uploadIndex = url.indexOf("/upload/");
+      if (uploadIndex === -1) return res.status(400).json({ error: "Could not parse public_id" });
+      
+      // substring after /upload/
+      let pathAfterUpload = url.substring(uploadIndex + 8);
+      // remove v1234567/ folder if present
+      if (pathAfterUpload.startsWith("v") && pathAfterUpload.includes("/")) {
+        const parts = pathAfterUpload.split("/");
+        if (/^v\d+$/.test(parts[0])) {
+           parts.shift(); // remove the v123456...
+        }
+        pathAfterUpload = parts.join("/");
+      }
+      
+      // remove extension
+      const public_id = pathAfterUpload.substring(0, pathAfterUpload.lastIndexOf(".")) || pathAfterUpload;
+      
+      const apiSecret = "S18YyZ7fYMjRMXpdVewGhsVQIYM";
+      const apiKey = "225312649125656";
+      const cloudName = "dcwl4l70x";
+      const timestamp = Math.round(new Date().getTime() / 1000);
+
+      const stringToSign = `public_id=${public_id}&timestamp=${timestamp}${apiSecret}`;
+      const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
+
+      const params = new URLSearchParams();
+      params.append('public_id', public_id);
+      params.append('signature', signature);
+      params.append('api_key', apiKey);
+      params.append('timestamp', timestamp.toString());
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/destroy`, {
+        method: 'POST',
+        body: params
+      });
+      const data = await response.json();
+      console.log("[BLABLU] Cloudinary destroy result:", data);
+      res.json(data);
+    } catch (e: any) {
+      console.error("[BLABLU] Cloudinary delete error", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   const server = createServer(app);
   const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] }

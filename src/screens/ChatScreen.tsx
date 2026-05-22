@@ -927,12 +927,28 @@ function ChatMessage({
                       setShowConfirmDelete(false);
                       if (!roomId) return;
                       try {
+                        if (m.video) {
+                          let videoUrl = m.video;
+                          if (videoUrl.startsWith('E2EE:')) {
+                             videoUrl = await decryptData(videoUrl);
+                          }
+                          if (videoUrl && !videoUrl.startsWith('🔒')) {
+                            fetch("/api/cloudinary/delete", {
+                               method: "POST",
+                               headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify({ url: videoUrl })
+                            }).catch(err => console.error("Failed to delete video from cloudinary", err));
+                          }
+                        }
+
                         await updateDoc(
                           doc(db, "pairs", roomId, "chatMessages", m.id),
                           {
                             isDeleted: true,
                             text: "This message was deleted",
                             image: deleteField(),
+                            video: deleteField(),
+                            audio: deleteField(),
                             isSticker: deleteField(),
                             reactions: deleteField(),
                             replyTo: deleteField()
@@ -1660,9 +1676,23 @@ export function ChatScreen({ socket }: ChatProps) {
       const q = query(msgsRef);
       const snapshot = await getDocs(q);
       const batch = writeBatch(db);
-      snapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
+      for (const docSnap of snapshot.docs) {
+         const m = docSnap.data();
+         if (m.video) {
+            let videoUrl = m.video;
+            if (videoUrl.startsWith('E2EE:')) {
+               try { videoUrl = await decryptData(videoUrl); } catch(e) {}
+            }
+            if (videoUrl && !videoUrl.startsWith('🔒') && videoUrl.includes("cloudinary.com")) {
+              fetch("/api/cloudinary/delete", {
+                 method: "POST",
+                 headers: { "Content-Type": "application/json" },
+                 body: JSON.stringify({ url: videoUrl })
+              }).catch(err => console.error("Failed to delete video from cloudinary", err));
+            }
+         }
+         batch.delete(docSnap.ref);
+      }
       await batch.commit();
     } catch (err) {
       console.error(err);
@@ -1935,7 +1965,23 @@ export function ChatScreen({ socket }: ChatProps) {
       const q = query(collection(db, "pairs", roomId, "chatMessages"));
       const snapshot = await getDocs(q);
       const batch = writeBatch(db);
-      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+      for (const docSnap of snapshot.docs) {
+         const m = docSnap.data();
+         if (m.video) {
+            let videoUrl = m.video;
+            if (videoUrl.startsWith('E2EE:')) {
+               try { videoUrl = await decryptData(videoUrl); } catch(e) {}
+            }
+            if (videoUrl && !videoUrl.startsWith('🔒') && videoUrl.includes("cloudinary.com")) {
+              fetch("/api/cloudinary/delete", {
+                 method: "POST",
+                 headers: { "Content-Type": "application/json" },
+                 body: JSON.stringify({ url: videoUrl })
+              }).catch(err => console.error("Failed to delete video from cloudinary", err));
+            }
+         }
+         batch.delete(docSnap.ref);
+      }
       await batch.commit();
       sensory.tap();
     } catch (err) {
