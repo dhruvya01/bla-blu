@@ -12,6 +12,7 @@ import {
   Music2,
   Volume2,
   VolumeX,
+  Video,
 } from "lucide-react";
 import { useAppStore } from "../store";
 import {
