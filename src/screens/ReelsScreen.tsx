@@ -87,6 +87,9 @@ function ReelItem({
   const [isCaching, setIsCaching] = useState(true);
   const isLiked = (reel.likes || []).includes(currentUserId);
 
+  const lastTap = useRef<number>(0);
+  const [hearts, setHearts] = useState<{ id: number; x: number; y: number }[]>([]);
+
   // Dynamic optimize & HTML5 Native Cache API layer
   useEffect(() => {
     let active = true;
@@ -151,6 +154,15 @@ function ReelItem({
   }, [reel.videoUrl]);
 
   useEffect(() => {
+    if (hearts.length > 0) {
+      const timer = setTimeout(() => {
+        setHearts((prev) => prev.slice(1));
+      }, 900);
+      return () => clearTimeout(timer);
+    }
+  }, [hearts]);
+
+  useEffect(() => {
     if (videoRef.current && videoSrc && !isCaching) {
       if (isActive) {
         videoRef.current.play().then(() => {
@@ -180,8 +192,40 @@ function ReelItem({
     }
   };
 
+  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    // Don't intercept sidebar, comments drawer, deletions, or mute buttons
+    if (target.closest("button") || target.closest(".action-sidebar")) {
+      return;
+    }
+
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 300;
+    if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
+      // Double tap recognized!
+      sensory.play("pop");
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      setHearts((prev) => [...prev, { id: Date.now() + Math.random(), x, y }]);
+      
+      // Force user to like the Reel
+      if (!isLiked) {
+        onLike(reel.id, false);
+      }
+    } else {
+      // Single tap
+      handleVideoClick();
+    }
+    lastTap.current = now;
+  };
+
   return (
-    <div className="w-full h-full snap-start snap-always relative flex items-center justify-center bg-black">
+    <div 
+      onClick={handleContainerClick}
+      className="w-full h-full snap-start snap-always relative flex items-center justify-center bg-black cursor-pointer select-none"
+    >
       {/* Video element */}
       {videoSrc && !isCaching ? (
         <video
@@ -190,7 +234,6 @@ function ReelItem({
           loop
           playsInline
           muted={isMuted}
-          onClick={handleVideoClick}
           className="w-full h-full object-cover max-h-[100dvh]"
         />
       ) : (
@@ -199,6 +242,28 @@ function ReelItem({
           <p className="text-xs text-white/40 tracking-wider font-light">Caching beautiful moment...</p>
         </div>
       )}
+
+      {/* Double tap heart explosion particles */}
+      <AnimatePresence>
+        {hearts.map((h) => (
+          <motion.div
+            key={h.id}
+            initial={{ scale: 0, opacity: 0, y: h.y - 20 }}
+            animate={{ 
+              scale: [0, 1.4, 1], 
+              opacity: [0, 1, 1, 0],
+              y: h.y - 100,
+              rotate: [0, Math.random() > 0.5 ? 12 : -12, 0]
+            }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            style={{ left: h.x - 24, top: h.y - 24 }}
+            className="absolute z-30 pointer-events-none text-rose drop-shadow-[0_8px_16px_rgba(244,63,94,0.5)]"
+          >
+            <Heart size={48} className="fill-rose text-rose" />
+          </motion.div>
+        ))}
+      </AnimatePresence>
 
       {/* Tap play/pause indicator overlay */}
       <AnimatePresence>
@@ -308,16 +373,51 @@ function ReelItem({
             couple reel
           </span>
         </div>
-        <p className="text-xs text-white/90 font-medium leading-relaxed drop-shadow truncate-2-lines pointer-events-auto">
+        <p className="text-[11px] text-white/85 font-medium leading-relaxed drop-shadow-sm truncate-2-lines pointer-events-auto max-w-[270px]">
           {reel.caption}
         </p>
 
         {/* Music scrolling soundtrack replica */}
-        <div className="flex items-center gap-1.5 text-[11px] text-white/70 overflow-hidden w-48">
-          <Music2 size={12} className="shrink-0 animate-bounce" />
-          <span className="whitespace-nowrap animate-marquee">
-            Original audio • Ukku & Pukku Love
+        <div className="flex items-center gap-2 text-[11px] text-white/80 overflow-hidden w-48 pointer-events-auto">
+          {isPlaying ? (
+            <div className="flex gap-[1.5px] items-end h-3 w-4 shrink-0 pb-[1px]" title="Playing audio">
+              <motion.span animate={{ height: [3, 11, 3] }} transition={{ repeat: Infinity, duration: 0.7, ease: "easeInOut" }} className="w-[2px] bg-primary rounded-full block" />
+              <motion.span animate={{ height: [10, 3, 10] }} transition={{ repeat: Infinity, duration: 0.5, ease: "easeInOut" }} className="w-[2px] bg-primary rounded-full block" />
+              <motion.span animate={{ height: [4, 9, 4] }} transition={{ repeat: Infinity, duration: 0.6, ease: "easeInOut" }} className="w-[2px] bg-primary rounded-full block" />
+              <motion.span animate={{ height: [7, 4, 7] }} transition={{ repeat: Infinity, duration: 0.8, ease: "easeInOut" }} className="w-[2px] bg-primary rounded-full block" />
+            </div>
+          ) : (
+            <Music2 size={12} className="shrink-0 text-white/50" />
+          )}
+          <span className="whitespace-nowrap animate-marquee tracking-wide font-sans">
+            Original audio • {reel.senderNickname}'s sweet memory 💖
           </span>
+        </div>
+      </div>
+
+      {/* Rotating Vinyl Soundtrack Disk on the absolute bottom-right */}
+      <div className="absolute right-4 bottom-20 z-20 pointer-events-none">
+        <div 
+          className={cn(
+            "w-9 h-9 rounded-full bg-zinc-900 border-2 border-zinc-800/80 shadow-lg relative flex items-center justify-center overflow-hidden transition-transform",
+            isPlaying ? "animate-spin" : "scale-90 opacity-60"
+          )}
+          style={{ animationDuration: isPlaying ? "3.5s" : "0s" }}
+        >
+          {reel.senderAvatar ? (
+            <img 
+              src={reel.senderAvatar} 
+              alt="Avatar" 
+              className="w-5 h-5 rounded-full object-cover border border-black/40"
+            />
+          ) : (
+            <div className="w-5 h-5 rounded-full bg-primary/30 flex items-center justify-center text-[8px] font-black uppercase text-primary-200">
+              {reel.senderNickname[0]}
+            </div>
+          )}
+          {/* Groove concentric borders to look like a true vinyl */}
+          <div className="absolute inset-0.5 rounded-full border border-black/10 pointer-events-none" />
+          <div className="absolute inset-1.5 rounded-full border border-white/5 pointer-events-none" />
         </div>
       </div>
     </div>
@@ -330,12 +430,18 @@ export function ReelsScreen() {
   const user = useAppStore((state) => state.user);
   const partner = useAppStore((state) => state.partner);
   const roomId = useAppStore((state) => state.roomId);
+  const pair = useAppStore((state) => state.pair);
 
   const [activeTab, setActiveTab] = useState<"feed" | "profile">("feed");
   const [reels, setReels] = useState<ReelData[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Bio custom fields
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [tempBio, setTempBio] = useState("");
+  const [isSavingBio, setIsSavingBio] = useState(false);
 
   // Upload fields
   const [isUploading, setIsUploading] = useState(false);
@@ -423,6 +529,24 @@ export function ReelsScreen() {
       sensory.success();
     } catch (e) {
       console.error("Failed to delete reel:", e);
+    }
+  };
+
+  // Save custom couples bio
+  const handleSaveBio = async () => {
+    if (!roomId) return;
+    setIsSavingBio(true);
+    sensory.tap();
+    try {
+      await updateDoc(doc(db, "pairs", roomId), {
+        reelsBio: tempBio,
+      });
+      setIsEditingBio(false);
+      sensory.success();
+    } catch (err) {
+      console.error("Failed to save bio:", err);
+    } finally {
+      setIsSavingBio(false);
     }
   };
 
@@ -711,14 +835,56 @@ export function ReelsScreen() {
             </div>
 
             {/* Profile handle, titles, bios */}
-            <div>
+            <div className="relative group/bio">
               <h3 className="font-bold text-xs text-white">
                 {user?.nickname || user?.name || "Lover"} & {partner?.nickname || partner?.name || "Partner"} 💑
               </h3>
               <p className="text-[10px] text-zinc-400 font-medium font-sans mt-0.5">Private Couple Memory Reel Blog</p>
-              <p className="text-[11px] mt-2 text-zinc-300 leading-relaxed max-w-sm">
-                A private vault of our vertical video snap-scrolls, special dates, laughing fits, and silly dances. 🎬💖
-              </p>
+              
+              {isEditingBio ? (
+                <div className="mt-2.5 flex flex-col gap-2">
+                  <textarea
+                    value={tempBio}
+                    onChange={(e) => setTempBio(e.target.value)}
+                    placeholder="Describe your love story, couples goals, silly vows, or special memory moments..."
+                    maxLength={160}
+                    className="w-full text-[11px] h-16 bg-zinc-900 border border-white/20 rounded p-2 text-white placeholder-zinc-500 focus:outline-none focus:border-violet-500 resize-none font-sans"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setIsEditingBio(false)}
+                      className="px-2.5 py-1 text-[9px] bg-zinc-800 text-zinc-400 rounded hover:text-white transition-all uppercase font-black"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveBio}
+                      disabled={isSavingBio}
+                      className="px-2.5 py-1 text-[9px] bg-gradient-to-r from-violet-600 to-pink-600 rounded text-white font-black transition-all flex items-center gap-1 uppercase"
+                    >
+                      {isSavingBio ? <Loader2 size={8} className="animate-spin" /> : null} Save Bio
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 flex items-start gap-1 justify-between">
+                  <p className="text-[11px] text-zinc-300 leading-relaxed max-w-[280px] italic">
+                    {pair?.reelsBio || "A private vault of our vertical video snap-scrolls, special dates, laughing fits, and silly dances. 🎬💖"}
+                  </p>
+                  
+                  <button
+                    onClick={() => {
+                      sensory.play("pop");
+                      setTempBio(pair?.reelsBio || "A private vault of our vertical video snap-scrolls, special dates, laughing fits, and silly dances. 🎬💖");
+                      setIsEditingBio(true);
+                    }}
+                    className="p-1 rounded bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all ml-2 shrink-0 self-start"
+                    title="Edit Couples Bio"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Actions tab */}
@@ -998,6 +1164,22 @@ export function ReelsScreen() {
                     </div>
                   ))
                 )}
+              </div>
+              
+              {/* Preset Love & Fun comment reaction tags row */}
+              <div className="px-5 py-2.5 bg-black/40 border-t border-border/20 shrink-0 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+                {["Adorable! 🥰", "My absolute favorite 💖", "Made me blush! 👉👈", "Miss you, sweetheart! 💕", "Pure silly vibes 😂", "Can't stop rewatching! ✨", "Couples goals 💑"].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => {
+                      sensory.play("pop");
+                      setNewComment(preset);
+                    }}
+                    className="shrink-0 px-3.5 py-1.5 bg-white/5 active:bg-white/10 hover:border-violet-500/50 transition-all border border-white/5 rounded-full text-[10px] font-bold text-white/95 tracking-wide active:scale-95"
+                  >
+                    {preset}
+                  </button>
+                ))}
               </div>
 
               {/* Comment Input Footer */}

@@ -117,28 +117,58 @@ async function start() {
         return res.status(400).json({ error: "Invalid Cloudinary URL" });
       }
 
-      // Extract public_id from URL: /v<timestamp>/<public_id>.<ext>
-      // e.g. https://res.cloudinary.com/dcwl4l70x/video/upload/v1716382902/blablu_videos/sample.mp4
-      // the public_id is usually everything after /upload/v<timestamp>/ up to the extension
-      // Actually with an upload preset "blablu_videos", it might be "blablu_videos/sample"
+      console.log("[BLABLU] Attempting Cloudinary delete for URL:", url);
+
+      // Clean multiple slashes if any
+      const cleanUrl = url.replace(/([^:]\/)\/+/g, "$1");
       
-      const uploadIndex = url.indexOf("/upload/");
-      if (uploadIndex === -1) return res.status(400).json({ error: "Could not parse public_id" });
-      
-      // substring after /upload/
-      let pathAfterUpload = url.substring(uploadIndex + 8);
-      // remove v1234567/ folder if present
-      if (pathAfterUpload.startsWith("v") && pathAfterUpload.includes("/")) {
-        const parts = pathAfterUpload.split("/");
-        if (/^v\d+$/.test(parts[0])) {
-           parts.shift(); // remove the v123456...
-        }
-        pathAfterUpload = parts.join("/");
+      // Find where upload/ or type identifier starts
+      const typeMatch = cleanUrl.match(/\/(upload|private|authenticated|list|sprite)\//);
+      if (!typeMatch) {
+        return res.status(400).json({ error: "Could not find upload/type folder in Cloudinary URL" });
       }
       
-      // remove extension
-      const public_id = pathAfterUpload.substring(0, pathAfterUpload.lastIndexOf(".")) || pathAfterUpload;
+      const typeIndex = typeMatch.index!;
+      const typeLength = typeMatch[0].length;
       
+      // Extract resource_type before the type
+      // e.g. .../video/upload/... or .../image/upload/...
+      const beforeType = cleanUrl.substring(0, typeIndex);
+      let resourceType = "image";
+      if (beforeType.endsWith("/video")) {
+        resourceType = "video";
+      } else if (beforeType.endsWith("/raw")) {
+        resourceType = "raw";
+      }
+
+      const remainder = cleanUrl.substring(typeIndex + typeLength);
+      const parts = remainder.split("/");
+      const cleanParts: string[] = [];
+
+      for (const part of parts) {
+        // Skip version prefixes like v1716382902
+        if (/^v\d+$/.test(part)) {
+          continue;
+        }
+        // Skip transformation strings (can contain commas, underscores, or match common terms)
+        if (
+          part.includes(",") || 
+          /^(w|h|c|q|f|vc|r|co|e|fl|pg)_/.test(part) || 
+          part === "f_auto" || 
+          part === "q_auto" || 
+          part === "vc_auto"
+        ) {
+          continue;
+        }
+        cleanParts.push(part);
+      }
+
+      const reconstructedRemainder = cleanParts.join("/");
+      const dotIndex = reconstructedRemainder.lastIndexOf(".");
+      const public_id = dotIndex !== -1 ? reconstructedRemainder.substring(0, dotIndex) : reconstructedRemainder;
+
+      console.log(`[BLABLU] Parsed Cloudinary resourceType: "${resourceType}", public_id: "${public_id}"`);
+
       const apiSecret = "S18YyZ7fYMjRMXpdVewGhsVQIYM";
       const apiKey = "225312649125656";
       const cloudName = "dcwl4l70x";
@@ -154,7 +184,10 @@ async function start() {
       params.append('timestamp', timestamp.toString());
       params.append('invalidate', 'true');
 
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/destroy`, {
+      const targetUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/destroy`;
+      console.log(`[BLABLU] Sending destroy request to: ${targetUrl}`);
+
+      const response = await fetch(targetUrl, {
         method: 'POST',
         body: params
       });
