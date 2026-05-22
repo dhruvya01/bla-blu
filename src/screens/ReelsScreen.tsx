@@ -653,7 +653,7 @@ export function ReelsScreen() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full max-w-md mx-auto relative bg-black select-none text-white overflow-hidden">
+    <div className={cn("flex flex-col h-[100dvh] w-full max-w-md mx-auto relative select-none overflow-hidden transition-colors duration-300", activeTab === "profile" ? "bg-bg text-text" : "bg-black text-white")}>
       {/* Hidden file input for vertical video files */}
       <input
         type="file"
@@ -741,21 +741,21 @@ export function ReelsScreen() {
           )}
         </>
       ) : (
-        /* INSTAGRAM-STYLE PROFILE VIEW */
-        <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden">
+        /* INSTAGRAM-STYLE PROFILE VIEW WITH DYNAMIC APP THEME ADAPTATION */
+        <div className="flex-1 flex flex-col bg-bg overflow-hidden animate-fade-in">
           {/* PROFILE TOP HEADER */}
-          <div className="pt-safe-top px-4 py-3 flex items-center justify-between border-b border-white/10 bg-zinc-950 shrink-0">
+          <div className="pt-safe-top px-4 py-3 flex items-center justify-between border-b border-border bg-card/60 backdrop-blur-md shrink-0">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
                   sensory.play("pop");
                   setView("home");
                 }}
-                className="p-1.5 rounded-full hover:bg-white/10 text-white active:scale-95 transition-all"
+                className="p-1.5 rounded-full hover:bg-primary/20 text-text active:scale-95 transition-all"
               >
-                <ArrowLeft size={20} />
+                <ArrowLeft size={20} className="text-text" />
               </button>
-              <span className="font-bold text-sm tracking-tight font-display text-white truncate max-w-[140px]">
+              <span className="font-bold text-sm tracking-tight font-display text-text truncate max-w-[140px]">
                 {user?.nickname?.toLowerCase() || user?.name?.toLowerCase() || "couple"}_{partner?.nickname?.toLowerCase() || partner?.name?.toLowerCase() || "memories"}
               </span>
             </div>
@@ -764,21 +764,21 @@ export function ReelsScreen() {
               <button
                 onClick={() => videoInputRef.current?.click()}
                 disabled={isUploading}
-                className="p-1.5 hover:bg-white/10 rounded-full active:scale-95 transition-all text-white"
+                className="p-1.5 hover:bg-primary/20 rounded-full active:scale-95 transition-all text-text"
               >
-                <Plus size={20} />
+                <Plus size={20} className="text-text" />
               </button>
             </div>
           </div>
 
           {/* PROFILE SUMMARY HERO */}
-          <div className="p-5 flex flex-col gap-4 bg-zinc-950/40 border-b border-white/5 shrink-0">
+          <div className="p-5 flex flex-col gap-4 bg-card/30 border-b border-border shadow-sm shrink-0">
             <div className="flex items-center gap-5">
               {/* Overlapping double profile circles */}
               <div className="relative flex items-center justify-center shrink-0 py-1">
                 {/* User Story border circle */}
                 <div className="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-rose-500 via-purple-600 to-yellow-500 shadow-md relative z-10">
-                  <div className="w-full h-full rounded-full border-2 border-zinc-950 bg-zinc-900 overflow-hidden">
+                  <div className="w-full h-full rounded-full border-2 border-bg bg-bg overflow-hidden">
                     {user?.avatarUrl ? (
                       <img
                         src={user.avatarUrl}
@@ -787,7 +787,7 @@ export function ReelsScreen() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white font-black bg-pink-500 text-sm">
+                      <div className="w-full h-full flex items-center justify-center text-white font-black bg-primary text-sm">
                         {(user?.nickname || user?.name || "U")[0]?.toUpperCase()}
                       </div>
                     )}
@@ -795,8 +795,8 @@ export function ReelsScreen() {
                 </div>
 
                 {/* Partner Story border overlapping circle */}
-                <div className="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-rose-500 via-purple-600 to-yellow-500 shadow-md relative z-20 -ml-5 border-l-4 border-zinc-950">
-                  <div className="w-full h-full rounded-full border border-zinc-950 bg-zinc-900 overflow-hidden">
+                <div className="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-rose-500 via-purple-600 to-yellow-500 shadow-md relative z-20 -ml-5 border-l-4 border-bg">
+                  <div className="w-full h-full rounded-full border border-bg bg-bg overflow-hidden">
                     {partner?.avatarUrl ? (
                       <img
                         src={partner.avatarUrl}
@@ -816,30 +816,30 @@ export function ReelsScreen() {
               {/* Instagram-style column statistics */}
               <div className="flex-1 flex justify-around text-center">
                 <div className="flex flex-col">
-                  <span className="font-extrabold text-sm text-white">{reels.length}</span>
-                  <span className="text-[10px] text-zinc-400 font-medium font-sans">Posts</span>
+                  <span className="font-extrabold text-sm text-text">{reels.length}</span>
+                  <span className="text-[10px] text-text/60 font-medium font-sans">Posts</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-extrabold text-sm text-white">
+                  <span className="font-extrabold text-sm text-text">
                     {reels.reduce((acc, curr) => acc + (curr.likes?.length || 0), 0)}
                   </span>
-                  <span className="text-[10px] text-zinc-400 font-medium font-sans">Likes</span>
+                  <span className="text-[10px] text-text/60 font-medium font-sans">Likes</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-extrabold text-sm text-white">
+                  <span className="font-extrabold text-sm text-text">
                     {reels.reduce((acc, curr) => acc + (curr.comments?.length || 0), 0)}
                   </span>
-                  <span className="text-[10px] text-zinc-400 font-medium font-sans">Comments</span>
+                  <span className="text-[10px] text-text/60 font-medium font-sans">Comments</span>
                 </div>
               </div>
             </div>
 
             {/* Profile handle, titles, bios */}
             <div className="relative group/bio">
-              <h3 className="font-bold text-xs text-white">
+              <h3 className="font-bold text-xs text-text">
                 {user?.nickname || user?.name || "Lover"} & {partner?.nickname || partner?.name || "Partner"} 💑
               </h3>
-              <p className="text-[10px] text-zinc-400 font-medium font-sans mt-0.5">Private Couple Memory Reel Blog</p>
+              <p className="text-[10px] text-text/60 font-medium font-sans mt-0.5">Private Couple Memory Reel Blog</p>
               
               {isEditingBio ? (
                 <div className="mt-2.5 flex flex-col gap-2">
@@ -848,19 +848,19 @@ export function ReelsScreen() {
                     onChange={(e) => setTempBio(e.target.value)}
                     placeholder="Describe your love story, couples goals, silly vows, or special memory moments..."
                     maxLength={160}
-                    className="w-full text-[11px] h-16 bg-zinc-900 border border-white/20 rounded p-2 text-white placeholder-zinc-500 focus:outline-none focus:border-violet-500 resize-none font-sans"
+                    className="w-full text-[11px] h-16 bg-bg border border-border rounded p-2 text-text placeholder-text/40 focus:outline-none focus:border-primary resize-none font-sans"
                   />
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => setIsEditingBio(false)}
-                      className="px-2.5 py-1 text-[9px] bg-zinc-800 text-zinc-400 rounded hover:text-white transition-all uppercase font-black"
+                      className="px-2.5 py-1 text-[9px] bg-border/40 text-text/60 rounded hover:text-text hover:bg-border/60 transition-all uppercase font-black"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveBio}
                       disabled={isSavingBio}
-                      className="px-2.5 py-1 text-[9px] bg-gradient-to-r from-violet-600 to-pink-600 rounded text-white font-black transition-all flex items-center gap-1 uppercase"
+                      className="px-2.5 py-1 text-[9px] bg-primary rounded text-white font-black transition-all flex items-center gap-1 uppercase hover:opacity-90 active:scale-95"
                     >
                       {isSavingBio ? <Loader2 size={8} className="animate-spin" /> : null} Save Bio
                     </button>
@@ -868,7 +868,7 @@ export function ReelsScreen() {
                 </div>
               ) : (
                 <div className="mt-2 flex items-start gap-1 justify-between">
-                  <p className="text-[11px] text-zinc-300 leading-relaxed max-w-[280px] italic">
+                  <p className="text-[11px] text-text/80 leading-relaxed max-w-[280px] italic">
                     {pair?.reelsBio || "A private vault of our vertical video snap-scrolls, special dates, laughing fits, and silly dances. 🎬💖"}
                   </p>
                   
@@ -878,7 +878,7 @@ export function ReelsScreen() {
                       setTempBio(pair?.reelsBio || "A private vault of our vertical video snap-scrolls, special dates, laughing fits, and silly dances. 🎬💖");
                       setIsEditingBio(true);
                     }}
-                    className="p-1 rounded bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all ml-2 shrink-0 self-start"
+                    className="p-1 rounded bg-primary/10 text-primary hover:text-white hover:bg-primary/80 active:scale-90 transition-all ml-2 shrink-0 self-start"
                     title="Edit Couples Bio"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
@@ -891,7 +891,7 @@ export function ReelsScreen() {
             <div className="flex gap-2.5 mt-1">
               <button
                 onClick={() => videoInputRef.current?.click()}
-                className="flex-1 py-2 bg-gradient-to-r from-violet-600 to-pink-600 active:scale-98 transition-all rounded-lg text-[11px] font-extrabold text-white flex items-center justify-center gap-1.5 shadow-md shadow-violet-950/20"
+                className="flex-1 py-2 bg-primary hover:opacity-95 active:scale-98 transition-all rounded-lg text-[11px] font-extrabold text-white flex items-center justify-center gap-1.5 shadow-sm shadow-primary/10"
               >
                 <Plus size={14} /> Upload New Memory
               </button>
@@ -899,21 +899,21 @@ export function ReelsScreen() {
           </div>
 
           {/* GRID OF REEL VIDEOS */}
-          <div className="flex-1 overflow-y-auto no-scrollbar bg-black p-1">
+          <div className="flex-1 overflow-y-auto no-scrollbar bg-bg p-2 shrink-0 min-h-0">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
                 <Loader2 size={24} className="animate-spin text-primary" />
               </div>
             ) : reels.length === 0 ? (
-              <div className="py-20 flex flex-col items-center justify-center text-center gap-3 text-zinc-600">
+              <div className="py-24 flex flex-col items-center justify-center text-center gap-3 text-text/40">
                 <LayoutGrid size={32} strokeWidth={1} />
                 <p className="text-xs font-semibold">No Reels Uploaded Yet</p>
-                <p className="text-[10px] text-zinc-500 max-w-xs px-6">
+                <p className="text-[10px] text-text/50 max-w-xs px-6 leading-relaxed">
                   Click "+ Upload New Memory" to record your first cute story!
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-0.5">
+              <div className="grid grid-cols-3 gap-1">
                 {reels.map((reel, idx) => {
                   return (
                     <div
@@ -923,7 +923,7 @@ export function ReelsScreen() {
                         setActiveIdx(idx);
                         setActiveTab("feed");
                       }}
-                      className="aspect-square relative bg-zinc-950 group cursor-pointer overflow-hidden rounded-md border border-white/5 active:scale-95 transition-all"
+                      className="aspect-square relative bg-card group cursor-pointer overflow-hidden rounded-xl border border-border shadow-xs active:scale-95 hover:border-primary/55 transition-all"
                     >
                       <video
                         src={getOptimizedCloudinaryUrl(reel.videoUrl) + "#t=0.5"}
@@ -953,8 +953,8 @@ export function ReelsScreen() {
         </div>
       )}
 
-      {/* Mini Instagram style footer navigation tabs inside ReelsScreen */}
-      <div className="bg-zinc-950/95 border-t border-white/10 py-3 px-16 flex items-center justify-between shrink-0">
+      {/* Mini style footer navigation tabs inside ReelsScreen, fully themed with variables */}
+      <div className="bg-card/95 border-t border-border/80 py-3 px-16 flex items-center justify-between shrink-0 backdrop-blur-md">
         <button
           onClick={() => {
             sensory.play("pop");
@@ -965,12 +965,12 @@ export function ReelsScreen() {
           <Film
             size={22}
             className={cn(
-              activeTab === "feed" ? "text-violet-400 stroke-[2.5px]" : "text-zinc-500 hover:text-white"
+              activeTab === "feed" ? "text-primary stroke-[2.5px]" : "text-text/50 hover:text-text"
             )}
           />
           <span className={cn(
             "text-[8px] uppercase tracking-wider font-extrabold",
-            activeTab === "feed" ? "text-violet-400" : "text-zinc-500"
+            activeTab === "feed" ? "text-primary" : "text-text/50"
           )}>
             Reels
           </span>
@@ -984,8 +984,8 @@ export function ReelsScreen() {
           className="flex flex-col items-center justify-center gap-1 active:scale-90 transition-all cursor-pointer"
         >
           <div className={cn(
-            "w-6 h-6 rounded-full p-[1.5px] overflow-hidden bg-zinc-800 transition-all",
-            activeTab === "profile" ? "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 ring-2 ring-violet-500/50 scale-105" : "hover:scale-105"
+            "w-6 h-6 rounded-full p-[1.5px] overflow-hidden bg-border transition-all",
+            activeTab === "profile" ? "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 ring-2 ring-primary scale-105" : "hover:scale-105"
           )}>
             {user?.avatarUrl ? (
               <img
@@ -995,14 +995,14 @@ export function ReelsScreen() {
                 className="w-full h-full rounded-full object-cover pointer-events-none"
               />
             ) : (
-              <div className="w-full h-full bg-violet-600 rounded-full flex items-center justify-center text-white text-[9px] font-black uppercase">
+              <div className="w-full h-full bg-primary rounded-full flex items-center justify-center text-white text-[9px] font-black uppercase">
                 {(user?.nickname || user?.name || "U")[0]}
               </div>
             )}
           </div>
           <span className={cn(
             "text-[8px] uppercase tracking-wider font-extrabold",
-            activeTab === "profile" ? "text-violet-400" : "text-zinc-500"
+            activeTab === "profile" ? "text-primary" : "text-text/50"
           )}>
             Profile
           </span>
@@ -1039,10 +1039,10 @@ export function ReelsScreen() {
               className="bg-card w-full max-w-sm rounded-[24px] border border-border overflow-hidden p-5 text-text"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-base text-white font-display">New Reel Post</h3>
+                <h3 className="font-bold text-base text-text font-display">New Reel Post</h3>
                 <button
                   onClick={() => setShowUploadModal(false)}
-                  className="p-1 rounded-full text-white/50 hover:text-white"
+                  className="p-1 rounded-full text-text/50 hover:text-text"
                 >
                   <X size={18} />
                 </button>
@@ -1068,13 +1068,13 @@ export function ReelsScreen() {
                 onChange={(e) => setCaptionText(e.target.value)}
                 placeholder="Give it an adorable caption..."
                 maxLength={180}
-                className="w-full h-20 px-3.5 py-2.5 bg-black/20 border border-border/60 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none placeholder-text/40"
+                className="w-full h-20 px-3.5 py-2.5 bg-bg border border-border rounded-xl text-xs text-text focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none placeholder-text/50"
               />
 
               <div className="flex gap-2.5 mt-4">
                 <button
                   onClick={() => setShowUploadModal(false)}
-                  className="flex-1 py-3 bg-black/20 hover:bg-black/30 text-white/80 border border-border rounded-xl text-xs font-bold active:scale-95 transition-all"
+                  className="flex-1 py-3 bg-border/40 hover:bg-border/60 text-text/80 border border-border rounded-xl text-xs font-bold active:scale-95 transition-all"
                 >
                   Discard
                 </button>
@@ -1112,12 +1112,12 @@ export function ReelsScreen() {
               <div className="w-12 h-1 bg-border/50 rounded-full mx-auto my-3 shrink-0" />
 
               <div className="px-5 pb-3 border-b border-border/30 flex items-center justify-between shrink-0">
-                <span className="font-bold text-sm text-white">
+                <span className="font-bold text-sm text-text">
                   Comments ({(selectedReel.comments || []).length})
                 </span>
                 <button
                   onClick={() => setShowCommentsDrawer(false)}
-                  className="p-1 rounded-full text-white/50 hover:text-white"
+                  className="p-1 rounded-full text-text/50 hover:text-text"
                 >
                   <X size={18} />
                 </button>
@@ -1127,13 +1127,13 @@ export function ReelsScreen() {
               <div className="flex-1 overflow-y-auto p-5 no-scrollbar space-y-4">
                 {(selectedReel.comments || []).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full py-10 gap-3 text-center">
-                    <MessageCircle size={28} className="text-white/20 animate-wiggle" />
-                    <p className="text-xs text-white/30 font-medium">No comments yet. Start the cute spark!</p>
+                    <MessageCircle size={28} className="text-text/20 animate-wiggle" />
+                    <p className="text-xs text-text/40 font-medium">No comments yet. Start the cute spark!</p>
                   </div>
                 ) : (
                   (selectedReel.comments || []).map((comm) => (
-                    <div key={comm.id} className="flex gap-3 text-white">
-                      <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 shrink-0 border border-white/10 flex items-center justify-center">
+                    <div key={comm.id} className="flex gap-3 text-text">
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 shrink-0 border border-primary/20 flex items-center justify-center">
                         {comm.senderAvatar ? (
                           <img
                             src={comm.senderAvatar}
@@ -1142,7 +1142,7 @@ export function ReelsScreen() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-xs text-white font-bold uppercase">
+                          <span className="text-xs text-primary font-bold uppercase">
                             {comm.senderNickname[0]}
                           </span>
                         )}
@@ -1150,14 +1150,14 @@ export function ReelsScreen() {
                       <div className="flex-1 flex flex-col">
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-xs">{comm.senderNickname}</span>
-                          <span className="text-[9px] text-white/40">
+                          <span className="text-[9px] text-text/40">
                             {new Date(comm.createdAt).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
                           </span>
                         </div>
-                        <p className="text-xs text-white/80 mt-0.5 leading-relaxed bg-black/20 p-2.5 rounded-2xl rounded-tl-none border border-border/30">
+                        <p className="text-xs text-text/90 mt-0.5 leading-relaxed bg-primary/5 p-2.5 rounded-2xl rounded-tl-none border border-border">
                           {comm.text}
                         </p>
                       </div>
@@ -1167,7 +1167,7 @@ export function ReelsScreen() {
               </div>
               
               {/* Preset Love & Fun comment reaction tags row */}
-              <div className="px-5 py-2.5 bg-black/40 border-t border-border/20 shrink-0 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+              <div className="px-5 py-2.5 bg-bg/60 border-t border-border shrink-0 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
                 {["Adorable! 🥰", "My absolute favorite 💖", "Made me blush! 👉👈", "Miss you, sweetheart! 💕", "Pure silly vibes 😂", "Can't stop rewatching! ✨", "Couples goals 💑"].map((preset) => (
                   <button
                     key={preset}
@@ -1175,7 +1175,7 @@ export function ReelsScreen() {
                       sensory.play("pop");
                       setNewComment(preset);
                     }}
-                    className="shrink-0 px-3.5 py-1.5 bg-white/5 active:bg-white/10 hover:border-violet-500/50 transition-all border border-white/5 rounded-full text-[10px] font-bold text-white/95 tracking-wide active:scale-95"
+                    className="shrink-0 px-3.5 py-1.5 bg-card hover:bg-primary/10 hover:border-primary/50 transition-all border border-border rounded-full text-[10px] font-bold text-text/90 tracking-wide active:scale-95"
                   >
                     {preset}
                   </button>
@@ -1192,7 +1192,7 @@ export function ReelsScreen() {
                     if (e.key === "Enter") handlePostComment();
                   }}
                   placeholder="Say something lovely..."
-                  className="flex-1 px-4 py-3 bg-black/30 border border-border rounded-2xl text-xs text-white placeholder-text/30 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                  className="flex-1 px-4 py-3 bg-card border border-border rounded-2xl text-xs text-text placeholder-text/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                 />
                 <button
                   onClick={handlePostComment}

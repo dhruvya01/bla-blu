@@ -610,10 +610,8 @@ export function SettingsScreen({ onSave, onRequestNotify }: SettingsProps) {
                   {[
                     { name: "pink", color: "#FF7EB3", label: "Sweet" },
                     { name: "lavender", color: "#9C89FF", label: "Dreamy" },
-                    { name: "cream", color: "#E09F7A", label: "Warm" },
                     { name: "mint", color: "#34D399", label: "Mint" },
                     { name: "peach", color: "#FB923C", label: "Peach" },
-                    { name: "sakura", color: "#F472B6", label: "Sakura" },
                     { name: "ocean", color: "#38BDF8", label: "Ocean" },
                     { name: "honey", color: "#F59E0B", label: "Honey" },
                     { name: "rose", color: "#E11D48", label: "Rose" },
@@ -657,7 +655,31 @@ export function SettingsScreen({ onSave, onRequestNotify }: SettingsProps) {
                       name: "amoled",
                       color: "#FF2D78",
                       bg: "#000000",
-                      label: "OLED",
+                      label: "OLED Pink",
+                    },
+                    {
+                      name: "amoled-cyan",
+                      color: "#06B6D4",
+                      bg: "#000000",
+                      label: "OLED Cyan",
+                    },
+                    {
+                      name: "amoled-gold",
+                      color: "#F59E0B",
+                      bg: "#000000",
+                      label: "OLED Gold",
+                    },
+                    {
+                      name: "amoled-violet",
+                      color: "#8B5CF6",
+                      bg: "#000000",
+                      label: "OLED Violet",
+                    },
+                    {
+                      name: "amoled-ruby",
+                      color: "#E11D48",
+                      bg: "#000000",
+                      label: "OLED Ruby",
                     },
                     {
                       name: "midnight",
