@@ -152,41 +152,43 @@ function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index }: { entry:
       )}
       style={{ rotate: rotation }}
     >
-      <WashiTape className={cn("-top-4", index % 2 === 0 ? "right-1 rotate-6" : "left-1 -rotate-12")} />
+      <WashiTape className={cn("-top-4", index % 2 === 0 ? "right-1 rotate-6 z-20" : "left-1 -rotate-12 z-20")} />
+
+      <button 
+        onClick={(e) => deleteEntry(entry.id, e)}
+        className="absolute -top-3 -right-3 w-8 h-8 bg-red-400 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md z-30 hover:scale-110 active:scale-95 hover:bg-red-500"
+        title="Delete entry"
+      >
+        <X size={14} strokeWidth={3} />
+      </button>
 
       <div className={cn(
-        "polaroid-frame flex flex-col gap-1 relative overflow-hidden h-full shadow-sm",
-        entry.type === 'note' ? "sticky-note-bg !p-3 !pb-5 rounded-sm border-l-2 border-primary/10" : "bg-white"
+        "polaroid-frame flex flex-col gap-1 relative h-full rounded-sm transition-shadow duration-300 border border-black/5",
+        entry.type === 'note' ? "sticky-note-bg !p-4 !pb-6 border-l-4 border-l-primary/20 shadow-md group-hover:shadow-lg" : "bg-white p-2 pb-4 shadow-md group-hover:shadow-lg"
       )} style={{ backgroundColor: entry.color }}>
         {entry.type === "photo" ? (
-          <div className="relative aspect-square overflow-hidden cursor-zoom-in group/img" onClick={() => onExpand(decryptedContent, decryptedCaption)}>
+          <div className="relative aspect-[4/5] sm:aspect-square overflow-hidden cursor-zoom-in group/img rounded-[2px]" onClick={() => onExpand(decryptedContent, decryptedCaption)}>
             <motion.img
               src={decryptedContent}
               alt={decryptedCaption}
               onLoad={() => setIsLoaded(true)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: isLoaded ? 1 : 0 }}
-              className="w-full h-full object-cover"
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: isLoaded ? 1 : 0, scale: isLoaded ? 1 : 1.1 }}
+              transition={{ duration: 0.5 }}
+              className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-700"
             />
           </div>
         ) : (
-          <div className="relative flex items-center justify-center text-center p-2 min-h-[100px]">
-            <p className="text-[11px] font-scrapbook font-medium italic text-on-surface/80 leading-relaxed">
+          <div className="relative flex items-center justify-center text-center p-2 min-h-[120px]">
+            <p className="text-[12px] sm:text-[14px] font-scrapbook font-medium text-on-surface/90 leading-relaxed">
               {decryptedContent}
             </p>
           </div>
         )}
 
-        <button 
-          onClick={(e) => deleteEntry(entry.id, e)}
-          className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-20"
-        >
-          <X size={10} />
-        </button>
-
-        <div className="space-y-0.5 px-1 pb-1">
+        <div className="space-y-1 px-1 pt-1 pb-1">
           {decryptedCaption && (
-            <p className="font-scrapbook text-[9px] text-text/80 leading-tight text-center italic line-clamp-1">
+            <p className="font-scrapbook text-[10px] sm:text-[11.5px] text-text/80 leading-tight text-center italic line-clamp-2">
               {decryptedCaption}
             </p>
           )}

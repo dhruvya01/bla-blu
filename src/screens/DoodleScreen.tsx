@@ -277,31 +277,23 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
             }
           });
         } else if (!isSmoothing || s.points.length < 3) {
-          for (let i = 0; i < s.points.length - 1; i++) {
-            const p1 = s.points[i];
-            const p2 = s.points[i + 1];
-            
-            // Speed-based width if pressure data exists
-            const speedFact = p2.pressure ? Math.max(0.3, Math.min(1.5, 1 / (p2.pressure * 0.005 + 1))) : 1;
-            ctx.lineWidth = s.width * speedFact;
-            
-            ctx.beginPath();
-            ctx.moveTo(p1.x * width, p1.y * height);
-            ctx.lineTo(p2.x * width, p2.y * height);
-            ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(s.points[0].x * width, s.points[0].y * height);
+          for (let i = 1; i < s.points.length; i++) {
+            ctx.lineTo(s.points[i].x * width, s.points[i].y * height);
           }
+          ctx.stroke();
         } else {
-          // Smoothed path with segments
+          // Continuous smoothed path without repeated stroke() calls to prevent alpha dots
           let startP = s.points[0];
           let nextP = s.points[1];
           let prevMidX = (startP.x + nextP.x) / 2 * width;
           let prevMidY = (startP.y + nextP.y) / 2 * height;
 
           ctx.beginPath();
-          ctx.lineWidth = s.width;
+          ctx.lineWidth = s.width; // Use a constant width for the stroke
           ctx.moveTo(startP.x * width, startP.y * height);
           ctx.lineTo(prevMidX, prevMidY);
-          ctx.stroke();
 
           for (let i = 1; i < s.points.length - 1; i++) {
             const p1 = s.points[i];
@@ -310,13 +302,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
             const xc = (p1.x + p2.x) / 2 * width;
             const yc = (p1.y + p2.y) / 2 * height;
             
-            const speedFact = p1.pressure ? Math.max(0.3, Math.min(1.5, 1 / (p1.pressure * 0.005 + 1))) : 1;
-            ctx.lineWidth = s.width * speedFact;
-
-            ctx.beginPath();
-            ctx.moveTo(prevMidX, prevMidY);
             ctx.quadraticCurveTo(p1.x * width, p1.y * height, xc, yc);
-            ctx.stroke();
 
             prevMidX = xc;
             prevMidY = yc;
@@ -324,8 +310,6 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
 
           // Cap the stroke
           const lastPoint = s.points[s.points.length - 1];
-          ctx.beginPath();
-          ctx.moveTo(prevMidX, prevMidY);
           ctx.lineTo(lastPoint.x * width, lastPoint.y * height);
           ctx.stroke();
         }
