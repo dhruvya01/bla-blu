@@ -22,6 +22,7 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
     setTimelineEntries,
     setHabits,
     setHabitLogs,
+    setBabyEvolution,
     setUserLoc,
     setPartnerLoc,
     setSafeArrivals,
@@ -40,6 +41,7 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
       setTimelineEntries: state.setTimelineEntries,
       setHabits: state.setHabits,
       setHabitLogs: state.setHabitLogs,
+      setBabyEvolution: state.setBabyEvolution,
       setUserLoc: state.setUserLoc,
       setPartnerLoc: state.setPartnerLoc,
       setSafeArrivals: state.setSafeArrivals,
@@ -243,6 +245,13 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
       snap.docs.forEach(d => { logs[d.id] = d.data(); });
       useAppStore.getState().setHealth({ ...useAppStore.getState().health, dailyHealthLogs: logs });
     }, (error) => handleFirestoreError(error, 'list', 'pairs/' + roomId + '/dailyHealthLogs'));
+
+    // 14. Sync Baby Evolution
+    const unsubBabyEvolution = onSnapshot(doc(db, 'pairs', roomId, 'babyEvolution', 'current'), (snap) => {
+      if (snap.exists()) {
+        setBabyEvolution(snap.data());
+      }
+    }, (error) => handleFirestoreError(error, 'get', 'pairs/' + roomId + '/babyEvolution/current'));
     
     // 13. Map Listeners - Unified Live Sync
     const unsubMapStatus = onSnapshot(doc(db, "pairs", roomId, "mapStatus", "live"), (snap) => {
@@ -338,6 +347,7 @@ export const useAppSync = (roomId: string | null, userId: string | null) => {
       unsubPeriodEntries();
       unsubHealth();
       unsubHealthLogs();
+      unsubBabyEvolution();
       unsubMapStatus();
       unsubSafe();
       unsubFavPlaces();

@@ -381,16 +381,21 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     localStorage.setItem("blablu_app_icon", appIcon);
     set({ appIcon });
   },
-  addCoins: (amount) =>
-    set((state) => {
-      const next = state.babyEvolution.coins + amount;
-      const nextEvolution = { ...state.babyEvolution, coins: next };
-      localStorage.setItem(
-        "blablu_baby_evolution",
-        JSON.stringify(nextEvolution),
+  addCoins: (amount) => {
+    const state = get();
+    const next = state.babyEvolution.coins + amount;
+    const nextEvolution = { ...state.babyEvolution, coins: next };
+    localStorage.setItem(
+      "blablu_baby_evolution",
+      JSON.stringify(nextEvolution),
+    );
+    set({ babyEvolution: nextEvolution });
+    if (state.roomId) {
+      setDoc(doc(db, "pairs", state.roomId, "babyEvolution", "current"), { coins: next }, { merge: true }).catch(
+        (e) => console.error("Sync coins failed", e),
       );
-      return { babyEvolution: nextEvolution };
-    }),
+    }
+  },
   addPairXp: async (amount: number) => {
     const state = get();
     if (!state.pair || !state.roomId) return;
@@ -430,9 +435,10 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     const nextAccessories = accessoryId
       ? [...state.babyEvolution.accessories, accessoryId]
       : state.babyEvolution.accessories;
+    const nextCoins = state.babyEvolution.coins - cost;
     const nextEvolution = {
       ...state.babyEvolution,
-      coins: state.babyEvolution.coins - cost,
+      coins: nextCoins,
       accessories: nextAccessories,
     };
     localStorage.setItem(
@@ -440,6 +446,14 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       JSON.stringify(nextEvolution),
     );
     set({ babyEvolution: nextEvolution });
+    if (state.roomId) {
+      setDoc(doc(db, "pairs", state.roomId, "babyEvolution", "current"), { 
+        coins: nextCoins,
+        accessories: nextAccessories
+      }, { merge: true }).catch(
+        (e) => console.error("Sync purchase failed", e),
+      );
+    }
     return true;
   },
   feedBaby: (babyId, amount) =>

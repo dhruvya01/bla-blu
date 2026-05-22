@@ -385,14 +385,14 @@ export function TimelineScreen(_props: {}) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                  className="w-[95vw] max-w-[400px] bg-card rounded-[2rem] p-6 shadow-squishy relative min-h-[500px] border border-white/50"
+                  className="w-[98vw] max-w-[500px] bg-card rounded-[2.5rem] p-4 sm:p-6 shadow-squishy relative min-h-[70vh] border border-white/50 mx-auto"
                   id="board"
                 >
                    {/* Dashed Timeline Line inside the board */}
                    <div className="absolute left-1/2 top-10 bottom-10 w-[1.5px] border-l border-dashed border-secondary/20 z-0 -translate-x-1/2" />
 
                    {/* Layout the items for this month */}
-                   <div className="relative z-10 w-full h-[600px]">
+                   <div className="relative z-10 w-full min-h-[600px]">
                       {currentEntries.map((entry, idx) => (
                         <div 
                           key={entry.id}

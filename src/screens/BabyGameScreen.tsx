@@ -53,12 +53,11 @@ export function BabyGameScreen() {
   useEffect(() => {
     if (!roomId) return;
     const u1 = onSnapshot(doc(db,'pairs',roomId,'babyState','current'), s => { if(s.exists()) setBabyState(s.data() as BabyState); });
-    const u2 = onSnapshot(doc(db,'pairs',roomId,'babyEvolution','current'), s => { if(s.exists()) setBabyEvolution(s.data() as BabyEvolution); });
     const u3 = onSnapshot(doc(db,'pairs',roomId,'homeGame','current'), s => {
       if(s.exists()) setHome(s.data() as HomeGameData);
       else setDoc(doc(db,'pairs',roomId,'homeGame','current'), INITIAL_HOME);
     });
-    return ()=>{ u1(); u2(); u3(); };
+    return ()=>{ u1(); u3(); };
   }, [roomId, setBabyEvolution]);
 
   // Daily task reset
@@ -120,7 +119,6 @@ export function BabyGameScreen() {
     addCoins(-cost);
     const newS = {...home.supplies, [supplyId]: (home.supplies[supplyId]||0)+1 };
     saveHome({ supplies: newS });
-    if (roomId) setDoc(doc(db,'pairs',roomId,'babyEvolution','current'), { coins: coins-cost }, {merge:true});
     sensory.play('pop');
   };
 
@@ -128,7 +126,6 @@ export function BabyGameScreen() {
     if (coins < cost || home.ownedThemes.includes(themeId)) return;
     addCoins(-cost);
     saveHome({ ownedThemes: [...home.ownedThemes, themeId], roomTheme: themeId });
-    if (roomId) setDoc(doc(db,'pairs',roomId,'babyEvolution','current'), { coins: coins-cost }, {merge:true});
     sensory.play('levelUp');
   };
 
