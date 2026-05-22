@@ -349,6 +349,7 @@ function ChatMessage({
   const longPressTimer = useRef<any>(null);
   const [decryptedText, setDecryptedText] = useState(m.text || "");
   const [decryptedImage, setDecryptedImage] = useState(m.image || "");
+  const [decryptedVideo, setDecryptedVideo] = useState(m.video || "");
   const [decryptedAudio, setDecryptedAudio] = useState(m.audio || "");
   const [isHighlighted, setIsHighlighted] = useState(false);
 
@@ -381,6 +382,11 @@ function ChatMessage({
       } else {
         setDecryptedImage(m.image || "");
       }
+      if (m.video && m.video.startsWith('E2EE:')) {
+        decryptData(m.video).then(v => active && setDecryptedVideo(v));
+      } else {
+        setDecryptedVideo(m.video || "");
+      }
       if (m.audio && m.audio.startsWith('E2EE:')) {
         decryptData(m.audio).then(a => active && setDecryptedAudio(a));
       } else {
@@ -395,7 +401,7 @@ function ChatMessage({
       active = false; 
       window.removeEventListener('e2ee-ready', attemptDecrypt);
     };
-  }, [m.text, m.image, m.audio]);
+  }, [m.text, m.image, m.video, m.audio]);
 
   useEffect(() => {
     if (isMe || m.status === "seen") return;
@@ -692,6 +698,28 @@ function ChatMessage({
                     } else if (onExpandImage) {
                       onExpandImage(decryptedImage!);
                     }
+                  }}
+                />
+              ) : null}
+              {decryptedVideo && decryptedVideo.startsWith("🔒") ? (
+                <div className="flex flex-col items-center justify-center bg-black/5 dark:bg-white/5 rounded-xl p-4 mt-1 mb-1 shadow-sm border border-black/5 text-text/60 w-32 h-32">
+                  <Lock size={24} className="mb-2 opacity-50" />
+                  <span className="text-xs font-semibold text-center leading-tight">Verification<br/>Failed</span>
+                </div>
+              ) : decryptedVideo ? (
+                <motion.video
+                  src={decryptedVideo}
+                  controls
+                  className="mt-1 mb-1 max-w-full rounded-xl object-contain shadow-sm border border-black/5"
+                  style={{ maxHeight: "300px" }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setReactToMsgId(m.id);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isLongPressActive.current) return;
                   }}
                 />
               ) : null}
@@ -1564,11 +1592,14 @@ export function ChatScreen({ socket }: ChatProps) {
   const [isTypingLocal, setIsPartnerTypingLocal] = useState(false);
   const [tick, setTick] = useState(0);
   const [imageFile, setImageFile] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<string | null>(null);
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const exportChatTxt = () => {
     if (!messages.length) return;
@@ -1693,6 +1724,41 @@ export function ChatScreen({ socket }: ChatProps) {
       }
     };
     reader.readAsDataURL(file);
+    setShowAttachmentMenu(false);
+  };
+
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("video/")) {
+      alert("Please select a video file.");
+      return;
+    }
+
+    setIsVideoUploading(true);
+    setShowAttachmentMenu(false);
+    
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "blablu_videos");
+
+    try {
+      const res = await fetch("https://api.cloudinary.com/v1_1/dcwl4l70x/video/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.secure_url) {
+        setVideoFile(data.secure_url);
+      } else {
+        alert("Video upload failed.");
+      }
+    } catch (err) {
+      alert("Error uploading video.");
+    } finally {
+      setIsVideoUploading(false);
+    }
   };
 
   const lastProcessedMsgId = useRef<string | null>(null);
@@ -1751,13 +1817,15 @@ export function ChatScreen({ socket }: ChatProps) {
   }, [(messages || []).length]);
 
   const sendMessage = async () => {
-    if ((!input.trim() && !imageFile && !recordedAudio) || !user || !roomId) return;
+    if ((!input.trim() && !imageFile && !videoFile && !recordedAudio) || !user || !roomId) return;
     const textToSend = input.trim();
     const imageToSend = imageFile;
+    const videoToSend = videoFile;
     const audioToSend = recordedAudio;
 
     setInput("");
     setImageFile(null);
+    setVideoFile(null);
     setRecordedAudio(null);
     setReplyToMsgId(null);
     
@@ -1776,6 +1844,7 @@ export function ChatScreen({ socket }: ChatProps) {
       };
       if (textToSend) msgData.text = await encryptData(textToSend);
       if (imageToSend) msgData.image = await encryptData(imageToSend);
+      if (videoToSend) msgData.video = await encryptData(videoToSend);
       if (audioToSend) msgData.audio = await encryptData(audioToSend);
 
       await addDoc(collection(db, "pairs", roomId, "chatMessages"), msgData);
@@ -2707,6 +2776,44 @@ export function ChatScreen({ socket }: ChatProps) {
           )}
         </AnimatePresence>
 
+        {/* Video Uploading State */}
+        <AnimatePresence>
+          {isVideoUploading && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 10 }}
+              className="inline-flex items-center gap-2 mb-3 bg-card border border-border px-4 py-2 rounded-xl text-sm font-medium text-text/80 shadow-sm"
+            >
+              <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+              Uploading Video...
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Video Preview */}
+        <AnimatePresence>
+          {videoFile && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 10 }}
+              className="relative inline-block mb-3"
+            >
+              <video
+                src={videoFile}
+                className="h-24 w-auto rounded-xl object-cover shadow-sm border border-border"
+              />
+              <button
+                onClick={() => setVideoFile(null)}
+                className="absolute -top-2 -right-2 bg-rose-500 text-white w-6 h-6 flex items-center justify-center rounded-full shadow-md hover:scale-110 transition-transform"
+              >
+                <X size={14} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Image Preview */}
         <AnimatePresence>
           {imageFile && (
@@ -2791,10 +2898,20 @@ export function ChatScreen({ socket }: ChatProps) {
                         setShowAttachmentMenu(false);
                         fileInputRef.current?.click();
                       }}
-                      className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-black/5 active:bg-black/10 transition-colors flex items-center gap-3"
+                      className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-black/5 active:bg-black/10 transition-colors flex items-center gap-3 border-b border-border/50"
                     >
                       <ImageIcon size={18} className="text-rose-500" />
                       Choose from Gallery
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAttachmentMenu(false);
+                        videoInputRef.current?.click();
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-black/5 active:bg-black/10 transition-colors flex items-center gap-3"
+                    >
+                      <Play size={18} className="text-purple-500" />
+                      Choose Video
                     </button>
                   </motion.div>
                 </>
@@ -2822,6 +2939,13 @@ export function ChatScreen({ socket }: ChatProps) {
             className="hidden"
             ref={fileInputRef}
             onChange={handleImageSelect}
+          />
+          <input
+            type="file"
+            accept="video/*"
+            className="hidden"
+            ref={videoInputRef}
+            onChange={handleVideoSelect}
           />
           <input
             type="file"
@@ -2888,7 +3012,7 @@ export function ChatScreen({ socket }: ChatProps) {
             >
               <Square size={18} fill="currentColor" />
             </button>
-          ) : input.trim() || imageFile || recordedAudio ? (
+          ) : input.trim() || imageFile || videoFile || recordedAudio ? (
             <button
               onClick={sendMessage}
               className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-md"
