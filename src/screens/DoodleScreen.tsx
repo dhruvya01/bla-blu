@@ -55,6 +55,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   }));
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const activeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
@@ -149,22 +150,27 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
 
     const resizeCanvas = () => {
       const container = containerRef.current;
+      const act = activeCanvasRef.current;
       if (!container || !canvas) return;
       const rect = container.getBoundingClientRect();
       
       // Support high DPI screens
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
+      
+      [canvas, act].forEach(c => {
+         if (!c) return;
+         c.width = rect.width * dpr;
+         c.height = rect.height * dpr;
+         c.style.width = `${rect.width}px`;
+         c.style.height = `${rect.height}px`;
 
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.scale(dpr, dpr);
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-      }
+         const ctx = c.getContext("2d");
+         if (ctx) {
+           ctx.scale(dpr, dpr);
+           ctx.lineCap = "round";
+           ctx.lineJoin = "round";
+         }
+      });
       
       // Redraw canvas content after size adjustment
       drawStrokesOnCanvas();
@@ -179,37 +185,10 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
   }, []);
 
   // Sync state values
-  useEffect(() => drawStrokesOnCanvas(), [strokes, isDrawing, canvasBg, showGrid, currentColor, currentWidth, currentOpacity, currentTool, currentShape, isMirrorMode, radialSymmetry, isSmoothing]);
+  useEffect(() => drawStrokesOnCanvas(), [strokes, canvasBg, showGrid, isMirrorMode, radialSymmetry, isSmoothing]);
 
-  // Redraw all strokes from standard state
-  const drawStrokesOnCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const width = canvas.width / (window.devicePixelRatio || 1);
-    const height = canvas.height / (window.devicePixelRatio || 1);
-
-    // Canvas Background
-    ctx.fillStyle = canvasBg;
-    ctx.fillRect(0, 0, width, height);
-
-    if (showGrid) {
-      ctx.save();
-      ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
-      ctx.lineWidth = 1;
-      const gridSize = 40;
-      for (let x = 0; x < width; x += gridSize) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
-      }
-      for (let y = 0; y < height; y += gridSize) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    const renderStroke = (s: Stroke, symmetryOptions: { mirror?: boolean; rotation?: number } = {}) => {
+  // Core Render Method
+  const renderStroke = (ctx: CanvasRenderingContext2D, width: number, height: number, s: Stroke, symmetryOptions: { mirror?: boolean; rotation?: number } = {}) => {
       if (s.points.length < 1) return;
       ctx.save();
       
@@ -266,7 +245,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
         ctx.setLineDash([]); // Reset dash for next strokes
       } else if (s.points.length > 0) {
         if (s.tool === "spray") {
-          // Special spray effect - optimized for performance
+          // Optimized spray
           const density = Math.min(20, Math.floor(s.width * 2));
           s.points.forEach(p => {
             for (let i = 0; i < density; i++) {
@@ -315,20 +294,61 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
         }
       }
       ctx.restore();
-    };
+  };
 
-    const runRenderCycle = (s: Stroke) => {
-      renderStroke(s);
-      if (isMirrorMode) renderStroke(s, { mirror: true });
-      if (radialSymmetry > 0) {
-        const angle = (Math.PI * 2) / radialSymmetry;
-        for (let i = 1; i < radialSymmetry; i++) {
-          renderStroke(s, { rotation: angle * i });
-        }
+  const runRenderCycle = (ctx: CanvasRenderingContext2D, s: Stroke, width: number, height: number) => {
+    renderStroke(ctx, width, height, s);
+    if (isMirrorMode) renderStroke(ctx, width, height, s, { mirror: true });
+    if (radialSymmetry > 0) {
+      const angle = (Math.PI * 2) / radialSymmetry;
+      for (let i = 1; i < radialSymmetry; i++) {
+        renderStroke(ctx, width, height, s, { rotation: angle * i });
       }
-    };
+    }
+  };
 
-    strokesRef.current.forEach(s => runRenderCycle(s));
+  // Redraw all strokes from standard state
+  const drawStrokesOnCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const width = canvas.width / (window.devicePixelRatio || 1);
+    const height = canvas.height / (window.devicePixelRatio || 1);
+
+    // Canvas Background
+    ctx.fillStyle = canvasBg;
+    ctx.fillRect(0, 0, width, height);
+
+    if (showGrid) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
+      ctx.lineWidth = 1;
+      const gridSize = 40;
+      for (let x = 0; x < width; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+      }
+      for (let y = 0; y < height; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    strokesRef.current.forEach(s => runRenderCycle(ctx, s, width, height));
+  };
+
+  // Draw ONLY active stroke
+  const drawActiveStroke = () => {
+    const canvas = activeCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const width = canvas.width / (window.devicePixelRatio || 1);
+    const height = canvas.height / (window.devicePixelRatio || 1);
+    
+    // Clear only this active frame
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     if (isDrawing && currentPathRef.current.length > 0) {
       const activeStroke = {
@@ -339,7 +359,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
         tool: currentTool,
         shape: currentShape
       };
-      runRenderCycle(activeStroke);
+      runRenderCycle(ctx, activeStroke, width, height);
     }
   };
 
@@ -386,7 +406,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
 
     // Trigger faint haptic
     triggerHaptic();
-    drawStrokesOnCanvas();
+    drawActiveStroke();
   };
 
   const handleDrawMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -415,7 +435,9 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
       
       currentPathRef.current.push(coords);
     }
-    drawStrokesOnCanvas();
+    
+    // Draw only active stroke using requestAnimationFrame structure (or direct sync if lightweight)
+    drawActiveStroke();
   };
 
   const handleEndDrawing = () => {
@@ -434,8 +456,12 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
 
       setStrokes(prev => [...prev, newStroke]);
     }
+    
     currentPathRef.current = [];
     startPosRef.current = null;
+    
+    // Clear active stroke overlay to prevent ghosting before React commits
+    if (activeCanvasRef.current) activeCanvasRef.current.getContext('2d')?.clearRect(0,0, activeCanvasRef.current.width, activeCanvasRef.current.height);
   };
 
   // Canvas Actions
@@ -583,6 +609,10 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
       >
         <canvas
           ref={canvasRef}
+          className="absolute inset-0 block w-full h-full pointer-events-none"
+        />
+        <canvas
+          ref={activeCanvasRef}
           onMouseDown={handleStartDrawing}
           onMouseMove={handleDrawMove}
           onMouseUp={handleEndDrawing}
