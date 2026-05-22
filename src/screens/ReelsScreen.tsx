@@ -60,6 +60,14 @@ interface ReelItemProps {
   currentUserId: string;
 }
 
+// Cloudinary dynamic video optimization parameters injector
+function getOptimizedCloudinaryUrl(url: string): string {
+  if (!url || !url.includes("cloudinary.com") || url.includes("/f_auto,q_auto,vc_auto/")) {
+    return url;
+  }
+  return url.replace("/video/upload/", "/video/upload/f_auto,q_auto,vc_auto/");
+}
+
 function ReelItem({
   reel,
   isActive,
@@ -72,10 +80,75 @@ function ReelItem({
 }: ReelItemProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoSrc, setVideoSrc] = useState<string>("");
+  const [isCaching, setIsCaching] = useState(true);
   const isLiked = (reel.likes || []).includes(currentUserId);
 
+  // Dynamic optimize & HTML5 Native Cache API layer
   useEffect(() => {
-    if (videoRef.current) {
+    let active = true;
+    let objectUrl = "";
+
+    const loadVideo = async () => {
+      const optimizedUrl = getOptimizedCloudinaryUrl(reel.videoUrl);
+      
+      if (!("caches" in window)) {
+        if (active) {
+          setVideoSrc(optimizedUrl);
+          setIsCaching(false);
+        }
+        return;
+      }
+
+      try {
+        const cache = await caches.open("blablu-reels-cache-v1");
+        const cachedResponse = await cache.match(optimizedUrl);
+
+        if (cachedResponse) {
+          // Cache Hit! Retrieve blob memory
+          const blob = await cachedResponse.blob();
+          objectUrl = URL.createObjectURL(blob);
+          if (active) {
+            setVideoSrc(objectUrl);
+            setIsCaching(false);
+          }
+        } else {
+          // Cache Miss! Stream & save simultaneously
+          setIsCaching(true);
+          const response = await fetch(optimizedUrl);
+          if (!response.ok) throw new Error("Failed to load video source");
+          
+          const responseToCache = response.clone();
+          await cache.put(optimizedUrl, responseToCache);
+
+          const blob = await response.blob();
+          objectUrl = URL.createObjectURL(blob);
+          if (active) {
+            setVideoSrc(objectUrl);
+            setIsCaching(false);
+          }
+        }
+      } catch (err) {
+        console.warn("Cache pipeline failed, streaming directly with optimization", err);
+        if (active) {
+          setVideoSrc(optimizedUrl);
+          setIsCaching(false);
+        }
+      }
+    };
+
+    loadVideo();
+
+    return () => {
+      active = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [reel.videoUrl]);
+
+  useEffect(() => {
+    if (videoRef.current && videoSrc && !isCaching) {
       if (isActive) {
         videoRef.current.play().then(() => {
           setIsPlaying(true);
@@ -89,7 +162,7 @@ function ReelItem({
         setIsPlaying(false);
       }
     }
-  }, [isActive]);
+  }, [isActive, videoSrc, isCaching]);
 
   const handleVideoClick = () => {
     if (videoRef.current) {
@@ -107,15 +180,22 @@ function ReelItem({
   return (
     <div className="w-full h-full snap-start snap-always relative flex items-center justify-center bg-black">
       {/* Video element */}
-      <video
-        ref={videoRef}
-        src={reel.videoUrl}
-        loop
-        playsInline
-        muted={isMuted}
-        onClick={handleVideoClick}
-        className="w-full h-full object-cover max-h-[100dvh]"
-      />
+      {videoSrc && !isCaching ? (
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          loop
+          playsInline
+          muted={isMuted}
+          onClick={handleVideoClick}
+          className="w-full h-full object-cover max-h-[100dvh]"
+        />
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 gap-3">
+          <Loader2 size={36} className="animate-spin text-primary" />
+          <p className="text-xs text-white/40 tracking-wider font-light">Caching beautiful moment...</p>
+        </div>
+      )}
 
       {/* Tap play/pause indicator overlay */}
       <AnimatePresence>
@@ -571,7 +651,7 @@ export function ReelsScreen() {
               {/* Video Preview Miniature */}
               <div className="w-full aspect-[16/9] rounded-xl overflow-hidden bg-black mb-4 flex items-center justify-center relative">
                 <video
-                  src={chosenVideoUrl}
+                  src={getOptimizedCloudinaryUrl(chosenVideoUrl)}
                   muted
                   playsInline
                   autoPlay
