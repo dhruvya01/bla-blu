@@ -620,9 +620,10 @@ export function VaultScreen() {
               <button 
                   key="back"
                   onClick={() => setSelectedPhoto(null)}
-                  className="p-2 ml-2 mr-auto text-white flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
+                  className="px-4 py-2 ml-2 mr-auto text-white flex items-center justify-center gap-2 hover:bg-white/10 rounded-full transition-colors"
               >
                  <ChevronLeft size={28} />
+                 <span className="text-sm font-medium">Back</span>
               </button>,
               <button 
                   key="download"

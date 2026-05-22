@@ -654,7 +654,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
                   <div className="flex items-center gap-2 px-2">
                     <span className="text-[10px] font-black uppercase text-text/30 mr-2">Shapes</span>
                     {[
-                      { id: "line", icon: <div className="w-5 h-0.5 bg-current rotate-45" /> },
+                      { id: "line", icon: <div className="w-5 h-0.5 bg-current" /> },
                       { id: "rect", icon: <Square size={18} /> },
                       { id: "circle", icon: <Circle size={18} /> },
                       { id: "none", icon: <Activity size={18} />, label: "Freehand" }
@@ -665,6 +665,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
                         className={`flex-1 h-12 rounded-2xl flex items-center justify-center transition-all ${
                           currentShape === s.id ? "bg-indigo-500 text-white shadow-md active:scale-95" : "text-text/30 hover:bg-slate-100 dark:hover:bg-white/5"
                         }`}
+                        title={s.id === "line" ? "Straight Line" : ""}
                       >
                         {s.icon}
                       </button>
