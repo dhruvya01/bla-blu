@@ -27,6 +27,7 @@ import {
   Activity,
   Zap,
   Lock,
+  Highlighter,
 } from "lucide-react";
 import { useAppStore } from "../store";
 import { db } from "../firebase/config";
