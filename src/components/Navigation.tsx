@@ -23,7 +23,7 @@ export function Navigation() {
   const unopenedEnvelopes = (envelopes || []).filter((e: any) => e.recipientId === user?.uid && !e.opened).length;
 
   return (
-    <div className="absolute bottom-8 left-6 right-6 z-50">
+    <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] left-6 right-6 z-50">
       <nav className="flex items-center justify-between py-3 px-3 backdrop-blur-2xl bg-card shadow-2xl shadow-primary/10 rounded-[2.5rem] max-w-sm mx-auto border border-border">
         <NavItem active={view === "home"} onClick={() => setView("home")} icon={<Home size={22} />} label="Home" badge={unopenedEnvelopes > 0 ? unopenedEnvelopes : undefined} />
         <NavItem active={view === "chat"} onClick={() => setView("chat")} icon={<MessageCircle size={22} />} label="Chat" badge={unreadCount > 0 ? unreadCount : undefined} />

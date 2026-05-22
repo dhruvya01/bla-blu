@@ -313,6 +313,35 @@ export default function App() {
       } else {
         document.documentElement.classList.remove("dark");
       }
+
+      // Dynamically update the system bar theme color to match the active app background color
+      const bgColors: Record<string, string> = {
+        pink: "#FFF5F9",
+        lavender: "#F8F7FF",
+        dark: "#0A0809",
+        amoled: "#000000",
+        "amoled-cyan": "#000000",
+        "amoled-gold": "#000000",
+        "amoled-violet": "#000000",
+        "amoled-ruby": "#000000",
+        mint: "#F0FDF4",
+        peach: "#FFF7ED",
+        ocean: "#F0F9FF",
+        honey: "#FFFBEB",
+        rose: "#FFF1F2",
+        midnight: "#02021E",
+        aurora: "#011612",
+        mocha: "#100905",
+        berry: "#15020D",
+      };
+      const activeBg = bgColors[theme] || "#FFF5F9";
+      let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (!metaThemeColor) {
+        metaThemeColor = document.createElement('meta');
+        metaThemeColor.setAttribute('name', 'theme-color');
+        document.head.appendChild(metaThemeColor);
+      }
+      metaThemeColor.setAttribute('content', activeBg);
     }
   }, [theme]);
 
@@ -582,7 +611,7 @@ export default function App() {
               view !== "vault" &&
               view !== "timeline" &&
               view !== "reels" &&
-              "pt-16 pb-8",
+              "pt-[calc(env(safe-area-inset-top,0px)+72px)] pb-[calc(env(safe-area-inset-bottom,0px)+96px)]",
           )}
         >
           <AnimatePresence mode="sync">
