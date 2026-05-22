@@ -932,7 +932,7 @@ function ChatMessage({
                           if (videoUrl.startsWith('E2EE:')) {
                              videoUrl = await decryptData(videoUrl);
                           }
-                          if (videoUrl && !videoUrl.startsWith('🔒')) {
+                          if (videoUrl && !videoUrl.startsWith('🔒') && videoUrl.includes("cloudinary.com")) {
                             fetch("/api/cloudinary/delete", {
                                method: "POST",
                                headers: { "Content-Type": "application/json" },

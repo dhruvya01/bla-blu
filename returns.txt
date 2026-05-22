@@ -1,0 +1,107 @@
+69:  if (!u?.lastActive) return false;
+70:  return now - u.lastActive < 1000 * 120; // 2 minutes
+82:  return (
+104:    return (
+134:    return (
+163:    return (
+192:  return null;
+209:    if (!src) return;
+235:    return () => {
+248:    if (!audioRef.current) return;
+257:    if (isNaN(time)) return "0:00";
+260:    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+265:    if (!audioRef.current || !duration) return;
+276:  return (
+304:            return (
+366:    return () => {
+400:    return () => { 
+407:    if (isMe || m.status === "seen") return;
+423:    return () => observer.disconnect();
+479:    if (e.button !== 0) return; // primary only
+516:    return () => { active = false; window.removeEventListener('e2ee-ready', attempt); };
+524:    return counts;
+528:    return (
+551:    return (
+588:  return (
+695:                    if (isLongPressActive.current) return;
+722:                    if (isLongPressActive.current) return;
+928:                      if (!roomId) return;
+982:  if (!ts) return "";
+984:  return d.toLocaleTimeString('en-US', { hour: "numeric", minute: "2-digit", hour12: true });
+988:  if (!ts) return "";
+995:  if (isToday) return "Today";
+996:  if (isYesterday) return "Yesterday";
+997:  return d.toLocaleDateString([], {
+1006:  if (diff < 120000) return "Online now";
+1007:  if (diff < 3600000) return `Seen ${Math.floor(diff / 60000)}m ago`;
+1013:    return `Seen today at ${timeStr}`;
+1015:    return `Seen yesterday at ${timeStr}`;
+1017:  return `Seen ${d.toLocaleDateString([], { month: "short", day: "numeric" })} at ${timeStr}`;
+1021:  if (!next) return true; // always show on last message
+1022:  if (next.senderId !== m.senderId) return true; // show when sender changes
+1029:  if (!mTs || !nTs) return true;
+1030:  return nTs - mTs > 120000; // show if next msg is > 2 min later
+1034:  if (!text || typeof text !== "string") return null;
+1036:  if (t.includes("i love you") || t.includes("love u")) return "hearts";
+1037:  if (t.includes("kiss") || t.includes("mwah")) return "kisses";
+1038:  if (t.includes("miss you") || t.includes("miss u")) return "sparkles";
+1040:    return "glow";
+1041:  if (t.includes("sorry")) return "sorry";
+1048:    return "sleep";
+1049:  return null;
+1112:  return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+1151:    return () => {
+1157:    return () => {
+1169:    if (!videoRef.current) return;
+1190:        return "sepia(20%) saturate(140%) hue-rotate(-20deg) brightness(105%) contrast(95%)";
+1192:        return "brightness(115%) saturate(110%) contrast(90%) opacity(95%)";
+1194:        return "grayscale(100%) contrast(125%) brightness(95%)";
+1197:        return "none";
+1202:    if (!capturedImg) return;
+1219:  return (
+1395:    return localStorage.getItem("blablu_chat_wallpaper") || "default";
+1418:    return () => {
+1424:    if (!roomId || !user) return;
+1461:      if (saved) return JSON.parse(saved);
+1463:    return DEFAULT_QUICK_MESSAGES;
+1481:      return;
+1519:      return saved ? JSON.parse(saved) : [];
+1521:      return [];
+1589:    if (!file) return;
+1621:    if (!messages.length) return;
+1638:    if (!messages.length) return;
+1663:    if (!roomId) return;
+1669:      return;
+1726:    if (!file) return;
+1731:      return;
+1746:            return;
+1762:    if (!file) return;
+1766:      return;
+1800:    return () => clearInterval(ticker);
+1804:    if (!roomId || !user || !messages || messages.length === 0) return;
+1827:    if (!messages || !messages.length || !user) return;
+1846:    return () => clearTimeout(timer);
+1850:    if ((!input.trim() && !imageFile && !videoFile && !recordedAudio) || !user || !roomId) return;
+1915:    if (!user || !roomId) return;
+1917:    if (nowTime - lastStickerSentTimeRef.current < 450) return;
+1962:    if (!roomId) return;
+1963:    if (!window.confirm("Are you sure you want to delete all chat?")) return;
+1993:    if (!messages || messages.length === 0) return;
+2028:    if (!user || !roomId || !msgId) return;
+2066:    if (!user || !roomId || !msgId) return;
+2077:    if (!user || !roomId || !msgId) return;
+2091:        return "bg-gradient-to-tr from-pink-50/90 via-[#fff0f3]/80 to-rose-100/95 dark:from-[#2e0e15] dark:via-[#1c080e] dark:to-[#3b121e] relative before:content-[''] before:absolute before:inset-0 before:opacity-[0.03] before:dark:opacity-[0.07] before:bg-[radial-gradient(#e11d48_1px,transparent_1px)] before:[background-size:16px_16px]";
+2093:        return "bg-gradient-to-tr from-orange-50/90 via-[#fff3e0]/80 to-rose-100/90 dark:from-[#351515] dark:via-[#200c0c] dark:to-[#2e1d35] relative before:content-[''] before:absolute before:inset-0 before:opacity-[0.04] before:bg-[linear-gradient(45deg,#f43f5e_1px,transparent_1px)] before:[background-size:24px_24px]";
+2095:        return "bg-gradient-to-b from-[#0a071c] via-[#05030e] to-[#010005] text-white relative before:content-[''] before:absolute before:inset-0 before:opacity-[0.12] before:bg-[radial-gradient(#ffffff_1px,transparent_1px)] before:[background-size:32px_32px]";
+2097:        return "bg-[#f4fbf7] dark:bg-[#071710] relative before:content-[''] before:absolute before:inset-0 before:opacity-[0.05] before:dark:opacity-[0.08] before:bg-[linear-gradient(to_right,#059669_1px,transparent_1px),linear-gradient(to_bottom,#059669_1px,transparent_1px)] before:[background-size:20px_20px]";
+2100:        return "bg-bg shadow-inner";
+2123:    return () => { active = false; window.removeEventListener('e2ee-ready', attempt); };
+2127:    if (!userLoc || !partnerLoc) return null;
+2134:    return formatDistance(dist);
+2137:  return (
+2320:                    return (
+2330:                  return starred.map((m: any) => {
+2334:                    return (
+2532:              return (
+2742:                    return (
+2749:                            if (!user || !roomId) return;
