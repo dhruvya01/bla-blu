@@ -115,8 +115,8 @@ const MonthRecap = ({ entries, month }: { entries: TimelineEntry[], month: strin
 
 function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index, onDragEnd }: { entry: TimelineEntry; deleteEntry: (id: string, e: React.MouseEvent) => void; onExpand: (url: string, caption?: string) => void; onReact: (id: string, emoji: string) => void; index: number; onDragEnd?: (id: string, info: any) => void; }) {
   const { user, partner } = useAppStore();
-  const [decryptedContent, setDecryptedContent] = useState("");
-  const [decryptedCaption, setDecryptedCaption] = useState("");
+  const [decryptedContent, setDecryptedContent] = useState("Decrypting...");
+  const [decryptedCaption, setDecryptedCaption] = useState("...");
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -125,7 +125,7 @@ function PolaroidCard({ entry, deleteEntry, onExpand, onReact, index, onDragEnd 
       if (entry.content && entry.content.startsWith('E2EE:')) {
         decryptData(entry.content).then(v => active && setDecryptedContent(v));
       } else {
-        setDecryptedContent(entry.content);
+        setDecryptedContent(entry.content || "");
       }
       if (entry.caption && entry.caption.startsWith('E2EE:')) {
         decryptData(entry.caption).then(v => active && setDecryptedCaption(v));
