@@ -2866,14 +2866,20 @@ export function ChatScreen({ socket }: ChatProps) {
           
           <button
             onClick={() => {
-              const partnerName = (partner?.nickname || partner?.name || "").toLowerCase();
-              const whatsappNumber = partnerName.includes("dhruvya") 
-                ? "918791013105" 
-                : partnerName.includes("anjali") 
-                  ? "917889686144" 
-                  : partnerName.includes("dhruv")
-                    ? "918791013105"
-                    : "918791013105"; 
+              const pn = (partner?.nickname || partner?.name || "").toLowerCase();
+              const un = (user?.nickname || user?.name || "").toLowerCase();
+              
+              let whatsappNumber = "918791013105"; // Default to Dhruvya
+              
+              if (pn.includes("anjali") || pn.includes("anju")) {
+                whatsappNumber = "917889686144";
+              } else if (pn.includes("dhruv")) {
+                whatsappNumber = "918791013105";
+              } else if (un.includes("dhruv")) {
+                whatsappNumber = "917889686144"; // I am Dhruv, partner is Anjali
+              } else if (un.includes("anjali") || un.includes("anju")) {
+                whatsappNumber = "918791013105"; // I am Anjali, partner is Dhruv
+              }
               
               const link = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent("hwwwwwwwww")}`;
               window.open(link, "_blank", "noopener,noreferrer");
