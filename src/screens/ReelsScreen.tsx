@@ -13,6 +13,8 @@ import {
   Volume2,
   VolumeX,
   Video,
+  Film,
+  LayoutGrid,
 } from "lucide-react";
 import { useAppStore } from "../store";
 import {
@@ -326,8 +328,10 @@ function ReelItem({
 export function ReelsScreen() {
   const setView = useAppStore((state) => state.setView);
   const user = useAppStore((state) => state.user);
+  const partner = useAppStore((state) => state.partner);
   const roomId = useAppStore((state) => state.roomId);
 
+  const [activeTab, setActiveTab] = useState<"feed" | "profile">("feed");
   const [reels, setReels] = useState<ReelData[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -526,35 +530,6 @@ export function ReelsScreen() {
 
   return (
     <div className="flex flex-col h-[100dvh] w-full max-w-md mx-auto relative bg-black select-none text-white overflow-hidden">
-      {/* Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 z-30 pt-safe-top px-4 py-3 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
-        <button
-          onClick={() => {
-            sensory.play("pop");
-            setView("home");
-          }}
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-black/30 backdrop-blur-md text-white border border-white/10 active:scale-95 transition-all"
-        >
-          <ArrowLeft size={18} />
-        </button>
-
-        <h1 className="text-base font-bold font-display uppercase tracking-widest text-white mt-1 drop-shadow-md">
-          Couple Reels 🎬
-        </h1>
-
-        <button
-          onClick={() => videoInputRef.current?.click()}
-          disabled={isUploading}
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-primary text-white border border-primary/20 active:scale-95 transition-all shadow-md"
-        >
-          {isUploading ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <Plus size={18} />
-          )}
-        </button>
-      </div>
-
       {/* Hidden file input for vertical video files */}
       <input
         type="file"
@@ -564,51 +539,309 @@ export function ReelsScreen() {
         className="hidden"
       />
 
-      {/* Main Container */}
-      {isLoading ? (
-        <div className="flex-1 flex flex-col items-center justify-center bg-black gap-4">
-          <Loader2 size={36} className="animate-spin text-primary" />
-          <p className="text-sm text-white/50 font-medium">Fetching sweet memories...</p>
-        </div>
-      ) : reels.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center bg-black gap-5 text-center p-8">
-          <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-rose-400">
-            <Video size={32} />
+      {/* Main content split between Tabs */}
+      {activeTab === "feed" ? (
+        <>
+          {/* Header Overlay */}
+          <div className="absolute top-0 left-0 right-0 z-30 pt-safe-top px-4 py-3 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
+            <button
+              onClick={() => {
+                sensory.play("pop");
+                setView("home");
+              }}
+              className="w-10 h-10 rounded-full flex items-center justify-center bg-black/30 backdrop-blur-md text-white border border-white/10 active:scale-95 transition-all"
+            >
+              <ArrowLeft size={18} />
+            </button>
+
+            <h1 className="text-base font-bold font-display uppercase tracking-widest text-white mt-1 drop-shadow-md">
+              Couple Reels 🎬
+            </h1>
+
+            <button
+              onClick={() => videoInputRef.current?.click()}
+              disabled={isUploading}
+              className="w-10 h-10 rounded-full flex items-center justify-center bg-primary text-white border border-primary/20 active:scale-95 transition-all shadow-md"
+            >
+              {isUploading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Plus size={18} />
+              )}
+            </button>
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-white">No Reels Shared Yet</h2>
-            <p className="text-xs text-white/40 mt-1.5 max-w-xs leading-relaxed">
-              Capture your cutest coordinates, silly dances, or intimate videos and upload your first Reel together!
-            </p>
-          </div>
-          <button
-            onClick={() => videoInputRef.current?.click()}
-            className="px-6 py-3 bg-primary hover:bg-primary-600 text-white font-bold rounded-full text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all"
-          >
-            Upload First Video
-          </button>
-        </div>
+
+          {isLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center bg-black gap-4">
+              <Loader2 size={36} className="animate-spin text-primary" />
+              <p className="text-sm text-white/50 font-medium">Fetching sweet memories...</p>
+            </div>
+          ) : reels.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center bg-black gap-5 text-center p-8">
+              <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-rose-400">
+                <Video size={32} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">No Reels Shared Yet</h2>
+                <p className="text-xs text-white/40 mt-1.5 max-w-xs leading-relaxed">
+                  Capture your cutest coordinates, silly dances, or intimate videos and upload your first Reel together!
+                </p>
+              </div>
+              <button
+                onClick={() => videoInputRef.current?.click()}
+                className="px-6 py-3 bg-primary hover:bg-primary-600 text-white font-bold rounded-full text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all"
+              >
+                Upload First Video
+              </button>
+            </div>
+          ) : (
+            <div
+              ref={containerRef}
+              onScroll={handleScroll}
+              className="flex-1 h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth relative bg-black"
+            >
+              {reels.map((reel, index) => (
+                <ReelItem
+                  key={reel.id}
+                  reel={reel}
+                  isActive={index === activeIdx}
+                  isMuted={isMuted}
+                  onToggleMute={() => setIsMuted(!isMuted)}
+                  onOpenComments={handleOpenComments}
+                  onLike={handleLike}
+                  onDelete={handleDeleteReel}
+                  currentUserId={user?.uid || ""}
+                />
+              ))}
+            </div>
+          )}
+        </>
       ) : (
-        <div
-          ref={containerRef}
-          onScroll={handleScroll}
-          className="flex-1 h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth relative bg-black"
-        >
-          {reels.map((reel, index) => (
-            <ReelItem
-              key={reel.id}
-              reel={reel}
-              isActive={index === activeIdx}
-              isMuted={isMuted}
-              onToggleMute={() => setIsMuted(!isMuted)}
-              onOpenComments={handleOpenComments}
-              onLike={handleLike}
-              onDelete={handleDeleteReel}
-              currentUserId={user?.uid || ""}
-            />
-          ))}
+        /* INSTAGRAM-STYLE PROFILE VIEW */
+        <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden">
+          {/* PROFILE TOP HEADER */}
+          <div className="pt-safe-top px-4 py-3 flex items-center justify-between border-b border-white/10 bg-zinc-950 shrink-0">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  sensory.play("pop");
+                  setView("home");
+                }}
+                className="p-1.5 rounded-full hover:bg-white/10 text-white active:scale-95 transition-all"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <span className="font-bold text-sm tracking-tight font-display text-white truncate max-w-[140px]">
+                {user?.nickname?.toLowerCase() || user?.name?.toLowerCase() || "couple"}_{partner?.nickname?.toLowerCase() || partner?.name?.toLowerCase() || "memories"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => videoInputRef.current?.click()}
+                disabled={isUploading}
+                className="p-1.5 hover:bg-white/10 rounded-full active:scale-95 transition-all text-white"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* PROFILE SUMMARY HERO */}
+          <div className="p-5 flex flex-col gap-4 bg-zinc-950/40 border-b border-white/5 shrink-0">
+            <div className="flex items-center gap-5">
+              {/* Overlapping double profile circles */}
+              <div className="relative flex items-center justify-center shrink-0 py-1">
+                {/* User Story border circle */}
+                <div className="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-rose-500 via-purple-600 to-yellow-500 shadow-md relative z-10">
+                  <div className="w-full h-full rounded-full border-2 border-zinc-950 bg-zinc-900 overflow-hidden">
+                    {user?.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.nickname || user.name || "Me"}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white font-black bg-pink-500 text-sm">
+                        {(user?.nickname || user?.name || "U")[0]?.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Partner Story border overlapping circle */}
+                <div className="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-rose-500 via-purple-600 to-yellow-500 shadow-md relative z-20 -ml-5 border-l-4 border-zinc-950">
+                  <div className="w-full h-full rounded-full border border-zinc-950 bg-zinc-900 overflow-hidden">
+                    {partner?.avatarUrl ? (
+                      <img
+                        src={partner.avatarUrl}
+                        alt={partner.nickname || partner.name || "Partner"}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white font-black bg-violet-500 text-sm">
+                        {(partner?.nickname || partner?.name || "P")[0]?.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Instagram-style column statistics */}
+              <div className="flex-1 flex justify-around text-center">
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-sm text-white">{reels.length}</span>
+                  <span className="text-[10px] text-zinc-400 font-medium font-sans">Posts</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-sm text-white">
+                    {reels.reduce((acc, curr) => acc + (curr.likes?.length || 0), 0)}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 font-medium font-sans">Likes</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-sm text-white">
+                    {reels.reduce((acc, curr) => acc + (curr.comments?.length || 0), 0)}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 font-medium font-sans">Comments</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile handle, titles, bios */}
+            <div>
+              <h3 className="font-bold text-xs text-white">
+                {user?.nickname || user?.name || "Lover"} & {partner?.nickname || partner?.name || "Partner"} 💑
+              </h3>
+              <p className="text-[10px] text-zinc-400 font-medium font-sans mt-0.5">Private Couple Memory Reel Blog</p>
+              <p className="text-[11px] mt-2 text-zinc-300 leading-relaxed max-w-sm">
+                A private vault of our vertical video snap-scrolls, special dates, laughing fits, and silly dances. 🎬💖
+              </p>
+            </div>
+
+            {/* Actions tab */}
+            <div className="flex gap-2.5 mt-1">
+              <button
+                onClick={() => videoInputRef.current?.click()}
+                className="flex-1 py-2 bg-gradient-to-r from-violet-600 to-pink-600 active:scale-98 transition-all rounded-lg text-[11px] font-extrabold text-white flex items-center justify-center gap-1.5 shadow-md shadow-violet-950/20"
+              >
+                <Plus size={14} /> Upload New Memory
+              </button>
+            </div>
+          </div>
+
+          {/* GRID OF REEL VIDEOS */}
+          <div className="flex-1 overflow-y-auto no-scrollbar bg-black p-1">
+            {isLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <Loader2 size={24} className="animate-spin text-primary" />
+              </div>
+            ) : reels.length === 0 ? (
+              <div className="py-20 flex flex-col items-center justify-center text-center gap-3 text-zinc-600">
+                <LayoutGrid size={32} strokeWidth={1} />
+                <p className="text-xs font-semibold">No Reels Uploaded Yet</p>
+                <p className="text-[10px] text-zinc-500 max-w-xs px-6">
+                  Click "+ Upload New Memory" to record your first cute story!
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-0.5">
+                {reels.map((reel, idx) => {
+                  return (
+                    <div
+                      key={reel.id}
+                      onClick={() => {
+                        sensory.play("pop");
+                        setActiveIdx(idx);
+                        setActiveTab("feed");
+                      }}
+                      className="aspect-[9/16] relative bg-zinc-950 group cursor-pointer overflow-hidden rounded-md border border-white/5 active:scale-95 transition-all"
+                    >
+                      <video
+                        src={getOptimizedCloudinaryUrl(reel.videoUrl) + "#t=0.5"}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Interactive hover icon trigger bar */}
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                        <div className="bg-black/60 p-2 rounded-full text-white">
+                          <Film size={14} className="fill-white" />
+                        </div>
+                      </div>
+                      
+                      {/* Stat summary count inside miniature visual card */}
+                      <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded flex items-center gap-1 text-[9px] text-white font-extrabold">
+                        <Heart size={8} className="fill-rose text-rose" />
+                        <span>{(reel.likes || []).length}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Mini Instagram style footer navigation tabs inside ReelsScreen */}
+      <div className="bg-zinc-950/95 border-t border-white/10 py-3 px-16 flex items-center justify-between shrink-0">
+        <button
+          onClick={() => {
+            sensory.play("pop");
+            setActiveTab("feed");
+          }}
+          className="flex flex-col items-center justify-center gap-1 active:scale-90 transition-all cursor-pointer"
+        >
+          <Film
+            size={22}
+            className={cn(
+              activeTab === "feed" ? "text-violet-400 stroke-[2.5px]" : "text-zinc-500 hover:text-white"
+            )}
+          />
+          <span className={cn(
+            "text-[8px] uppercase tracking-wider font-extrabold",
+            activeTab === "feed" ? "text-violet-400" : "text-zinc-500"
+          )}>
+            Reels
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            sensory.play("pop");
+            setActiveTab("profile");
+          }}
+          className="flex flex-col items-center justify-center gap-1 active:scale-90 transition-all cursor-pointer"
+        >
+          <div className={cn(
+            "w-6 h-6 rounded-full p-[1.5px] overflow-hidden bg-zinc-800 transition-all",
+            activeTab === "profile" ? "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 ring-2 ring-violet-500/50 scale-105" : "hover:scale-105"
+          )}>
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt="Me"
+                referrerPolicy="no-referrer"
+                className="w-full h-full rounded-full object-cover pointer-events-none"
+              />
+            ) : (
+              <div className="w-full h-full bg-violet-600 rounded-full flex items-center justify-center text-white text-[9px] font-black uppercase">
+                {(user?.nickname || user?.name || "U")[0]}
+              </div>
+            )}
+          </div>
+          <span className={cn(
+            "text-[8px] uppercase tracking-wider font-extrabold",
+            activeTab === "profile" ? "text-violet-400" : "text-zinc-500"
+          )}>
+            Profile
+          </span>
+        </button>
+      </div>
 
       {/* Upload Progress Overlay */}
       <AnimatePresence>
