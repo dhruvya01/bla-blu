@@ -757,7 +757,7 @@ export function ReelsScreen() {
                         setActiveIdx(idx);
                         setActiveTab("feed");
                       }}
-                      className="aspect-[9/16] relative bg-zinc-950 group cursor-pointer overflow-hidden rounded-md border border-white/5 active:scale-95 transition-all"
+                      className="aspect-square relative bg-zinc-950 group cursor-pointer overflow-hidden rounded-md border border-white/5 active:scale-95 transition-all"
                     >
                       <video
                         src={getOptimizedCloudinaryUrl(reel.videoUrl) + "#t=0.5"}
