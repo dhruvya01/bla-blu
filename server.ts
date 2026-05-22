@@ -144,7 +144,7 @@ async function start() {
       const cloudName = "dcwl4l70x";
       const timestamp = Math.round(new Date().getTime() / 1000);
 
-      const stringToSign = `public_id=${public_id}&timestamp=${timestamp}${apiSecret}`;
+      const stringToSign = `invalidate=true&public_id=${public_id}&timestamp=${timestamp}${apiSecret}`;
       const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
 
       const params = new URLSearchParams();
@@ -152,6 +152,7 @@ async function start() {
       params.append('signature', signature);
       params.append('api_key', apiKey);
       params.append('timestamp', timestamp.toString());
+      params.append('invalidate', 'true');
 
       const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/destroy`, {
         method: 'POST',
