@@ -169,7 +169,7 @@ function getMoodTransition(mood: MoodState) {
 }
 
 export function InteractiveBabies({ showControls = true }: { showControls?: boolean }) {
-  const { user, roomId, partner, addCoins, setBabyEvolution, babyEvolution, health } = useAppStore();
+  const { user, roomId, partner, setBabyEvolution, babyEvolution, health } = useAppStore();
   const [babyState, setBabyState] = useState<BabyState | null>(null);
   const mood = babyState?.mood || 'happy';
   const isSleeping = babyState?.isSleeping || false;
@@ -461,7 +461,7 @@ export function InteractiveBabies({ showControls = true }: { showControls?: bool
 
     if (moodTimerRef.current) clearTimeout(moodTimerRef.current);
     moodTimerRef.current = setTimeout(() => setActiveBubble(null), 2800);
-  }, [roomId, user, isSleeping, babyEvolution, addCoins, setBabyEvolution, excitement, getSmartGreeting]);
+  }, [roomId, user, isSleeping, babyEvolution, setBabyEvolution, excitement, getSmartGreeting]);
 
   return (
     <div ref={containerRef} className={cn("relative w-full h-full flex flex-col items-center justify-center transition-all duration-1000 overflow-hidden")}>

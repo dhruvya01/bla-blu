@@ -1465,6 +1465,11 @@ export function ChatScreen({ socket }: ChatProps) {
   >([]);
   const [showCare, setShowCare] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
+  const DEFAULT_STICKERS = [
+    "/screenshot_sticker_1.png",
+    getClownCatStickerDataUrl(),
+  ];
+
   const [customStickers, setCustomStickers] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("blablu_custom_stickers");
@@ -2623,6 +2628,25 @@ export function ChatScreen({ socket }: ChatProps) {
 
               {/* Scrollable grid of stickers */}
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 max-h-40 overflow-y-auto pr-1 no-scrollbar py-1 mb-3">
+                {/* Default stickers */}
+                {DEFAULT_STICKERS.map((src, i) => (
+                  <div
+                    key={`default-${i}`}
+                    className="aspect-square bg-card border border-border rounded-xl p-1.5 flex items-center justify-center hover:scale-105 hover:border-primary/40 transition-all shadow-sm group relative"
+                  >
+                    <button
+                      onClick={() => sendSticker(src)}
+                      className="w-full h-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform select-none"
+                    >
+                      <img
+                        src={src}
+                        alt="Sticker"
+                        className="w-full h-full object-contain pointer-events-none"
+                      />
+                    </button>
+                  </div>
+                ))}
+
                 {/* Custom gallery stickers */}
                 {customStickers.map((src, i) => (
                   <div

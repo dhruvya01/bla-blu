@@ -357,26 +357,25 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
           battDiff = Math.abs(lastWritten.current.battery - battery);
           chgChanged = lastWritten.current.isCharging !== isCharging;
           
-          // Calibrated responsive intervals for a more conservative daily write volume:
-          // Fast driving (>30 km/h): Update every 45 seconds
-          // Normal moving (>10 km/h): Update every 90 seconds
-          // Stationary/Resting: Update every 360 seconds (6 minutes)
-          // Safely at home: Update every 900 seconds (15 minutes)
-          let dynamicInterval = speedKmh > 30 ? 45_000 : speedKmh > 10 ? 90_000 : 360_000;
-          if (isAtHome) dynamicInterval = 900_000; 
+          // Calibrated responsive intervals as per user request:
+          // Inside 50m Home Radius: Update every 4 minutes (240s)
+          // Outside Home Radius: Update every 2 minutes (120s)
+          // High Speed Driving Override (>30 km/h): Update every 60s
+          let dynamicInterval = isAtHome ? 240_000 : 120_000;
+          if (speedKmh > 30) dynamicInterval = 60_000;
 
           // Smart Real-Time Map Overlay Override!
           const isViewingMap = state.view === 'map' || state.view === 'journey';
           if (isViewingMap) {
-            dynamicInterval = speedKmh > 10 ? 15_000 : 30_000; // Track nicely but within reason when open!
+            dynamicInterval = Math.min(dynamicInterval, speedKmh > 10 ? 30_000 : 60_000); 
           }
 
-          // Displacement threshold set to 30 meters to ignore GPS jitter and micro-movement
-          const hasSignificantChange = moved > 30 || chgChanged || (battDiff > 2);
+          // Displacement threshold set to 50 meters to match home radius and filter GPS drift
+          const hasSignificantChange = moved > 50 || chgChanged || (battDiff > 2);
           const intervalPassed = elapsed >= dynamicInterval;
 
-          // Hard safety cooldown
-          const minCooldown = isViewingMap ? 10000 : 30000;
+          // Hard safety cooldown (Never update faster than 30s)
+          const minCooldown = isViewingMap ? 15_000 : 30_000;
           if (elapsed < minCooldown) return;
 
           if (!hasSignificantChange && !intervalPassed) return;
@@ -387,7 +386,7 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
         const lastWeatherTime = (window as any)._lastWeatherTime || 0;
         const distMoved = lastWritten.current ? haversine(lastWritten.current.lat, lastWritten.current.lng, lat, lng) : 999;
         
-        if (now - lastWeatherTime > 900_000 || distMoved > 500) {
+        if (now - lastWeatherTime > 1_800_000 || distMoved > 1000) {
           weather = await fetchWeather(lat, lng);
           (window as any)._lastWeatherTime = now;
         }
@@ -398,9 +397,9 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
           [`${role}.batteryLevel`]: battery,
           [`${role}.isCharging`]: isCharging,
           [`${role}.updatedAt`]: now,
-          [`${role}.speed`]: speedKmh,
+          [`${role}.speed`]: isAtHome ? 0 : speedKmh,
           [`${role}.activity`]: activity.label,
-          [`${role}.isSpeeding`]: speedKmh > 45,
+          [`${role}.isSpeeding`]: !isAtHome && speedKmh > 45,
           [`${role}.locationEnabled`]: true
         };
 
@@ -412,8 +411,8 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
         await updateDoc(doc(db, "pairs", roomId, "mapStatus", "live"), updateData);
         
         // Only update the user profile document if the charging status changed, the battery level changed by > 5%,
-        // or if it has been at least 15 minutes since the last written tick!
-        if (!lastWritten.current || chgChanged || battDiff > 5 || elapsed > 900_000) {
+        // or if it has been at least 20 minutes since the last written tick!
+        if (!lastWritten.current || chgChanged || battDiff > 5 || elapsed > 1_200_000) {
           await updateDoc(doc(db, "users", userId), {
             "activity.batteryLevel": battery,
             "activity.isCharging": isCharging,

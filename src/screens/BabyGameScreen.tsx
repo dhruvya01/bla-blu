@@ -191,7 +191,7 @@ export function BabyGameScreen() {
     sensory.tap(); sensory.play('pop');
     const taps = parseInt(localStorage.getItem('blablu_baby_taps')||'0')+1;
     localStorage.setItem('blablu_baby_taps', String(taps));
-    if(taps%10===0){ addCoins(3); setBabyEvolution({lovePoints:lovePoints+1}); sensory.play('levelUp'); }
+    if(taps%10===0){ setBabyEvolution({lovePoints:lovePoints+1}); sensory.play('levelUp'); }
   };
 
   const tasksCompleted = DAILY_TASKS.filter(t=>home.dailyTasks[t.id]).length;
