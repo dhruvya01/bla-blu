@@ -307,6 +307,18 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
+  .pt-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .top-safe-top {
+    top: env(safe-area-inset-top, 0px);
+  }
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }

@@ -2301,7 +2301,7 @@ export function ChatScreen({ socket }: ChatProps) {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="fixed bottom-0 left-0 right-0 z-[260] bg-card border-t border-border rounded-t-[2.5rem] shadow-2xl p-6 flex flex-col max-w-md mx-auto h-[80vh]"
+              className="fixed bottom-0 left-0 right-0 z-[260] bg-card border-t border-border rounded-t-[2.5rem] shadow-2xl p-6 flex flex-col w-full max-w-full sm:max-w-md mx-auto h-[80vh]"
             >
               {/* Top pull bar */}
               <div className="w-12 h-1.5 bg-border rounded-full mb-5 cursor-pointer self-center" onClick={() => setShowStarredDrawer(false)} />
@@ -2423,7 +2423,7 @@ export function ChatScreen({ socket }: ChatProps) {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="fixed bottom-0 left-0 right-0 z-[260] bg-card border-t border-border rounded-t-[2.5rem] shadow-2xl p-6 pb-10 flex flex-col items-center max-w-md mx-auto"
+              className="fixed bottom-0 left-0 right-0 z-[260] bg-card border-t border-border rounded-t-[2.5rem] shadow-2xl p-6 pb-10 flex flex-col items-center w-full max-w-full sm:max-w-md mx-auto"
             >
               <div className="w-12 h-1.5 bg-border rounded-full mb-6 cursor-pointer" onClick={() => setShowWallpaperSelector(false)} />
               

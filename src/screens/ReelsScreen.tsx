@@ -653,7 +653,7 @@ export function ReelsScreen() {
   };
 
   return (
-    <div className={cn("flex flex-col h-[100dvh] w-full max-w-md mx-auto relative select-none overflow-hidden transition-colors duration-300", activeTab === "profile" ? "bg-bg text-text" : "bg-black text-white")}>
+    <div className={cn("flex flex-col h-[100dvh] w-full max-w-full sm:max-w-md mx-auto relative select-none overflow-hidden transition-colors duration-300", activeTab === "profile" ? "bg-bg text-text" : "bg-black text-white")}>
       {/* Hidden file input for vertical video files */}
       <input
         type="file"
@@ -1106,7 +1106,7 @@ export function ReelsScreen() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 24, stiffness: 220 }}
-              className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-card rounded-t-[32px] border-t border-border z-50 h-[60dvh] flex flex-col text-text overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 w-full max-w-full sm:max-w-md mx-auto bg-card rounded-t-[32px] border-t border-border z-50 h-[60dvh] flex flex-col text-text overflow-hidden"
             >
               {/* Drag line */}
               <div className="w-12 h-1 bg-border/50 rounded-full mx-auto my-3 shrink-0" />

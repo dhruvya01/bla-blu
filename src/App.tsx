@@ -412,7 +412,7 @@ export default function App() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className={cn(
-          "flex flex-col h-[100dvh] max-w-md mx-auto overflow-hidden relative bg-bg transition-all duration-1000",
+          "flex flex-col h-[100dvh] w-full max-w-full sm:max-w-md mx-auto overflow-hidden relative bg-bg transition-all duration-1000 shadow-sm",
           `theme-${theme}`,
           birthdayPerson && "shadow-[inset_0_0_80px_rgba(255,138,180,0.15)]",
         )}
