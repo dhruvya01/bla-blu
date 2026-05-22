@@ -143,7 +143,10 @@ async function start() {
     });
   });
 
-  const isProduction = process.env.NODE_ENV === "production";
+  const fs = await import("fs");
+  const isProduction = process.env.NODE_ENV === "production" || 
+                       process.env.K_SERVICE ||
+                       fs.existsSync(path.join(process.cwd(), "dist", "index.html"));
   
   if (isProduction) {
     const distPath = path.join(process.cwd(), "dist");

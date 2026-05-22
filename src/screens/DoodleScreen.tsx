@@ -292,28 +292,41 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
           }
         } else {
           // Smoothed path with segments
-          for (let i = 1; i < s.points.length - 2; i++) {
-            const p0 = s.points[i - 1];
+          let startP = s.points[0];
+          let nextP = s.points[1];
+          let prevMidX = (startP.x + nextP.x) / 2 * width;
+          let prevMidY = (startP.y + nextP.y) / 2 * height;
+
+          ctx.beginPath();
+          ctx.lineWidth = s.width;
+          ctx.moveTo(startP.x * width, startP.y * height);
+          ctx.lineTo(prevMidX, prevMidY);
+          ctx.stroke();
+
+          for (let i = 1; i < s.points.length - 1; i++) {
             const p1 = s.points[i];
             const p2 = s.points[i + 1];
             
             const xc = (p1.x + p2.x) / 2 * width;
             const yc = (p1.y + p2.y) / 2 * height;
             
-            const speedFact = p2.pressure ? Math.max(0.3, Math.min(1.5, 1 / (p2.pressure * 0.005 + 1))) : 1;
+            const speedFact = p1.pressure ? Math.max(0.3, Math.min(1.5, 1 / (p1.pressure * 0.005 + 1))) : 1;
             ctx.lineWidth = s.width * speedFact;
 
             ctx.beginPath();
-            ctx.moveTo(p1.x * width, p1.y * height);
+            ctx.moveTo(prevMidX, prevMidY);
             ctx.quadraticCurveTo(p1.x * width, p1.y * height, xc, yc);
             ctx.stroke();
+
+            prevMidX = xc;
+            prevMidY = yc;
           }
+
           // Cap the stroke
-          const last2 = s.points[s.points.length - 2];
-          const last = s.points[s.points.length - 1];
+          const lastPoint = s.points[s.points.length - 1];
           ctx.beginPath();
-          ctx.moveTo(last2.x * width, last2.y * height);
-          ctx.lineTo(last.x * width, last.y * height);
+          ctx.moveTo(prevMidX, prevMidY);
+          ctx.lineTo(lastPoint.x * width, lastPoint.y * height);
           ctx.stroke();
         }
       }
