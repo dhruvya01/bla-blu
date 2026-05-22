@@ -23,6 +23,7 @@ let isFirebaseAdminInitialized = false;
       }
 
       const serviceAccount = JSON.parse(accountStr);
+      console.log("[BLABLU] Service Account Project ID:", serviceAccount.project_id);
       if (serviceAccount && typeof serviceAccount.private_key === 'string') {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
@@ -90,8 +91,16 @@ async function start() {
       console.log("[BLABLU] Push notification sent successfully:", response);
       return res.status(200).json({ success: true, messageId: response });
     } catch (error: any) {
+      // Handle the "Requested entity was not found" (token not registered) error
+      if (error.code === 'messaging/registration-token-not-registered' || 
+          error.message?.includes('Requested entity was not found') ||
+          error.code === 'messaging/invalid-registration-token') {
+        console.warn(`[BLABLU] Push failed: Token is invalid or not registered. Target: ${req.body.token || req.body.to}`);
+        return res.status(410).json({ error: "Token no longer valid", code: error.code });
+      }
+      
       console.error("[BLABLU] Error sending push notification:", error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: error.message, code: error.code });
     }
   });
 

@@ -376,7 +376,7 @@ export function HearthScreen({ socket }: HearthProps) {
                { id: 'planner', label: 'Dates', sub: 'Our Plans', icon: <Calendar size={22} className="text-emerald-500" />, view: 'planner', bg: "bg-emerald-500/10", border: 'border-emerald-500/20' },
                { id: 'journey', label: 'Map', sub: 'Location bg', icon: <Navigation size={22} className="text-amber-500" />, view: 'journey', bg: "bg-amber-500/10", border: 'border-amber-500/20' },
                { id: 'period', label: 'Cycle', sub: 'Health Hub', icon: <Droplets size={22} className="text-rose-500" />, view: 'period', bg: "bg-rose-500/10", border: 'border-rose-500/20' },
-               { id: 'doodle', label: 'Doodle Canvas', sub: 'Draw together in real-time 🎨', icon: <Palette size={22} className="text-pink-500" />, view: 'doodle', bg: "bg-pink-500/10", border: 'border-pink-500/20', className: "col-span-2 flex flex-row gap-4 items-center justify-start text-left p-4.5 pr-6" }
+               { id: 'doodle', label: 'Doodle Canvas', sub: '', icon: <Palette size={22} className="text-pink-500" />, view: 'doodle', bg: "bg-pink-500/10", border: 'border-pink-500/20', className: "col-span-2 flex flex-row gap-4 items-center justify-start text-left p-4.5 pr-6" }
              ].map(item => (
                <motion.button 
                  key={item.id} 
@@ -393,7 +393,7 @@ export function HearthScreen({ socket }: HearthProps) {
                   </div>
                   <div>
                     <p className="text-[13px] font-bold text-text mb-0.5">{item.label}</p>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-text/40">{item.sub}</p>
+                    {item.sub && <p className="text-[9px] font-bold uppercase tracking-widest text-text/40">{item.sub}</p>}
                   </div>
                </motion.button>
              ))}
