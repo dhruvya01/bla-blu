@@ -521,9 +521,10 @@ export function VaultScreen() {
             <div className="flex items-center gap-4">
                 <button 
                     onClick={() => setView("home")}
-                    className="w-10 h-10 rounded-full flex items-center justify-center bg-card/40 hover:bg-card/80 active:scale-90 transition-all text-text/80 shadow-sm border border-border/60"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-card/40 hover:bg-card/80 active:scale-90 transition-all text-text/80 shadow-sm border border-border/60"
                 >
-                    <ChevronLeft size={22} />
+                    <ChevronLeft size={20} />
+                    <span className="text-sm font-bold">Back</span>
                 </button>
                 <div>
                   <h2 className="text-lg font-bold tracking-tight text-text flex items-center gap-2">

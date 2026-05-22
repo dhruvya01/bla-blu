@@ -154,6 +154,11 @@ export function MonthlyHabitBoard({ pairId }: MonthlyHabitBoardProps) {
 
   const toggleQuickHabit = React.useCallback(async (day: number, habitId: string) => {
     if (!effectivePairId) return;
+
+    // Restrict ticking to today only
+    const realToday = new Date();
+    const isToday = day === realToday.getDate() && month === realToday.getMonth() && year === realToday.getFullYear();
+    if (!isToday) return;
     
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const logId = `${dateStr}_${habitId}`;
@@ -170,6 +175,8 @@ export function MonthlyHabitBoard({ pairId }: MonthlyHabitBoardProps) {
     try {
       if (existingLog) {
         await deleteDoc(doc(db, "pairs", effectivePairId, "habitLogs", logId));
+        // Deduct 10 coins if un-ticked
+        useAppStore.getState().addCoins(-10);
       } else {
         await setDoc(doc(db, "pairs", effectivePairId, "habitLogs", logId), {
           id: logId,
@@ -376,6 +383,38 @@ export function MonthlyHabitBoard({ pairId }: MonthlyHabitBoardProps) {
             {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
         </div>
+
+        {/* Today's Summary Widget (only when minimized) */}
+        {!isMaximized && (
+          <div className="px-4 py-3 bg-primary/5 flex items-center justify-between border-b border-border">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">Today's Protocol</span>
+              <span className="text-xs font-bold text-text">
+                {new Date().toLocaleDateString("en-US", { weekday: 'long', month: 'short', day: 'numeric' })}
+              </span>
+            </div>
+            <div className="flex -space-x-1">
+              {safeHabits.map(h => {
+                const dateStr = getTodayStr();
+                const log = safeLogs.find(l => l.habitId === h.id && l.date === dateStr);
+                return (
+                  <div 
+                    key={h.id} 
+                    title={h.name}
+                    className={cn(
+                      "w-6 h-6 rounded-lg border-2 flex items-center justify-center text-[10px]",
+                      log?.completed 
+                        ? "bg-emerald-500 border-emerald-500 text-white" 
+                        : "bg-white/40 border-white"
+                    )}
+                  >
+                    {log?.completed ? <CheckCircle2 size={10} /> : h.emoji}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className={cn("overflow-auto hide-scrollbar", isMaximized ? "flex-1" : "max-h-[500px]")}>
           <table className="w-full border-collapse">

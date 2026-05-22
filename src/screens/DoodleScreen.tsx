@@ -237,7 +237,7 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
         ctx.shadowBlur = s.width * 2.5;
         ctx.shadowColor = drawColor;
       } else if (s.tool === "pencil") {
-        ctx.globalAlpha = s.opacity * 0.7; // Grainy feel
+        ctx.globalAlpha = s.opacity; // Sharp pen feel
       } else if (s.tool === "spray") {
         ctx.globalAlpha = s.opacity * 0.5;
       }
@@ -631,8 +631,8 @@ export function DoodleScreen({ onSend, onClose }: DoodleScreenProps) {
                   {/* Tool Selection Row */}
                   <div className="grid grid-cols-5 gap-2">
                     {[
-                      { id: "pencil", icon: <Pen size={18} />, label: "Sketch" },
-                      { id: "brush", icon: <Palette size={18} />, label: "Paint" },
+                      { id: "pencil", icon: <Pen size={18} />, label: "Pen" },
+                      { id: "brush", icon: <Palette size={18} />, label: "Brush" },
                       { id: "spray", icon: <Sparkles size={18} />, label: "Spray" },
                       { id: "neon", icon: <Zap size={18} />, label: "Neon" },
                       { id: "eraser", icon: <Trash2 size={18} />, label: "Erase" }
