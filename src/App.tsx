@@ -525,7 +525,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 mt-1 mr-4">
+              <div className="flex items-center gap-2 mt-1 mr-8">
                 <motion.div
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {

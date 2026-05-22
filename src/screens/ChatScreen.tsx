@@ -2110,15 +2110,15 @@ export function ChatScreen({ socket }: ChatProps) {
       {/* ADVANCED HEADER */}
       <div className="fixed top-0 left-0 right-0 z-[100] pt-safe-top bg-bg/85 backdrop-blur-2xl border-b border-border/40 shadow-sm flex flex-col">
         {/* Primary Row Container */}
-        <div className="px-4 py-3 flex items-center justify-between w-full">
-          <div className="flex items-center gap-3">
+        <div className="px-2 py-3 flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
           <button
             onClick={() => setView("home")}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-card border border-border text-text shadow-sm active:scale-90 transition-all hover:bg-black/5"
           >
             <ChevronLeft size={24} />
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div className="relative">
               <div
                 className="w-11 h-11 rounded-full overflow-hidden bg-card border-2 border-white dark:border-[#1a1a2e] shadow-sm flex items-center justify-center relative z-10 cursor-pointer hover:scale-105 transition-transform"
@@ -2156,16 +2156,6 @@ export function ChatScreen({ socket }: ChatProps) {
         </div>
 
         <div className="flex items-center gap-2 relative">
-          <div
-            onClick={() =>
-              alert(
-                "Your messages and photos are End-to-End Encrypted (E2EE) and secured. Only you and your partner can see them.",
-              )
-            }
-            className="w-8 h-8 rounded-full bg-card/60 flex items-center justify-center cursor-pointer hover:bg-black/5 transition-colors mr-1"
-          >
-            <Lock size={12} className="text-emerald-500/80" />
-          </div>
           {distanceStats && (
             <div
               className="px-3 py-1.5 rounded-full bg-card/60 border border-white/50 dark:border-white/10 flex items-center gap-1.5 shadow-sm text-[11px] font-bold text-text/80 cursor-pointer hover:bg-primary/5 transition-colors"
