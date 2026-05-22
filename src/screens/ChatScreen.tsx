@@ -24,6 +24,7 @@ import {
   Image as ImageIcon,
   Lock,
   Mic,
+  Phone,
   Square,
   Play,
   Camera,
@@ -2863,6 +2864,21 @@ export function ChatScreen({ socket }: ChatProps) {
             />
           )}
           
+          <button
+            onClick={() => {
+              const whatsappNumber = user?.nickname?.toLowerCase().includes("dhruvya") 
+                ? "8791013105" 
+                : user?.nickname?.toLowerCase().includes("anjali") 
+                  ? "7889686144" 
+                  : "8791013105"; 
+              window.open(`https://wa.me/${whatsappNumber}`, "_blank");
+            }}
+            className="w-10 h-10 rounded-xl bg-[#25D366] text-white flex items-center justify-center shrink-0 active:scale-95 transition-all shadow-md mb-0.5"
+            title="WhatsApp Call"
+          >
+            <Phone size={18} />
+          </button>
+
           {isRecording ? (
             <button
               onClick={stopRecording}

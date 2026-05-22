@@ -8,6 +8,7 @@ import { getMessaging } from "firebase-admin/messaging";
 
 let isFirebaseAdminInitialized = false;
 
+async function start() {
   // Initialize Firebase Admin if Service Account is provided
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
@@ -34,13 +35,12 @@ let isFirebaseAdminInitialized = false;
         });
       }
       isFirebaseAdminInitialized = true;
-      console.log("Firebase Admin initialized successfully.");
+      console.log("[BLABLU] Firebase Admin initialized successfully.");
     } catch (error: any) {
-      console.error("⚠️ Failed to parse/initialize FIREBASE_SERVICE_ACCOUNT:", error.message);
+      console.error("⚠️ [BLABLU] Failed to parse/initialize FIREBASE_SERVICE_ACCOUNT:", error.message);
     }
   }
 
-async function start() {
   const app = express();
   app.use(cors());
   app.use(express.json()); // Enable JSON body parsing for API requests
@@ -139,13 +139,22 @@ async function start() {
     });
   });
 
-  if (process.env.NODE_ENV === "production") {
+  const isProduction = process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT || process.env.RENDER || process.cwd().includes('/app');
+  
+  if (isProduction) {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    console.log(`[BLABLU] Serving static files from: ${distPath}`);
+    if (express.static(distPath)) {
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        const indexPath = path.join(distPath, 'index.html');
+        res.sendFile(indexPath);
+      });
+    } else {
+      console.error("[BLABLU] Static directory not found or inaccessible!");
+    }
   } else {
+    console.log("[BLABLU] Starting in DEVELOPMENT mode (Vite Middleware)");
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
