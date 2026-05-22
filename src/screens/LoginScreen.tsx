@@ -164,6 +164,7 @@ export function LoginScreen() {
             <div>
               <h1 className="text-4xl font-black text-text tracking-tighter lowercase">BLABLU</h1>
               <p className="text-text/30 font-black uppercase tracking-[0.2em] text-[9px]">Strictly Private Space</p>
+              <p className="text-primary/40 font-black uppercase tracking-[0.2em] text-[8px] mt-1">End-to-End Encrypted</p>
             </div>
           </div>
 
