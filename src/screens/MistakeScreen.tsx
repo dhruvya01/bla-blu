@@ -274,7 +274,6 @@ export function MistakeScreen() {
       case 1:
         return {
           icon: <Meh className="text-yellow-400" size={24} />,
-          title: "Slight Pout 🤨",
           badgeColor: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
           cardBorder: "border-yellow-200 dark:border-yellow-900/30",
           cardBg: "from-yellow-50/40 to-amber-50/10 dark:from-yellow-950/10 dark:to-transparent",
@@ -283,7 +282,6 @@ export function MistakeScreen() {
       case 2:
         return {
           icon: <Frown className="text-orange-400" size={24} />,
-          title: "Folded Arms 😤",
           badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
           cardBorder: "border-orange-200 dark:border-orange-950/30",
           cardBg: "from-orange-50/40 to-amber-50/10 dark:from-orange-950/10 dark:to-transparent",
@@ -292,7 +290,6 @@ export function MistakeScreen() {
       case 3:
         return {
           icon: <Angry className="text-pink-500 animate-bounce" size={24} />,
-          title: "Steam Ears 🌋",
           badgeColor: "bg-pink-500/10 text-pink-500 border-pink-500/20",
           cardBorder: "border-pink-200 dark:border-pink-950/30",
           cardBg: "from-pink-50/40 to-rose-50/10 dark:from-pink-950/10 dark:to-transparent",
@@ -301,7 +298,6 @@ export function MistakeScreen() {
       case 4:
         return {
           icon: <HeartCrack className="text-rose-500 animate-pulse" size={24} />,
-          title: "Silent Treatment 🤐",
           badgeColor: "bg-rose-500/10 text-rose-500 border-rose-500/20",
           cardBorder: "border-rose-300 dark:border-rose-950/50",
           cardBg: "from-rose-50/60 to-rose-100/10 dark:from-rose-950/15 dark:to-transparent",
@@ -311,7 +307,6 @@ export function MistakeScreen() {
       default:
         return {
           icon: <Flame className="text-red-500 animate-pulse" size={26} />,
-          title: "GODZILLA RAGE 🦖🔥",
           badgeColor: "bg-red-505/20 text-red-600 dark:text-red-400 border-red-500/30 font-black tracking-widest",
           cardBorder: "border-red-400 dark:border-red-900/60 ring-2 ring-red-500/20 animate-pulse",
           cardBg: "from-red-100/50 to-orange-100/15 dark:from-red-950/20 dark:to-transparent bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-200/20 via-transparent to-transparent",
@@ -465,7 +460,7 @@ export function MistakeScreen() {
                             "px-2.5 py-1 text-[9px] font-black tracking-widest uppercase rounded-full border border-current",
                             specs.badgeColor
                           )}>
-                            Level {mistake.angerLevel} • {specs.title}
+                            Level {mistake.angerLevel} / 5
                           </span>
                           
                           {/* Case status indicator */}
@@ -605,7 +600,7 @@ export function MistakeScreen() {
                     <div className="bg-bg/40 dark:bg-bg/20 border-t border-border/60 p-5 font-sans z-10 relative">
                       <div className="flex items-center gap-2 text-[10px] text-text/40 font-black uppercase tracking-wider mb-3">
                         <MessageCircle size={12} />
-                        <span>Cute Comment Thread ({mistake.comments.length})</span>
+                        <span>Comments ({mistake.comments.length})</span>
                       </div>
 
                       {/* Display comments chronologically */}
@@ -650,7 +645,7 @@ export function MistakeScreen() {
                               handleAddComment(mistake.id);
                             }
                           }}
-                          placeholder={isAccused ? "Write your explanation or apology... 🥺" : "Leave a loving reaction or comment... 💬"}
+                          placeholder="Wannna say anything ??"
                           className="flex-1 bg-card/90 border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary focus:outline-none placeholder-text/30"
                         />
                         <motion.button
@@ -711,37 +706,7 @@ export function MistakeScreen() {
                     className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-primary focus:outline-none placeholder-text/30"
                   />
 
-                  {/* Quick option buttons */}
-                  <div className="mt-2.5">
-                    <span className="text-[9px] uppercase font-black text-text/45 block mb-1.5 font-display">Or choose standard category:</span>
-                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1 no-scrollbar">
-                      {[
-                        "Replied late or went offline 📱",
-                        "Forgot a sweet promise 🧠",
-                        "No morning kisses or warm hugs 🥺",
-                        "Finished snacks/treats without me 🍕",
-                        "Slept early without saying goodnight 🥱",
-                        "Did not listen to my venting 😤"
-                      ].map((item) => (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => {
-                            sensory.play("tick");
-                            setTitle(item);
-                          }}
-                          className={cn(
-                            "text-[10px] px-2.5 py-1.5 rounded-lg border text-left transition-all",
-                            title === item
-                              ? "bg-primary/20 border-primary text-primary font-bold"
-                              : "bg-bg border-border text-text/60 hover:border-text/35"
-                          )}
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+
                 </div>
 
                 <div>
