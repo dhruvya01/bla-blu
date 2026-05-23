@@ -261,7 +261,7 @@ async function start() {
     }
   }
 
-  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+  const PORT = 3000;
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`[BLABLU] Server listening on 0.0.0.0:${PORT}`);
     console.log(`[BLABLU] NODE_ENV: ${process.env.NODE_ENV}`);

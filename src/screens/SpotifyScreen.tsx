@@ -116,8 +116,8 @@ export function SpotifyScreen() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Low bitrate for memory efficiency (16kbps)
-      const options = { audioBitsPerSecond: 16000 };
+      // Balanced bitrate for decent quality and memory efficiency (64kbps = ~480KB per min)
+      const options = { audioBitsPerSecond: 64000 };
       const recorder = new MediaRecorder(stream, options);
       const chunks: Blob[] = [];
       
