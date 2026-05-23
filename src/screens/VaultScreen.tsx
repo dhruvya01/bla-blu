@@ -161,24 +161,23 @@ function VideoCard({ video, onSelect }: { video: VaultVideo, onSelect: (video: V
       className="group relative aspect-video bg-black overflow-hidden cursor-pointer active:scale-[0.96] transition-transform rounded-2xl border border-border/40 shadow-sm flex items-center justify-center"
     >
       <video 
-        src={decryptedUrl + "#t=0.5"} 
+        src={decryptedUrl} 
         preload="metadata"
+        playsInline
+        muted
         onLoadedData={() => setIsLoaded(true)}
-        className={cn(
-          "w-full h-full object-cover transition-opacity duration-300",
-          isLoaded ? "opacity-60 group-hover:opacity-100" : "opacity-0"
-        )}
+        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-300"
       />
       
       {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
           <Film size={20} className="text-text/30 animate-pulse" />
         </div>
       )}
 
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:bg-white/30 transition-all border border-white/20">
-          <Play size={16} fill="currentColor" className="ml-0.5 animate-pulse-slow" />
+          <Play size={16} fill="currentColor" className="ml-0.5" />
         </div>
       </div>
 

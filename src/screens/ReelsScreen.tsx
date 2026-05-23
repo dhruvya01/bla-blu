@@ -50,6 +50,10 @@ interface ReelData {
     text: string;
     createdAt: number;
   }>;
+  fitMode?: "cover" | "contain" | "card";
+  objectPositionX?: number; // 0 to 100 percentage
+  objectPositionY?: number; // 0 to 100 percentage
+  cardTheme?: string; // name of framing style
 }
 
 interface ReelItemProps {
@@ -82,6 +86,7 @@ function ReelItem({
   currentUserId,
 }: ReelItemProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const backgroundVideoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoSrc, setVideoSrc] = useState<string>("");
   const [isCaching, setIsCaching] = useState(true);
@@ -171,23 +176,36 @@ function ReelItem({
           console.log("Autoplay failed:", err);
           setIsPlaying(false);
         });
+        if (backgroundVideoRef.current) {
+          backgroundVideoRef.current.play().catch(() => {});
+        }
       } else {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
         setIsPlaying(false);
+        if (backgroundVideoRef.current) {
+          backgroundVideoRef.current.pause();
+          backgroundVideoRef.current.currentTime = 0;
+        }
       }
     }
-  }, [isActive, videoSrc, isCaching]);
+  }, [isActive, videoSrc, isCaching, reel.fitMode]);
 
   const handleVideoClick = () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
         setIsPlaying(false);
+        if (backgroundVideoRef.current) {
+          backgroundVideoRef.current.pause();
+        }
       } else {
         videoRef.current.play().then(() => {
           setIsPlaying(true);
         });
+        if (backgroundVideoRef.current) {
+          backgroundVideoRef.current.play().catch(() => {});
+        }
       }
     }
   };
@@ -221,21 +239,73 @@ function ReelItem({
     lastTap.current = now;
   };
 
+  const hasBackgroundBackdrop = reel.fitMode === "contain";
+  const renderAsPolaroidCard = reel.fitMode === "card";
+  const fitStyle = reel.fitMode === "card" ? "contain" : (reel.fitMode || "cover");
+
   return (
     <div 
       onClick={handleContainerClick}
-      className="w-full h-full snap-start snap-always relative flex items-center justify-center bg-black cursor-pointer select-none"
+      className="w-full h-full snap-start snap-always relative flex items-center justify-center bg-zinc-950 cursor-pointer select-none overflow-hidden"
     >
-      {/* Video element */}
-      {videoSrc && !isCaching ? (
+      {/* Blurred duplication background backdrop for landscape videos styled Contain */}
+      {videoSrc && !isCaching && hasBackgroundBackdrop && (
         <video
-          ref={videoRef}
+          ref={backgroundVideoRef}
           src={videoSrc}
           loop
           playsInline
-          muted={isMuted}
-          className="w-full h-full object-cover max-h-[100dvh]"
+          muted
+          className="absolute inset-0 w-full h-full object-cover filter blur-3xl opacity-50 scale-110 pointer-events-none"
         />
+      )}
+
+      {/* Main Video presentation viewport */}
+      {videoSrc && !isCaching ? (
+        renderAsPolaroidCard ? (
+          <div className={cn(
+            "z-10 w-[86%] aspect-[3/4] rounded-3xl flex flex-col p-4 shadow-2xl relative border",
+            reel.cardTheme === 'romantic-pink' && "bg-gradient-to-br from-pink-100 to-rose-50 border-pink-200/50",
+            reel.cardTheme === 'sunset-dream' && "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50",
+            reel.cardTheme === 'lavender-mist' && "bg-gradient-to-br from-purple-100 to-indigo-50 border-indigo-200/50",
+            reel.cardTheme === 'cherry-blossom' && "bg-stone-50 border-stone-200/60"
+          )}>
+            <div className="text-center font-sans uppercase tracking-widest text-[9px] font-extrabold text-text/40 mb-2.5 flex items-center justify-center gap-1">
+               ✨ Memory Frame ✨
+            </div>
+            
+            <div className="flex-1 bg-black rounded-2xl overflow-hidden relative flex items-center justify-center shadow-inner">
+               <video
+                 ref={videoRef}
+                 src={videoSrc}
+                 loop
+                 playsInline
+                 muted={isMuted}
+                 className="w-full h-full object-contain"
+               />
+            </div>
+
+            <div className="mt-3.5 pb-1 text-center flex flex-col items-center justify-center">
+               <Heart size={14} className="fill-rose-500 text-rose-500 animate-pulse mb-1" />
+               <span className="font-display font-black text-[11px] text-text/75 truncate w-full italic px-2">
+                  {reel.caption}
+               </span>
+            </div>
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            src={videoSrc}
+            loop
+            playsInline
+            muted={isMuted}
+            style={{
+              objectFit: fitStyle,
+              objectPosition: `${reel.objectPositionX !== undefined ? reel.objectPositionX : 50}% ${reel.objectPositionY !== undefined ? reel.objectPositionY : 50}%`
+            }}
+            className="w-full h-full max-h-[100dvh]"
+          />
+        )
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 gap-3">
           <Loader2 size={36} className="animate-spin text-primary" />
@@ -448,6 +518,10 @@ export function ReelsScreen() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [captionText, setCaptionText] = useState("");
   const [chosenVideoUrl, setChosenVideoUrl] = useState("");
+  const [fitMode, setFitMode] = useState<"cover" | "contain" | "card">("cover");
+  const [objectPositionX, setObjectPositionX] = useState<number>(50);
+  const [objectPositionY, setObjectPositionY] = useState<number>(50);
+  const [cardTheme, setCardTheme] = useState<string>("romantic-pink");
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Comments state
@@ -575,6 +649,10 @@ export function ReelsScreen() {
       const data = await res.json();
       if (data.secure_url) {
         setChosenVideoUrl(data.secure_url);
+        setFitMode("cover");
+        setObjectPositionX(50);
+        setObjectPositionY(50);
+        setCardTheme("romantic-pink");
         setShowUploadModal(true);
       } else {
         alert("Upload was not successful. Try again!");
@@ -599,6 +677,10 @@ export function ReelsScreen() {
         createdAt: serverTimestamp(),
         likes: [],
         comments: [],
+        fitMode: fitMode || "cover",
+        objectPositionX: objectPositionX ?? 50,
+        objectPositionY: objectPositionY ?? 50,
+        cardTheme: cardTheme || "romantic-pink",
       });
 
       // Clear & Close
@@ -1031,36 +1113,210 @@ export function ReelsScreen() {
       {/* Caption Sharing Dialog modal */}
       <AnimatePresence>
         {showUploadModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-md overflow-y-auto">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card w-full max-w-sm rounded-[24px] border border-border overflow-hidden p-5 text-text"
+              className="bg-card w-full max-w-sm rounded-[32px] border border-border overflow-hidden p-6 text-text shadow-2xl my-auto"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-base text-text font-display">New Reel Post</h3>
+                <div className="flex flex-col">
+                  <h3 className="font-extrabold text-lg text-text font-display">New Reel Post</h3>
+                  <span className="text-[10px] text-text/40 uppercase tracking-widest font-black font-sans">Visual Positioning Editor</span>
+                </div>
                 <button
                   onClick={() => setShowUploadModal(false)}
-                  className="p-1 rounded-full text-text/50 hover:text-text"
+                  className="p-1.5 rounded-full hover:bg-neutral-500/10 text-text/50 hover:text-text transition-colors"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              {/* Video Preview Miniature */}
-              <div className="w-full aspect-[16/9] rounded-xl overflow-hidden bg-black mb-4 flex items-center justify-center relative">
-                <video
-                  src={getOptimizedCloudinaryUrl(chosenVideoUrl)}
-                  muted
-                  playsInline
-                  autoPlay
-                  loop
-                  className="w-full h-full object-cover"
-                />
-                <span className="absolute bottom-2 left-2 text-[8px] bg-black/60 text-white px-1.5 py-0.5 rounded uppercase font-black tracking-widest">
-                  Preview
+              {/* simulated Live feed screen monitor */}
+              <div className="w-full h-64 rounded-2xl bg-black relative overflow-hidden shadow-inner border border-border/80 flex items-center justify-center mb-4">
+                {fitMode === "contain" && (
+                  <video
+                    src={getOptimizedCloudinaryUrl(chosenVideoUrl)}
+                    muted
+                    playsInline
+                    autoPlay
+                    loop
+                    className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-110 pointer-events-none"
+                  />
+                )}
+
+                {/* Main preview loader elements */}
+                <div className="absolute inset-0 z-0 flex items-center justify-center text-text/10 bg-zinc-950 pointer-events-none">
+                  <Film size={48} className="animate-pulse" />
+                </div>
+
+                {/* Interactive live viewport */}
+                <div className="absolute inset-0 w-full h-full z-10 flex items-center justify-center overflow-hidden">
+                  {fitMode === "card" ? (
+                    <div className={cn(
+                      "w-[76%] h-[85%] rounded-2xl flex flex-col p-2.5 shadow-2xl relative border transition-all duration-300",
+                      cardTheme === 'romantic-pink' && "bg-gradient-to-br from-pink-100 to-rose-50 border-pink-200/50",
+                      cardTheme === 'sunset-dream' && "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50",
+                      cardTheme === 'lavender-mist' && "bg-gradient-to-br from-purple-100 to-indigo-50 border-indigo-200/50",
+                      cardTheme === 'cherry-blossom' && "bg-stone-50 border-stone-200/60"
+                    )}>
+                      <div className="text-center font-sans uppercase tracking-widest text-[8px] font-extrabold text-text/40 mb-1.5">
+                         ✨ Sweet Frame ✨
+                      </div>
+                      <div className="flex-1 bg-black rounded-xl overflow-hidden relative flex items-center justify-center shadow-inner">
+                         <video
+                           src={getOptimizedCloudinaryUrl(chosenVideoUrl)}
+                           muted
+                           playsInline
+                           autoPlay
+                           loop
+                           className="w-full h-full object-contain"
+                         />
+                      </div>
+                      <div className="mt-2 text-center flex flex-col items-center justify-center overflow-hidden shrink-0">
+                         <Heart size={10} className="fill-rose-500 text-rose-500 animate-pulse mb-0.5" />
+                         <span className="font-display font-black text-[9px] text-text/75 truncate w-full italic px-1">
+                            {captionText || "Together is better 💖"}
+                         </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <video
+                      src={getOptimizedCloudinaryUrl(chosenVideoUrl)}
+                      muted
+                      playsInline
+                      autoPlay
+                      loop
+                      style={{
+                        objectFit: fitMode,
+                        objectPosition: `${objectPositionX}% ${objectPositionY}%`,
+                      }}
+                      className="w-full h-full transition-all duration-150"
+                    />
+                  )}
+                </div>
+
+                {/* Simulated frame overlays */}
+                <span className="absolute top-2 left-2 z-20 text-[8px] bg-black/75 backdrop-blur-md text-white/95 px-2 py-0.5 rounded-full uppercase font-black tracking-widest flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
+                  Live Crop Feed
                 </span>
+                <span className="absolute bottom-2 right-2 z-20 text-[8px] bg-primary text-white font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-sm">
+                   {fitMode === 'cover' ? "Full Crop" : fitMode === 'contain' ? "Insta-Fit" : "Polaroid"}
+                </span>
+              </div>
+
+              {/* Layout Fit Selection tabs */}
+              <div className="space-y-3.5 mb-4 shrink-0">
+                <div>
+                  <label className="text-[10px] uppercase font-black tracking-wider text-text/45 block mb-1.5">Fit & Framing Options</label>
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-bg border border-border rounded-xl">
+                    <button
+                      onClick={() => { setFitMode('cover'); sensory.play("pop"); }}
+                      className={cn(
+                        "py-1.5 text-[10px] font-black rounded-lg transition-all",
+                        fitMode === 'cover' ? "bg-primary text-white shadow-sm" : "text-text/60 hover:text-text hover:bg-neutral-500/5"
+                      )}
+                    >
+                      Cover-Crop
+                    </button>
+                    <button
+                      onClick={() => { setFitMode('contain'); sensory.play("pop"); }}
+                      className={cn(
+                        "py-1.5 text-[10px] font-black rounded-lg transition-all",
+                        fitMode === 'contain' ? "bg-primary text-white shadow-sm" : "text-text/60 hover:text-text hover:bg-neutral-500/5"
+                      )}
+                    >
+                      Insta-Fit
+                    </button>
+                    <button
+                      onClick={() => { setFitMode('card'); sensory.play("pop"); }}
+                      className={cn(
+                        "py-1.5 text-[10px] font-black rounded-lg transition-all",
+                        fitMode === 'card' ? "bg-primary text-white shadow-sm" : "text-text/60 hover:text-text hover:bg-neutral-500/5"
+                      )}
+                    >
+                      Gift Frame
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub-panels for individual crop styles */}
+                <AnimatePresence mode="wait">
+                  {fitMode === 'cover' && (
+                    <motion.div
+                      key="cover-options"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="space-y-2.5 bg-bg border border-border rounded-2xl p-3"
+                    >
+                      <div>
+                        <div className="flex justify-between items-center text-[10px] mb-1 font-sans">
+                          <span className="font-black text-text/50">Horizontal Center (X-Crop Shift)</span>
+                          <span className="font-bold text-primary">{objectPositionX}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={objectPositionX}
+                          onChange={(e) => setObjectPositionX(parseInt(e.target.value))}
+                          className="w-full accent-primary cursor-pointer h-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-lg appearance-none"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-center text-[10px] mb-1 font-sans">
+                          <span className="font-black text-text/50">Vertical Center (Y-Crop Shift)</span>
+                          <span className="font-bold text-primary">{objectPositionY}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={objectPositionY}
+                          onChange={(e) => setObjectPositionY(parseInt(e.target.value))}
+                          className="w-full accent-primary cursor-pointer h-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-lg appearance-none"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {fitMode === 'card' && (
+                    <motion.div
+                      key="card-options"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="space-y-2 bg-bg border border-border rounded-2xl p-3"
+                    >
+                      <label className="text-[9px] uppercase font-black text-text/45 block mb-1 font-sans">Border Card Theme</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: 'romantic-pink', name: '🌸 Sweet Pink', class: 'bg-rose-400' },
+                          { id: 'sunset-dream', name: '🌇 Sunset Aura', class: 'bg-orange-400' },
+                          { id: 'lavender-mist', name: '🌌 Stardust', class: 'bg-indigo-500' },
+                          { id: 'cherry-blossom', name: '🍡 Soft Cream', class: 'bg-amber-100/50 border border-border/60' },
+                        ].map((theme) => (
+                          <button
+                            key={theme.id}
+                            onClick={() => { setCardTheme(theme.id); sensory.play("pop"); }}
+                            className={cn(
+                              "py-1.5 px-2 text-[9px] font-black rounded-lg transition-all flex items-center gap-1.5 border justify-start",
+                              cardTheme === theme.id 
+                                ? "bg-primary/5 border-primary text-primary shadow-xs ring-1 ring-primary/20" 
+                                : "text-text/70 bg-card/60 hover:bg-card border-border/40"
+                            )}
+                          >
+                            <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", theme.class)} />
+                            <span className="truncate">{theme.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <textarea
@@ -1068,19 +1324,19 @@ export function ReelsScreen() {
                 onChange={(e) => setCaptionText(e.target.value)}
                 placeholder="Give it an adorable caption..."
                 maxLength={180}
-                className="w-full h-20 px-3.5 py-2.5 bg-bg border border-border rounded-xl text-xs text-text focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none placeholder-text/50"
+                className="w-full h-16 px-4 py-3 bg-bg border border-border rounded-2xl text-xs text-text focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none placeholder-text/50 mb-4"
               />
 
-              <div className="flex gap-2.5 mt-4">
+              <div className="flex gap-2.5 select-none font-sans shrink-0">
                 <button
                   onClick={() => setShowUploadModal(false)}
-                  className="flex-1 py-3 bg-border/40 hover:bg-border/60 text-text/80 border border-border rounded-xl text-xs font-bold active:scale-95 transition-all"
+                  className="flex-1 py-3 bg-neutral-500/10 hover:bg-neutral-500/20 text-text/80 rounded-2xl text-xs font-extrabold active:scale-95 transition-all"
                 >
                   Discard
                 </button>
                 <button
                   onClick={handleShareReel}
-                  className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white rounded-xl text-xs font-bold shadow-md active:scale-95 transition-all"
+                  className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white rounded-2xl text-xs font-extrabold shadow-lg active:scale-95 transition-all"
                 >
                   Share Reel 🚀
                 </button>
