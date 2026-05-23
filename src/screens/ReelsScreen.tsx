@@ -28,7 +28,8 @@ import {
   arrayUnion,
   arrayRemove,
 } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { db, storage } from "../firebase/config";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { cn } from "../utils";
 import { sensory } from "../utils/sensory";
 
@@ -590,12 +591,20 @@ export function ReelsScreen() {
     sensory.tap();
     try {
       // First, trigger Cloudinary Backend Delete
-      if (reel.videoUrl && reel.videoUrl.includes("cloudinary.com")) {
-        fetch("/api/cloudinary/delete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: reel.videoUrl }),
-        }).catch((err) => console.error("Cloudinary delete failed", err));
+      if (reel.videoUrl && (reel.videoUrl.includes("cloudinary.com") || reel.videoUrl.includes("firebasestorage.googleapis.com"))) {
+        try {
+            if (reel.videoUrl.includes("firebasestorage.googleapis.com")) {
+                await deleteObject(ref(storage, reel.videoUrl));
+            } else {
+                fetch("/api/cloudinary/delete", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ url: reel.videoUrl }),
+                }).catch((err) => console.error("Cloudinary delete failed", err));
+            }
+        } catch (err) {
+            console.error("Storage delete failed", err);
+        }
       }
 
       // Then delete Firestore doc
@@ -637,18 +646,12 @@ export function ReelsScreen() {
     setIsUploading(true);
     sensory.play("swoosh");
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "blablu_videos");
-
     try {
-      const res = await fetch("https://api.cloudinary.com/v1_1/dcwl4l70x/video/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.secure_url) {
-        setChosenVideoUrl(data.secure_url);
+      const videoRef = ref(storage, `reels/${roomId}/${Date.now()}_${file.name}`);
+      await uploadBytes(videoRef, file);
+      const url = await getDownloadURL(videoRef);
+      if (url) {
+        setChosenVideoUrl(url);
         setFitMode("cover");
         setObjectPositionX(50);
         setObjectPositionY(50);

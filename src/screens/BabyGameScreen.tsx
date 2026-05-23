@@ -7,6 +7,7 @@ import { cn } from '../utils';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { BabyState, BabyEvolution } from '../types';
+import { PlayMinigame } from '../components/PlayMinigame';
 import { CozyRoom } from '../components/CozyRoom';
 import {
   RECIPES, SUPPLIES, ROOM_THEMES, DAILY_TASKS, INITIAL_HOME,
@@ -22,7 +23,7 @@ export function BabyGameScreen() {
   const { user, roomId, babyEvolution, addCoins, feedBaby, cleanBaby, setBabyEvolution, setView } = useAppStore();
   const [babyState, setBabyState] = useState<BabyState|null>(null);
   const [home, setHome] = useState<HomeGameData>(INITIAL_HOME);
-  const [tab, setTab] = useState<'home'|'cook'|'shop'|'tasks'>('home');
+  const [tab, setTab] = useState<'home'|'cook'|'shop'|'tasks'|'play'>('home');
   const [cooking, setCooking] = useState<string|null>(null);
   const [cookingTime, setCookingTime] = useState(0);
   const [bathing, setBathing] = useState<'ukku'|'pukku'|null>(null);
@@ -155,6 +156,17 @@ export function BabyGameScreen() {
     sensory.play('sparkle');
   };
 
+  const handleExitPlay = (dirtAmount: number, coinsEarned: number) => {
+    if (coinsEarned > 0) addCoins(coinsEarned);
+    saveHome({ cleanliness: Math.max(0, home.cleanliness - dirtAmount) });
+    if (roomId) {
+      const uHygiene = Math.max(0, (babyEvolution.ukkuHygiene || 0) - dirtAmount);
+      const pHygiene = Math.max(0, (babyEvolution.pukkuHygiene || 0) - dirtAmount);
+      setDoc(doc(db, 'pairs', roomId, 'babyEvolution', 'current'), { ukkuHygiene: uHygiene, pukkuHygiene: pHygiene }, { merge: true });
+    }
+    setTimeout(() => { setTab('home'); }, 2000); // go back to home shortly after game ends
+  };
+
   const handleSleep = async () => {
     if (!roomId || !user) return;
     const isHer = user.perspective==='her';
@@ -225,7 +237,7 @@ export function BabyGameScreen() {
       <div className="mx-4 mt-4 relative group">
         <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-[32px] opacity-0 group-hover:opacity-100 transition-opacity duration-1000 -z-10" />
         <motion.div whileHover={{scale:1.01}} transition={{type:"spring", stiffness: 300, damping: 25}}>
-           <CozyRoom theme={home.roomTheme} isSleeping={isSleeping} cleanliness={home.cleanliness} onTapBaby={handleTapBaby}/>
+           <CozyRoom theme={home.roomTheme} isSleeping={isSleeping} cleanliness={home.cleanliness} onTapBaby={handleTapBaby} bathingBaby={bathing} ukkuHunger={ukkuHunger} pukkuHunger={pukkuHunger} ukkuHygiene={ukkuHygiene} pukkuHygiene={pukkuHygiene}/>
         </motion.div>
       </div>
 
@@ -286,7 +298,7 @@ export function BabyGameScreen() {
 
       {/* Tab Bar */}
       <div className="mx-4 mt-6 flex bg-card border border-white/50 dark:border-white/5 rounded-[24px] p-2 gap-2 shadow-sm">
-        {([['home','🏠','Home'],['cook','🍳','Cook'],['shop','🛒','Shop'],['tasks','✅','Tasks']] as const).map(([k,e,l])=>(
+        {([['home','🏠','Home'],['play','🎮','Play'],['cook','🍳','Cook'],['shop','🛒','Shop'],['tasks','✅','Tasks']] as const).map(([k,e,l])=>(
           <motion.button whileTap={{scale:0.92}} key={k} onClick={()=>setTab(k as any)} className={cn('flex-1 py-3 rounded-[16px] text-[10px] font-black uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-1.5 relative overflow-hidden',tab===k?'bg-primary text-white shadow-md':'text-text/40 hover:bg-text/5')}>
             {tab===k && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
             <span className="text-xl relative z-10 drop-shadow-sm">{e}</span>
@@ -364,6 +376,11 @@ export function BabyGameScreen() {
                 </motion.button>:null;
               })}</div>
             </div>}
+          </motion.div>}
+
+          {/* ── PLAY TAB ── */}
+          {tab==='play'&&<motion.div key="play" initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} className="space-y-4">
+             <PlayMinigame onExit={handleExitPlay} />
           </motion.div>}
 
           {/* ── COOK TAB ── */}

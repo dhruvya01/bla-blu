@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../store';
 import { getTimeOfDay, getRoomBrightness, ROOM_THEMES } from '../utils/homeGame';
 import { getRealBirthday } from '../utils/birthday';
@@ -8,8 +9,8 @@ const Ukku = (props: any) => <div className={`flex items-center justify-center $
 
 const PARTICLES = Array.from({length:6},(_,i)=>i);
 
-export function CozyRoom({ theme='default', isSleeping=false, cleanliness=75, onTapBaby }:
-  { theme?:string; isSleeping?:boolean; cleanliness?:number; onTapBaby?:(id:'ukku'|'pukku')=>void }) {
+export function CozyRoom({ theme='default', isSleeping=false, cleanliness=75, onTapBaby, bathingBaby, ukkuHunger=80, pukkuHunger=80, ukkuHygiene=80, pukkuHygiene=80 }:
+  { theme?:string; isSleeping?:boolean; cleanliness?:number; onTapBaby?:(id:'ukku'|'pukku')=>void; bathingBaby?: 'ukku'|'pukku'|null; ukkuHunger?: number; pukkuHunger?: number; ukkuHygiene?: number; pukkuHygiene?: number; }) {
   const tod = getTimeOfDay();
   const bright = getRoomBrightness();
   const t = ROOM_THEMES.find(r=>r.id===theme)||ROOM_THEMES[0];
@@ -17,6 +18,32 @@ export function CozyRoom({ theme='default', isSleeping=false, cleanliness=75, on
   const debugBirthday = useAppStore(s => s.debugBirthday);
   const birthdayPerson = debugBirthday || getRealBirthday();
   
+  const [ukkuSpeech, setUkkuSpeech] = useState<string|null>(null);
+  const [pukkuSpeech, setPukkuSpeech] = useState<string|null>(null);
+
+  // Periodically check status and speak
+  useEffect(() => {
+    if (isSleeping) return;
+    const interval = setInterval(() => {
+      // Pukku logic
+      if (bathingBaby === 'pukku') setPukkuSpeech("🫧 Splash! 🫧");
+      else if (pukkuHunger < 40) setPukkuSpeech(Math.random() > 0.5 ? "Mummy foof! 🥺" : "Papa eat! 🥪");
+      else if (pukkuHygiene < 30) setPukkuSpeech("I'm messy! 💩");
+      else if (cleanliness < 40) setPukkuSpeech("Dirty room! 🧹");
+      else if (Math.random() > 0.7) setPukkuSpeech(Math.random() > 0.5 ? "Papa diasor! 🦖" : "Vroom! 🚗");
+      else setPukkuSpeech(null);
+
+      // Ukku logic
+      if (bathingBaby === 'ukku') setUkkuSpeech("🫧 Yaaay! 🫧");
+      else if (ukkuHunger < 40) setUkkuSpeech(Math.random() > 0.5 ? "Mummy foof! 🥺" : "Papa eat! 🍪");
+      else if (ukkuHygiene < 30) setUkkuSpeech("Waaaa! Muddy! 💩");
+      else if (Math.random() > 0.7) setUkkuSpeech(Math.random() > 0.5 ? "Papa up up! ☁️" : "Mummy kissie! 😘");
+      else setUkkuSpeech(null);
+
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [ukkuHunger, pukkuHunger, ukkuHygiene, pukkuHygiene, cleanliness, isSleeping, bathingBaby]);
+
   return (
     <div className="relative w-full rounded-[28px] overflow-hidden shadow-xl border-4 border-white/20" style={{height:280, filter:`brightness(${bright})`}}>
       {/* Background Image or CSS Fallback */}
@@ -74,21 +101,53 @@ export function CozyRoom({ theme='default', isSleeping=false, cleanliness=75, on
         </>
       )}
       
-      {cleanliness<40&&<span className="absolute bottom-[36%] left-[45%] text-sm opacity-40">🧹</span>}
+      {cleanliness<40&&<span className="absolute bottom-[36%] left-[45%] text-sm opacity-40 animate-bounce">💩</span>}
+      {cleanliness<60&&<span className="absolute bottom-[40%] right-[30%] text-sm opacity-40">🧦</span>}
 
       {/* Babies */}
-      <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 flex items-end gap-1">
+      <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 flex items-end gap-2">
         <motion.div onClick={()=>onTapBaby?.('pukku')} whileTap={{scale:0.85}}
           animate={isSleeping?{y:[0,3,0],scale:0.9}:{y:[0,-4,0]}} transition={{duration:isSleeping?4:2.5,repeat:Infinity}}
           className="w-[90px] h-[90px] cursor-pointer relative">
-          <Pukku className="w-full h-full drop-shadow-xl"/>
+          <Pukku className="w-full h-full drop-shadow-xl" style={{ filter: pukkuHygiene < 40 ? 'sepia(0.5) hue-rotate(-30deg)' : 'none' }}/>
           {isSleeping&&<motion.span animate={{opacity:[0,1,0],y:[-5,-15]}} transition={{duration:2,repeat:Infinity}} className="absolute -top-3 right-0 text-sm">💤</motion.span>}
+          {bathingBaby === 'pukku' && <motion.span animate={{y:[-10,0], opacity:[1,0]}} transition={{duration:1, repeat:Infinity}} className="absolute inset-0 flex items-center justify-center text-4xl">🫧</motion.span>}
+          
+          <AnimatePresence>
+            {!isSleeping && pukkuSpeech && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.5, y: 10 }} 
+                animate={{ opacity: 1, scale: 1, y: -10 }} 
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-text font-black text-[10px] whitespace-nowrap px-2 py-1 rounded-full shadow-lg border border-black/5"
+              >
+                {pukkuSpeech}
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-r border-b border-black/5" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
+
         <motion.div onClick={()=>onTapBaby?.('ukku')} whileTap={{scale:0.8}}
           animate={isSleeping?{y:[0,2,0],scale:0.6}:{y:[0,-3,0],scale:0.7}} transition={{duration:isSleeping?4.5:3,repeat:Infinity}}
           className="w-[70px] h-[70px] cursor-pointer origin-bottom relative -ml-3">
-          <Ukku className="w-full h-full drop-shadow-xl"/>
+          <Ukku className="w-full h-full drop-shadow-xl" style={{ filter: ukkuHygiene < 40 ? 'sepia(0.4) hue-rotate(-20deg)' : 'none' }}/>
           {isSleeping&&<motion.span animate={{opacity:[0,1,0],y:[-3,-10]}} transition={{duration:2.5,repeat:Infinity,delay:0.5}} className="absolute -top-2 right-0 text-[10px]">💤</motion.span>}
+          {bathingBaby === 'ukku' && <motion.span animate={{y:[-10,0], opacity:[1,0]}} transition={{duration:1, repeat:Infinity}} className="absolute inset-0 flex items-center justify-center text-4xl">🫧</motion.span>}
+
+          <AnimatePresence>
+            {!isSleeping && ukkuSpeech && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.5, y: 10 }} 
+                animate={{ opacity: 1, scale: 1, y: -10 }} 
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white text-text font-black text-[10px] whitespace-nowrap px-2 py-1 rounded-full shadow-lg border border-black/5"
+              >
+                {ukkuSpeech}
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-r border-b border-black/5" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
       {/* Floating particles */}

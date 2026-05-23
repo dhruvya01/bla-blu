@@ -517,10 +517,11 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       } = state.babyEvolution;
 
       // Slower rates: 100 points should take ~8-12 hours (240-360 standard ticks)
-      // Rate per 2-min tick: 100 / 300 = ~0.33
-      const baseHungerRate = (isSleeping ? 0.1 : 0.25) + Math.random() * 0.1;
-      const baseHygieneRate = 0.15 + Math.random() * 0.1;
-      const baseSleepinessRate = isSleeping ? -2 : 0.5;
+      // Rate per 2-min tick: 100 / 300 = ~0.33 -> CHANGED to 15-min ticks!
+      // In 8 hours there are 32 ticks (15 mins each). To lose 100 hunger in 8h: 100 / 32 = 3.125
+      const baseHungerRate = (isSleeping ? 1.0 : 3.0) + Math.random() * 0.5;
+      const baseHygieneRate = 1.5 + Math.random() * 0.5;
+      const baseSleepinessRate = isSleeping ? -15 : 2.0;
 
       const deltaHunger = baseHungerRate * ticksPassed;
       const deltaHygiene = baseHygieneRate * ticksPassed;

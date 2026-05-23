@@ -87,7 +87,7 @@ const getBabyMessages = (babyId: 'pukku'|'ukku', mood: MoodState, birthdayMs: nu
       return {
         happy:   ['Vroooo! ✨', '*coos*', 'Gurgle! 🎀', '*tiny smile*', 'Hehe!', 'Mama I love you! 💕', 'Papa see me! ✨', '*squeal* 🌸', 'You are the best Mama! 💖', 'Yay Papa! 🌟', 'Happy baby! 🎈', 'Mummy give kissie! 😘', 'Papa up up! ☁️', 'Haha! 🎉'],
         sleepy:  ['*yawn*... ☁️', 'M-ma...?', 'P-pa...', 'Zzz... 😴', 'Sleepy baby... 🧸', 'Hug me? 🌙', 'Sweet dreams... ✨', 'Night night Mama 😴', '*rubs eyes* 🥺', 'Hold me Papa 🧸'],
-        hungry:  ['🍼', '🍼🍼', 'Waaaa! 🥺', '*smacks lips*', 'Milk please! 🍼', 'Mumma hungry! 🥺', 'Papa snack! 🥪', 'I need milkie! 🍼', 'Mummy food! 🥺', 'Nom nom! 🍓'],
+        hungry:  ['🍼', '🍼🍼', 'Waaaa! 🥺', '*smacks lips*', 'Milk please! 🍼', 'Mumma foof! 🥺', 'Papa eat! 🥪', 'I need milkie! 🍼', 'Mummy foof! 🥺', 'Nom nom! 🍓', 'Papa eat! 🥺'],
         playful: ['Vroo vroo! 🎀', 'Woooo! ✨', '*jiggles*', 'Play play! 🎈', 'Peek-a-boo! 🫣', 'Catch me Mama! 🏃‍♀️', 'Papa tickle! 😂', 'Up up! ☁️', 'Papa diasor! 🦖', '*giggles* ✨'],
         sad:     ['P-pa? 🥺', '*sniffle* 💧', 'M-ma...', 'Waaa...', 'Hold me... 💔', 'Don\'t go... 🌫️', 'I miss you! 🥺', '*pouts* 🥺', 'Waaa 💧'],
         crying:  ['WAAAAAAAAA! 😭', 'WAAAA! 💔', '🍼!!!', 'Waaa waaa!', 'Mumma! 😭', 'PAPA HELP! 🥺', 'I want huggy! 💔'],
@@ -96,7 +96,7 @@ const getBabyMessages = (babyId: 'pukku'|'ukku', mood: MoodState, birthdayMs: nu
     return {
       happy:   ['Mama! Papa! *coos*', 'I love you! 💖', 'Gurgle! ✨', '*giggles*', 'Happy baby girl! 🎀', 'Look at me! 🌟', 'Yay! 🎉', 'Mummy give kissie! 😘', 'Papa funny! 😂'],
       sleepy:  ['*yawn*... 🌙', 'Cuddle me? 🥺', 'Nap time... ☁️', 'Zzz... 😴', 'Tired girl... 🧸', 'Sing for me? 🎵', '*rubs eyes* 🥺'],
-      hungry:  ['Milk please! 🍼', 'Hungry baby... 🍓', 'Waaa! 🥺', '*smacks lips* 🌸', 'Hungry for Mama! 🍎', 'Papa cookie? 🍪', 'Mummy food! 🥺', 'Nom nom! 🍓'],
+      hungry:  ['Milk please! 🍼', 'Hungry baby... 🍓', 'Waaa! 🥺', '*smacks lips* 🌸', 'Mummy foof! 🍎', 'Papa eat! 🍪', 'Mummy foof! 🥺', 'Nom nom! 🍓'],
       playful: ['Peek-a-boo! 🫣', 'Woooo! 🎀', 'Dance! ✨', '*jiggles*', 'Spin me! 🌪️', 'Go go go! 🚀', 'Papa diasor! 🦖', 'Catch me! 🏃‍♀️'],
       sad:     ['Mama? Papa? 🥺', '*sniffle* 💧', 'Where are you? 🌫️', 'Huggy... 💕', 'Lonely... 🌧️', '*pouts* 🥺'],
       crying:  ['WAAAAAAAAA! 😭', 'I need you! 💔', '*sad baby sounds*', 'HELP! 🍼', 'Waaaa! 😭😭'],
@@ -106,7 +106,7 @@ const getBabyMessages = (babyId: 'pukku'|'ukku', mood: MoodState, birthdayMs: nu
     return {
       happy:   ['I help sissy! 🦸‍♂️', 'Look! I big brother! 🌟', 'Yay!! 💙', 'I love Ukku! 🎀', 'Fun fun fun! 🦖', 'Papa look! ✨', 'Mumma I did it! 🎉', 'I big boy now! 🏃‍♂️', 'Love you Mumma! 💕', 'Love you Papa! 💙', 'Give me kissie! 😘', 'Woooooo! 🚗'],
       sleepy:  ['Ukku sleepy too... 🧸', 'Bed time! 💤', 'I protect sissy... 🌙', 'Night night! 😴', 'Tired boy... 🥱', 'Dreaming of dinos... 💤', 'Stay with me Papa 🥺', 'Read me story Mummy 📚', '*yawns big* 🥱'],
-      hungry:  ['Big snack! 🍎', 'I feed Ukku? 🍼', 'Hungry boy! 🦖', 'Yum yum! 🥺', 'Mumma food please! 🍽️', 'Papa sandwich! 🥪', 'I want pizza! 🍕', 'More strawberries! 🍓', 'Mummy food! 🥺', 'Num num num! 😋'],
+      hungry:  ['Big snack! 🍎', 'I feed Ukku? 🍼', 'Hungry boy! 🦖', 'Yum yum! 🥺', 'Mumma foof! 🍽️', 'Papa eat! 🥪', 'I want pizza! 🍕', 'More strawberries! 🍓', 'Mummy foof! 🥺', 'Num num num! 😋'],
       playful: ['Catch me! 🏃‍♂️', 'I teach Ukku play! ⚡', 'Vroom vroom! 🚗', 'Study time! 📚', 'Dinosaur roar! 🦖', 'Hide and seek! 🫣', 'I drive the car! 🏎️', 'Super Pukku! 🦸‍♂️', 'Papa diasor! 🦖', 'Rawrrrr! 🦖', 'Tickle tickle! 😂'],
       sad:     ['Where is sissy? 🥺', 'Hug for me? 💧', 'Lonely boy... 🌧️', '*sniff* 🌫️', 'Papa come back... 🥺', 'I want Mama... 🌫️', 'Waaa 🥺'],
       crying:  ['HMPHHH! 😭', 'Ukku crying too! 💔', 'WAAAA! 🦖', 'Bad mood! 🍼', 'Mumma! 😭', 'I WANT IT NOW! 😡', 'WAAAA! 😭😭'],

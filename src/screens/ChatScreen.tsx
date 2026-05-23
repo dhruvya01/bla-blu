@@ -53,7 +53,8 @@ import {
 } from "firebase/firestore";
 import { Socket } from "socket.io-client";
 import { useShallow } from "zustand/react/shallow";
-import { db, handleFirestoreError } from "../firebase/config";
+import { db, handleFirestoreError, storage } from "../firebase/config";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { useAppStore } from "../store";
 import { CONFIG } from "../config";
 import { cn } from "../utils";
@@ -932,12 +933,20 @@ function ChatMessage({
                           if (videoUrl.startsWith('E2EE:')) {
                              videoUrl = await decryptData(videoUrl);
                           }
-                          if (videoUrl && !videoUrl.startsWith('🔒') && videoUrl.includes("cloudinary.com")) {
-                            fetch("/api/cloudinary/delete", {
-                               method: "POST",
-                               headers: { "Content-Type": "application/json" },
-                               body: JSON.stringify({ url: videoUrl })
-                            }).catch(err => console.error("Failed to delete video from cloudinary", err));
+                          if (videoUrl && !videoUrl.startsWith('🔒') && (videoUrl.includes("cloudinary.com") || videoUrl.includes("firebasestorage.googleapis.com"))) {
+                            try {
+                                if (videoUrl.includes("firebasestorage.googleapis.com")) {
+                                    await deleteObject(ref(storage, videoUrl));
+                                } else {
+                                    fetch("/api/cloudinary/delete", {
+                                       method: "POST",
+                                       headers: { "Content-Type": "application/json" },
+                                       body: JSON.stringify({ url: videoUrl })
+                                    }).catch(err => console.error("Failed to delete video from cloudinary", err));
+                                }
+                            } catch (err) {
+                                console.error("Failed to delete video from storage", err);
+                            }
                           }
                         }
 
@@ -1683,12 +1692,20 @@ export function ChatScreen({ socket }: ChatProps) {
             if (videoUrl.startsWith('E2EE:')) {
                try { videoUrl = await decryptData(videoUrl); } catch(e) {}
             }
-            if (videoUrl && !videoUrl.startsWith('🔒') && videoUrl.includes("cloudinary.com")) {
-              fetch("/api/cloudinary/delete", {
-                 method: "POST",
-                 headers: { "Content-Type": "application/json" },
-                 body: JSON.stringify({ url: videoUrl })
-              }).catch(err => console.error("Failed to delete video from cloudinary", err));
+            if (videoUrl && !videoUrl.startsWith('🔒') && (videoUrl.includes("cloudinary.com") || videoUrl.includes("firebasestorage.googleapis.com"))) {
+              try {
+                  if (videoUrl.includes("firebasestorage.googleapis.com")) {
+                      await deleteObject(ref(storage, videoUrl));
+                  } else {
+                      fetch("/api/cloudinary/delete", {
+                         method: "POST",
+                         headers: { "Content-Type": "application/json" },
+                         body: JSON.stringify({ url: videoUrl })
+                      }).catch(err => console.error("Failed to delete video from cloudinary", err));
+                  }
+              } catch (err) {
+                  console.error("Failed to delete video from storage", err);
+              }
             }
          }
          batch.delete(docSnap.ref);
@@ -1769,18 +1786,12 @@ export function ChatScreen({ socket }: ChatProps) {
     setIsVideoUploading(true);
     setShowAttachmentMenu(false);
     
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "blablu_videos");
-
     try {
-      const res = await fetch("https://api.cloudinary.com/v1_1/dcwl4l70x/video/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.secure_url) {
-        setVideoFile(data.secure_url);
+      const videoRef = ref(storage, `chat_videos/${roomId}/${Date.now()}_${file.name}`);
+      await uploadBytes(videoRef, file);
+      const url = await getDownloadURL(videoRef);
+      if (url) {
+        setVideoFile(url);
       } else {
         alert("Video upload failed.");
       }
@@ -1972,12 +1983,20 @@ export function ChatScreen({ socket }: ChatProps) {
             if (videoUrl.startsWith('E2EE:')) {
                try { videoUrl = await decryptData(videoUrl); } catch(e) {}
             }
-            if (videoUrl && !videoUrl.startsWith('🔒') && videoUrl.includes("cloudinary.com")) {
-              fetch("/api/cloudinary/delete", {
-                 method: "POST",
-                 headers: { "Content-Type": "application/json" },
-                 body: JSON.stringify({ url: videoUrl })
-              }).catch(err => console.error("Failed to delete video from cloudinary", err));
+            if (videoUrl && !videoUrl.startsWith('🔒') && (videoUrl.includes("cloudinary.com") || videoUrl.includes("firebasestorage.googleapis.com"))) {
+              try {
+                  if (videoUrl.includes("firebasestorage.googleapis.com")) {
+                      await deleteObject(ref(storage, videoUrl));
+                  } else {
+                      fetch("/api/cloudinary/delete", {
+                         method: "POST",
+                         headers: { "Content-Type": "application/json" },
+                         body: JSON.stringify({ url: videoUrl })
+                      }).catch(err => console.error("Failed to delete video from cloudinary", err));
+                  }
+              } catch (err) {
+                  console.error("Failed to delete video from storage", err);
+              }
             }
          }
          batch.delete(docSnap.ref);

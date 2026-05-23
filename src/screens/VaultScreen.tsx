@@ -31,7 +31,8 @@ import {
   doc,
   serverTimestamp 
 } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { db, storage } from "../firebase/config";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { useAppStore } from "../store";
 import { cn } from "../utils";
 import { sensory } from "../utils/sensory";
@@ -574,18 +575,12 @@ export function VaultScreen() {
                   continue;
               }
               
-              const formData = new FormData();
-              formData.append("file", file);
-              formData.append("upload_preset", "blablu_videos");
-
-              const res = await fetch("https://api.cloudinary.com/v1_1/dcwl4l70x/video/upload", {
-                  method: "POST",
-                  body: formData,
-              });
-              const data = await res.json();
+              const videoRef = ref(storage, `vault_videos/${roomId}/${Date.now()}_${file.name}`);
+              await uploadBytes(videoRef, file);
+              const url = await getDownloadURL(videoRef);
               
-              if (data.secure_url) {
-                  const encrypted = await encryptData(data.secure_url);
+              if (url) {
+                  const encrypted = await encryptData(url);
                   await addDoc(collection(db, "pairs", roomId, "vaultVideos"), {
                       url: encrypted,
                       createdAt: serverTimestamp(),
