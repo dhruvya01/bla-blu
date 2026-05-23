@@ -13,7 +13,12 @@ import {
   X,
   AlertTriangle,
   Delete,
-  Fingerprint
+  Fingerprint,
+  Video,
+  Play,
+  Film,
+  Clapperboard,
+  Loader2
 } from "lucide-react";
 import { 
   collection, 
@@ -104,6 +109,94 @@ interface VaultPhoto {
   source: 'chat' | 'timeline' | 'vault';
 }
 
+interface VaultVideo {
+  id: string;
+  url: string;
+  caption?: string;
+  timestamp: any;
+  source: 'chat' | 'reel' | 'vault';
+}
+
+function VideoCard({ video, onSelect }: { video: VaultVideo, onSelect: (video: VaultVideo) => void }) {
+  const [decryptedUrl, setDecryptedUrl] = useState("");
+  const [decryptedCaption, setDecryptedCaption] = useState("");
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const attempt = async () => {
+      if (video.url.startsWith('E2EE:')) {
+        const u = await decryptData(video.url);
+        if (active) setDecryptedUrl(u);
+      } else {
+        if (active) setDecryptedUrl(video.url);
+      }
+      
+      if (video.caption && video.caption.startsWith('E2EE:')) {
+        const c = await decryptData(video.caption);
+        if (active) setDecryptedCaption(c);
+      } else {
+        if (active) setDecryptedCaption(video.caption || "");
+      }
+    };
+    attempt();
+    window.addEventListener('e2ee-ready', attempt);
+    return () => { 
+      active = false; 
+      window.removeEventListener('e2ee-ready', attempt);
+    };
+  }, [video.url, video.caption]);
+
+  if (!decryptedUrl) return (
+    <div className="aspect-video bg-card/40 animate-pulse rounded-2xl flex items-center justify-center border border-border/20 shadow-sm">
+      <div className="w-5 h-5 border-2 border-primary/35 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      onClick={() => onSelect(video)}
+      className="group relative aspect-video bg-black overflow-hidden cursor-pointer active:scale-[0.96] transition-transform rounded-2xl border border-border/40 shadow-sm flex items-center justify-center"
+    >
+      <video 
+        src={decryptedUrl + "#t=0.5"} 
+        preload="metadata"
+        onLoadedData={() => setIsLoaded(true)}
+        className={cn(
+          "w-full h-full object-cover transition-opacity duration-300",
+          isLoaded ? "opacity-60 group-hover:opacity-100" : "opacity-0"
+        )}
+      />
+      
+      {!isLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Film size={20} className="text-text/30 animate-pulse" />
+        </div>
+      )}
+
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:bg-white/30 transition-all border border-white/20">
+          <Play size={16} fill="currentColor" className="ml-0.5 animate-pulse-slow" />
+        </div>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent p-3 flex flex-col justify-end pointer-events-none">
+        <p className="text-[10px] text-white/95 font-medium line-clamp-1 shadow-sm font-sans tracking-wide">
+          {decryptedCaption || (video.source === 'chat' ? 'From Chat' : video.source === 'reel' ? 'From Reels' : 'Private Vault')}
+        </p>
+      </div>
+
+      <div className="absolute top-3 right-3 flex gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-lg">
+            <Lock size={12} className="text-emerald-400" />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function PhotoCard({ photo, onDelete, onSelect, isConfirmingDelete }: { photo: VaultPhoto, onDelete?: () => void, onSelect: (photo: VaultPhoto) => void, isConfirmingDelete?: boolean }) {
   const [decryptedUrl, setDecryptedUrl] = useState("");
   const [decryptedCaption, setDecryptedCaption] = useState("");
@@ -177,13 +270,24 @@ export function VaultScreen() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [error, setError] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<'photos' | 'videos'>('photos');
+
   const [chatPhotos, setChatPhotos] = useState<VaultPhoto[]>([]);
   const [timelinePhotos, setTimelinePhotos] = useState<VaultPhoto[]>([]);
   const [vaultPhotos, setVaultPhotos] = useState<VaultPhoto[]>([]);
+  
+  const [chatVideos, setChatVideos] = useState<VaultVideo[]>([]);
+  const [reelsVideos, setReelsVideos] = useState<VaultVideo[]>([]);
+  const [vaultVideos, setVaultVideos] = useState<VaultVideo[]>([]);
+
   const [isUploading, setIsUploading] = useState(false);
 
   const [selectedPhoto, setSelectedPhoto] = useState<VaultPhoto | null>(null);
   const [decryptedSelectedUrl, setDecryptedSelectedUrl] = useState("");
+
+  const [selectedVideo, setSelectedVideo] = useState<VaultVideo | null>(null);
+  const [decryptedSelectedVideoUrl, setDecryptedSelectedVideoUrl] = useState("");
+
   const [isDeleting, setIsDeleting] = useState(false);
 
   const correctPassword = "101024";
@@ -223,7 +327,7 @@ export function VaultScreen() {
   useEffect(() => {
     if (!isUnlocked || !roomId) return;
 
-    // 1. Fetch Chat Photos
+    // 1. Fetch Chat Photos and Videos
     const chatQuery = query(
       collection(db, "pairs", roomId, "chatMessages"),
       orderBy("timestamp", "desc")
@@ -238,6 +342,17 @@ export function VaultScreen() {
           source: 'chat' as const
         }));
       setChatPhotos(photos);
+
+      const videos = snapshot.docs
+        .filter(doc => doc.data().video)
+        .map(doc => ({
+          id: doc.id,
+          url: doc.data().video,
+          caption: doc.data().text || "",
+          timestamp: doc.data().timestamp?.toMillis(),
+          source: 'chat' as const
+        }));
+      setChatVideos(videos);
     });
 
     // 2. Fetch Timeline Photos
@@ -274,10 +389,44 @@ export function VaultScreen() {
       setVaultPhotos(photos);
     });
 
+    // 4. Fetch Vault Private Videos
+    const vaultVideosQuery = query(
+      collection(db, "pairs", roomId, "vaultVideos"),
+      orderBy("createdAt", "desc")
+    );
+    const unsubVaultVideos = onSnapshot(vaultVideosQuery, (snapshot) => {
+      const dvideos = snapshot.docs.map(doc => ({
+        id: doc.id,
+        url: doc.data().url,
+        caption: doc.data().caption,
+        timestamp: doc.data().createdAt?.toMillis(),
+        source: 'vault' as const
+      }));
+      setVaultVideos(dvideos);
+    });
+
+    // 5. Fetch Reels Videos (Save to secure folder)
+    const reelsQuery = query(
+      collection(db, "pairs", roomId, "reels"),
+      orderBy("createdAt", "desc")
+    );
+    const unsubReels = onSnapshot(reelsQuery, (snapshot) => {
+      const reelsList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        url: doc.data().videoUrl,
+        caption: doc.data().caption || doc.data().text || "",
+        timestamp: doc.data().createdAt?.toMillis(),
+        source: 'reel' as const
+      }));
+      setReelsVideos(reelsList);
+    });
+
     return () => {
       unsubChat();
       unsubTimeline();
       unsubVault();
+      unsubVaultVideos();
+      unsubReels();
     };
   }, [isUnlocked, roomId]);
 
@@ -288,6 +437,22 @@ export function VaultScreen() {
       setDecryptedSelectedUrl("");
     }
   }, [selectedPhoto]);
+
+  useEffect(() => {
+    let active = true;
+    if (selectedVideo) {
+      if (selectedVideo.url.startsWith("E2EE:")) {
+        decryptData(selectedVideo.url).then(url => {
+          if (active) setDecryptedSelectedVideoUrl(url);
+        });
+      } else {
+        setDecryptedSelectedVideoUrl(selectedVideo.url);
+      }
+    } else {
+      setDecryptedSelectedVideoUrl("");
+    }
+    return () => { active = false; };
+  }, [selectedVideo]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
@@ -359,7 +524,109 @@ export function VaultScreen() {
     return Object.entries(groups);
   }, [allPhotos]);
 
+  const allVideos = useMemo(() => {
+    const combined = [...vaultVideos, ...reelsVideos, ...chatVideos];
+    return combined.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  }, [vaultVideos, reelsVideos, chatVideos]);
+
+  const groupedVideos = useMemo(() => {
+    const groups: { [key: string]: VaultVideo[] } = {};
+    allVideos.forEach(video => {
+      let dateLabel = "Unknown Date";
+      if (video.timestamp) {
+        const date = new Date(video.timestamp);
+        dateLabel = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      }
+      if (!groups[dateLabel]) {
+        groups[dateLabel] = [];
+      }
+      groups[dateLabel].push(video);
+    });
+    return Object.entries(groups);
+  }, [allVideos]);
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || files.length === 0 || !roomId) return;
+
+      setIsUploading(true);
+      const fileArray = Array.from(files);
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      try {
+          for (const file of fileArray) {
+              if (!file.type.startsWith("video/")) {
+                  failCount++;
+                  continue;
+              }
+              
+              const formData = new FormData();
+              formData.append("file", file);
+              formData.append("upload_preset", "blablu_videos");
+
+              const res = await fetch("https://api.cloudinary.com/v1_1/dcwl4l70x/video/upload", {
+                  method: "POST",
+                  body: formData,
+              });
+              const data = await res.json();
+              
+              if (data.secure_url) {
+                  const encrypted = await encryptData(data.secure_url);
+                  await addDoc(collection(db, "pairs", roomId, "vaultVideos"), {
+                      url: encrypted,
+                      createdAt: serverTimestamp(),
+                      createdBy: user?.uid,
+                      caption: "",
+                      source: "vault"
+                  });
+                  successCount++;
+                  sensory.play("pop");
+              } else {
+                  failCount++;
+              }
+          }
+
+          if (failCount > 0) {
+              alert(`Uploaded ${successCount} videos. ${failCount} video uploads failed.`);
+          }
+      } catch (err) {
+          console.error("Vault video upload failed", err);
+          alert("Something went wrong while uploading video. Please try again.");
+      } finally {
+          setIsUploading(false);
+          e.target.value = '';
+      }
+  };
+
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const handleDeleteVideo = async (video: VaultVideo) => {
+      if (confirmDeleteId !== video.id) {
+          setConfirmDeleteId(video.id);
+          setTimeout(() => setConfirmDeleteId(null), 3000);
+          return;
+      }
+
+      setIsDeleting(true);
+      try {
+          if (video.source === 'vault') {
+              await deleteDoc(doc(db, "pairs", roomId!, "vaultVideos", video.id));
+          } else if (video.source === 'chat') {
+              await deleteDoc(doc(db, "pairs", roomId!, "chatMessages", video.id));
+          } else if (video.source === 'reel') {
+              await deleteDoc(doc(db, "pairs", roomId!, "reels", video.id));
+          }
+          sensory.play("pop");
+          setSelectedVideo(null);
+      } catch (err) {
+          console.error("Video delete failed", err);
+      } finally {
+          setIsDeleting(false);
+          setConfirmDeleteId(null);
+      }
+  };
 
   const handleDelete = async (photo: VaultPhoto) => {
       if (confirmDeleteId !== photo.id) {
@@ -531,7 +798,9 @@ export function VaultScreen() {
                     Private Vault
                     <ShieldCheck size={16} className="text-emerald-500" />
                   </h2>
-                  <p className="text-[10px] font-bold text-text/40 uppercase tracking-widest">{allPhotos.length} Secured Items</p>
+                  <p className="text-[10px] font-bold text-text/40 uppercase tracking-widest">
+                    {activeTab === 'photos' ? `${allPhotos.length} Secured Photos` : `${allVideos.length} Secured Videos`}
+                  </p>
                 </div>
             </div>
             
@@ -546,53 +815,132 @@ export function VaultScreen() {
                         <><Plus size={16} className="mr-1.5"/> Add</>
                     )}
                 </label>
-                <input id="vault-upload-header" type="file" accept="image/*" multiple className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                <input 
+                  id="vault-upload-header" 
+                  type="file" 
+                  accept={activeTab === 'photos' ? "image/*" : "video/*"} 
+                  multiple 
+                  className="hidden" 
+                  onChange={activeTab === 'photos' ? handleFileUpload : handleVideoUpload} 
+                  disabled={isUploading} 
+                />
             </div>
         </div>
 
-        {/* Grid */}
+        {/* Tab Selector */}
+        <div className="flex justify-center px-4 py-3 bg-bg border-b border-border/10">
+          <div className="flex p-1 bg-card/60 backdrop-blur-md rounded-2xl border border-border/40 w-full max-w-sm">
+            <button
+              onClick={() => { setActiveTab('photos'); sensory.tap(); }}
+              className={cn(
+                "flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2",
+                activeTab === 'photos' 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                  : "text-text/60 hover:text-text hover:bg-card/40"
+              )}
+            >
+              <ImageIcon size={14} />
+              Photos ({allPhotos.length})
+            </button>
+            <button
+              onClick={() => { setActiveTab('videos'); sensory.tap(); }}
+              className={cn(
+                "flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2",
+                activeTab === 'videos' 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                  : "text-text/60 hover:text-text hover:bg-card/40"
+              )}
+            >
+              <Video size={14} />
+              Videos ({allVideos.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Grid and Contents */}
         <div className="flex-1 pb-24">
-            {allPhotos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-24 text-center px-8 h-[70vh]">
-                    <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-primary/10 to-transparent flex items-center justify-center mb-8 relative border border-primary/10 shadow-2xl shadow-primary/5">
-                        <Lock size={40} className="text-primary/60" />
-                        <div className="absolute inset-0 bg-primary/5 rounded-full animate-pulse" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-text mb-3 tracking-tight">Your Vault is Empty</h3>
-                    <p className="text-sm text-text/50 mb-10 max-w-[260px] mx-auto leading-relaxed">
-                        Encrypt and preserve your most private memories away from your main gallery.
-                    </p>
-                    
-                    <label 
-                        htmlFor="vault-upload-empty"
-                        className="flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-full font-bold shadow-xl shadow-primary/20 cursor-pointer active:scale-95 transition-all hover:bg-primary/90"
-                    >
-                        <Plus size={20} />
-                        Choose Photos
-                        <input id="vault-upload-empty" type="file" accept="image/*" multiple className="hidden" onChange={handleFileUpload} disabled={isUploading} />
-                    </label>
-                </div>
-            ) : (
-                <div className="space-y-8 pt-6 pb-6">
-                    {groupedPhotos.map(([dateString, photos]) => (
-                        <div key={dateString}>
-                            <h3 className="px-6 mb-4 text-[13px] font-bold tracking-widest uppercase text-text/50 sticky top-[72px] z-40 bg-bg/90 backdrop-blur-3xl py-3 border-y border-border/20">{dateString}</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 px-4">
-                                {photos.map((photo) => (
-                                    <PhotoCard 
-                                      key={`${photo.source}-${photo.id}`} 
-                                      photo={photo} 
-                                      onSelect={setSelectedPhoto}
-                                    />
-                                ))}
-                            </div>
+            {activeTab === 'photos' ? (
+                allPhotos.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-center px-8 h-[60vh]">
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary/10 to-transparent flex items-center justify-center mb-8 relative border border-primary/10 shadow-2xl shadow-primary/5">
+                            <ImageIcon size={36} className="text-primary/60" />
+                            <div className="absolute inset-0 bg-primary/5 rounded-full animate-pulse" />
                         </div>
-                    ))}
-                </div>
+                        <h3 className="text-xl font-bold text-text mb-3 tracking-tight">No Vault Photos Yet</h3>
+                        <p className="text-sm text-text/50 mb-10 max-w-[260px] mx-auto leading-relaxed">
+                            Upload private photos or check back once items are added from Chat and Timeline!
+                        </p>
+                        
+                        <label 
+                            htmlFor="vault-upload-empty-photos"
+                            className="flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-full font-bold shadow-xl shadow-primary/20 cursor-pointer active:scale-95 transition-all hover:bg-primary/90"
+                        >
+                            <Plus size={20} />
+                            Choose Photos
+                            <input id="vault-upload-empty-photos" type="file" accept="image/*" multiple className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                        </label>
+                    </div>
+                ) : (
+                    <div className="space-y-8 pt-6 pb-6">
+                        {groupedPhotos.map(([dateString, photos]) => (
+                            <div key={dateString}>
+                                <h3 className="px-6 mb-4 text-[13px] font-bold tracking-widest uppercase text-text/50 sticky top-[136px] z-40 bg-bg/90 backdrop-blur-3xl py-3 border-y border-border/20">{dateString}</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 px-4">
+                                    {photos.map((photo) => (
+                                        <PhotoCard 
+                                          key={`${photo.source}-${photo.id}`} 
+                                          photo={photo} 
+                                          onSelect={setSelectedPhoto}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )
+            ) : (
+                allVideos.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-center px-8 h-[60vh]">
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary/10 to-transparent flex items-center justify-center mb-8 relative border border-primary/10 shadow-2xl shadow-primary/5">
+                            <Video size={36} className="text-primary/60" />
+                            <div className="absolute inset-0 bg-primary/5 rounded-full animate-pulse" />
+                        </div>
+                        <h3 className="text-xl font-bold text-text mb-3 tracking-tight">No Vault Videos Yet</h3>
+                        <p className="text-sm text-text/50 mb-10 max-w-[260px] mx-auto leading-relaxed">
+                            Upload private videos directly or access reels and video clips posted in your shared Chat!
+                        </p>
+                        
+                        <label 
+                            htmlFor="vault-upload-empty-videos"
+                            className="flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-full font-bold shadow-xl shadow-primary/20 cursor-pointer active:scale-95 transition-all hover:bg-primary/90"
+                        >
+                            <Plus size={20} />
+                            Choose Videos
+                            <input id="vault-upload-empty-videos" type="file" accept="video/*" multiple className="hidden" onChange={handleVideoUpload} disabled={isUploading} />
+                        </label>
+                    </div>
+                ) : (
+                    <div className="space-y-8 pt-6 pb-6">
+                        {groupedVideos.map(([dateString, videos]) => (
+                            <div key={dateString}>
+                                <h3 className="px-6 mb-4 text-[13px] font-bold tracking-widest uppercase text-text/50 sticky top-[136px] z-40 bg-bg/90 backdrop-blur-3xl py-3 border-y border-border/20">{dateString}</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-4">
+                                    {videos.map((video) => (
+                                        <VideoCard 
+                                          key={`${video.source}-${video.id}`} 
+                                          video={video} 
+                                          onSelect={setSelectedVideo}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )
             )}
         </div>
 
-        {/* Advanced Gallery Lightbox */}
+        {/* Advanced Gallery Lightbox for Photos */}
         <Lightbox
           open={!!selectedPhoto}
           index={selectedPhoto ? allPhotos.findIndex(p => p.id === selectedPhoto.id) : -1}
@@ -623,8 +971,8 @@ export function VaultScreen() {
                   onClick={() => setSelectedPhoto(null)}
                   className="px-4 py-2 ml-2 mr-auto text-white flex items-center justify-center gap-2 hover:bg-white/10 rounded-full transition-colors"
               >
-                 <ChevronLeft size={28} />
-                 <span className="text-sm font-medium">Back</span>
+                  <ChevronLeft size={28} />
+                  <span className="text-sm font-medium">Back</span>
               </button>,
               <button 
                   key="download"
@@ -654,8 +1002,121 @@ export function VaultScreen() {
           }}
         />
 
+        {/* Custom video player modal */}
+        <AnimatePresence>
+          {selectedVideo && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex flex-col justify-between"
+              onClick={() => setSelectedVideo(null)}
+            >
+              <div 
+                className="p-6 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setSelectedVideo(null)}
+                    className="p-2 -ml-2 rounded-full hover:bg-white/10 active:scale-95 transition-all text-white"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                  <div>
+                    <h3 className="text-white font-bold text-sm tracking-wide">Secure Video Preview</h3>
+                    <p className="text-white/40 text-[10px] uppercase font-black tracking-widest leading-none mt-1">
+                      {selectedVideo.timestamp ? new Date(selectedVideo.timestamp).toLocaleString() : 'Just now'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={async () => {
+                      if (!decryptedSelectedVideoUrl) return;
+                      try {
+                        if (Capacitor.isNativePlatform()) {
+                          const base64Data = decryptedSelectedVideoUrl.split(",")[1];
+                          await Filesystem.writeFile({
+                            path: `vault-video-${Date.now()}.mp4`,
+                            data: base64Data || decryptedSelectedVideoUrl,
+                            directory: Directory.Documents,
+                          });
+                          alert("Video saved to Documents!");
+                        } else {
+                          const link = document.createElement("a");
+                          link.href = decryptedSelectedVideoUrl;
+                          link.download = `vault-video-${Date.now()}.mp4`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }
+                        sensory.play("success");
+                      } catch (err) {
+                        console.error("Video download failed", err);
+                        alert("Failed to download video.");
+                      }
+                    }}
+                    disabled={!decryptedSelectedVideoUrl}
+                    className="p-2 rounded-full hover:bg-white/10 text-white transition-colors disabled:opacity-30"
+                    title="Download Video"
+                  >
+                    <Download size={20} />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteVideo(selectedVideo)}
+                    disabled={isDeleting}
+                    className="p-2 rounded-full hover:bg-rose-500/10 text-rose-400 hover:text-rose-500 transition-colors disabled:opacity-30"
+                    title="Delete Video"
+                  >
+                    {isDeleting ? (
+                      <div className="w-5 h-5 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" />
+                    ) : confirmDeleteId === selectedVideo.id ? (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-rose-500 bg-rose-500/20 px-2 py-1 rounded-md">Sure?</span>
+                    ) : (
+                      <Trash2 size={20} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div 
+                className="flex-1 w-full max-w-3xl mx-auto flex flex-col items-center justify-center p-4 bg-black/40"
+                onClick={e => e.stopPropagation()}
+              >
+                {!decryptedSelectedVideoUrl ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                    <p className="text-white/40 text-xs font-bold uppercase tracking-widest animate-pulse">Decrypting Secure Video...</p>
+                  </div>
+                ) : (
+                  <div className="relative w-full max-h-[70vh] bg-black rounded-3xl overflow-hidden border border-white/5 shadow-2xl flex items-center justify-center">
+                    <video
+                      src={decryptedSelectedVideoUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="w-full max-h-[70vh] rounded-2xl object-contain"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div 
+                className="p-6 text-center bg-gradient-to-t from-black/80 to-transparent"
+                onClick={e => e.stopPropagation()}
+              >
+                <p className="text-white/90 text-sm font-medium tracking-wide max-w-md mx-auto">
+                  {selectedVideo.caption || (selectedVideo.source === 'chat' ? 'From Chat' : selectedVideo.source === 'reel' ? 'From Reels' : 'Uploaded securely in Vault')}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Floating Action Button for mobile prominence */}
-        {allPhotos.length > 0 && (
+        {((activeTab === 'photos' && allPhotos.length > 0) || (activeTab === 'videos' && allVideos.length > 0)) && (
             <div className="fixed bottom-8 right-6 z-[60]">
                 <label 
                     htmlFor="vault-upload-fab"
@@ -666,7 +1127,15 @@ export function VaultScreen() {
                     ) : (
                         <Plus size={32} />
                     )}
-                    <input id="vault-upload-fab" type="file" accept="image/*" multiple className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                    <input 
+                      id="vault-upload-fab" 
+                      type="file" 
+                      accept={activeTab === 'photos' ? "image/*" : "video/*"} 
+                      multiple 
+                      className="hidden" 
+                      onChange={activeTab === 'photos' ? handleFileUpload : handleVideoUpload} 
+                      disabled={isUploading} 
+                    />
                 </label>
             </div>
         )}
@@ -683,16 +1152,16 @@ export function VaultScreen() {
                 
                 <div className="p-5 bg-card/60 backdrop-blur-md rounded-3xl border border-border/50 text-[10px] text-text/60 leading-relaxed space-y-3">
                     <p>
-                        ☁️ <span className="font-bold">Cloud Stored:</span> These photos are kept in our secure database, not on your device storage. They won't take space on your phone!
+                        ☁️ <span className="font-bold">Cloud Stored:</span> Your media is kept in our secure cloud database, not on your device storage. They won't take space on your phone!
                     </p>
                     <div className="h-[1px] bg-border/30 w-full" />
                     <p>
-                        🔒 <span className="font-bold">Privacy:</span> All items are <span className="text-primary font-bold">End-to-End Encrypted</span>. Even we cannot see what you upload.
+                        🔒 <span className="font-bold">Privacy:</span> Encryption is applied automatically. Private uploads are fully E2EE encrypted for ultimate confidentiality.
                     </p>
                 </div>
 
                 <p className="text-[9px] text-text/30 italic">
-                    Tip: Use free services like Google Drive or Photos to backup large albums, then link them here!
+                    Tip: Double tap on photos during lightbox view to zoom in!
                 </p>
             </div>
         </div>
