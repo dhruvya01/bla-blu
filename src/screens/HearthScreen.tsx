@@ -373,6 +373,7 @@ export function HearthScreen({ socket }: HearthProps) {
         <motion.div variants={itemVariant} className="grid grid-cols-2 gap-3">
              {[
                { id: 'chat', label: 'Notes', sub: 'Shared Space', icon: <MessageCircle size={22} className="text-blue-500" />, view: 'chat', bg: "bg-blue-500/10", border: 'border-blue-500/20' },
+               { id: 'spotify', label: 'Our Spotify', sub: 'Covers & Voice', icon: <Play size={22} className="fill-[#1db954] text-[#1db954]" />, view: 'spotify', bg: "bg-[#1db954]/10", border: 'border-[#1db954]/20' },
                { id: 'planner', label: 'Dates', sub: 'Our Plans', icon: <Calendar size={22} className="text-emerald-500" />, view: 'planner', bg: "bg-emerald-500/10", border: 'border-emerald-500/20' },
                { id: 'journey', label: 'Map', sub: 'Location bg', icon: <Navigation size={22} className="text-amber-500" />, view: 'journey', bg: "bg-amber-500/10", border: 'border-amber-500/20' },
                { id: 'period', label: 'Cycle', sub: 'Health Hub', icon: <Droplets size={22} className="text-rose-500" />, view: 'period', bg: "bg-rose-500/10", border: 'border-rose-500/20' },

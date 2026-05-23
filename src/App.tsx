@@ -40,6 +40,7 @@ import { JourneyTrackerScreen } from "./screens/JourneyTrackerScreen";
 import { DoodleScreen } from "./screens/DoodleScreen";
 import { ReelsScreen } from "./screens/ReelsScreen";
 import { MistakeScreen } from "./screens/MistakeScreen";
+import { SpotifyScreen } from "./screens/SpotifyScreen";
 import { cn } from "./utils";
 import { doc, setDoc, updateDoc, getDoc, onSnapshot } from "firebase/firestore";
 import { db, auth, handleFirestoreError } from "./firebase/config";
@@ -630,6 +631,7 @@ export default function App() {
             )}
             {view === "timeline" && <TimelineScreen key="timeline" />}
             {view === "jar" && <JarScreen key="jar" />}
+            {view === "spotify" && <SpotifyScreen key="spotify" />}
             {view === "babygame" && <BabyGameScreen key="babygame" />}
             {view === "map" && <JourneyTrackerScreen key="map" />}
             {view === "journey" && <JourneyTrackerScreen key="journey" />}

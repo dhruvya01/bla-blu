@@ -9,7 +9,8 @@ import {
   doc, 
   deleteDoc, 
   serverTimestamp, 
-  arrayUnion 
+  arrayUnion,
+  setDoc
 } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase/config";
 import { sensory } from "../utils/sensory";
@@ -39,7 +40,7 @@ import {
   Gavel
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { generateUkkuPukkuCourtTrial, CourtTrial, Fact, getUkkuPukkuQuestions } from "../utils/ukkuPukkuCourt";
+import { generateUkkuPukkuCourtTrial, CourtTrial, Fact, getUkkuPukkuQuestions, CourtProfile } from "../utils/ukkuPukkuCourt";
 
 interface MistakeComment {
   id: string;
@@ -114,6 +115,68 @@ export function MistakeScreen() {
   const [showFactsModal, setShowFactsModal] = useState(false);
   const [isSavingFact, setIsSavingFact] = useState(false);
 
+  // Advanced Onboarding / Personalization Hub State
+  const [courtProfile, setCourtProfile] = useState<CourtProfile | null>(null);
+  const [profileTab, setProfileTab] = useState<"profile" | "laws">("profile");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const [profNickAnjali, setProfNickAnjali] = useState("");
+  const [profNickDhruvya, setProfNickDhruvya] = useState("");
+  const [profSleepingQueen, setProfSleepingQueen] = useState("Anjali");
+  const [profMomoPlace, setProfMomoPlace] = useState("");
+  const [profDailyRitual, setProfDailyRitual] = useState("");
+  const [profStudyOrJob, setProfStudyOrJob] = useState("");
+
+  // Load court profile block
+  useEffect(() => {
+    if (!roomId) return;
+    const profileRef = doc(db, "pairs", roomId, "court_profile", "info");
+    const unsubscribe = onSnapshot(profileRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as CourtProfile;
+        setCourtProfile(data);
+        setProfNickAnjali(data.nicknames?.anjali || "");
+        setProfNickDhruvya(data.nicknames?.dhruvya || "");
+        setProfSleepingQueen(data.sleepingQueen || "Anjali");
+        setProfMomoPlace(data.favoriteMomoPlace || "");
+        setProfDailyRitual(data.dailyRitual || "");
+        setProfStudyOrJob(data.studyOrJob || "");
+      } else {
+        // Pre-populate with beautiful, romantic defaults about Dhruvya & Anjali
+        setProfNickAnjali("sweet little baby 🧸");
+        setProfNickDhruvya("bondu boy dinosaur 🦖");
+        setProfSleepingQueen("Anjali");
+        setProfMomoPlace("Kalsang Café Dehradun 🥟");
+        setProfDailyRitual("sending 100 sweet reels daily 💬");
+        setProfStudyOrJob("Dhruvya codes/gyms, Anjali rules hearts and moods 💖");
+      }
+    });
+    return () => unsubscribe();
+  }, [roomId]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roomId) return;
+    setIsSavingProfile(true);
+    try {
+      await setDoc(doc(db, "pairs", roomId, "court_profile", "info"), {
+        sleepingQueen: profSleepingQueen,
+        studyOrJob: profStudyOrJob.trim(),
+        favoriteMomoPlace: profMomoPlace.trim(),
+        nicknames: {
+          anjali: profNickAnjali.trim(),
+          dhruvya: profNickDhruvya.trim(),
+        },
+        dailyRitual: profDailyRitual.trim(),
+      });
+      sensory.play("levelUp");
+    } catch (err) {
+      console.error("Failed to save court profile:", err);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   // Fetch live custom relationship rules
   useEffect(() => {
     if (!roomId) return;
@@ -127,12 +190,15 @@ export function MistakeScreen() {
           { category: "anjali", text: "Anjali has a hot temper but is fundamentally a kind-hearted, sweet-souled angel." },
           { category: "anjali", text: "She loves Mogu Mogu drinks and Momos, and demands continuous love and pampering." },
           { category: "dhruvya", text: "Dhruvya is a cute bondu, stupid boy who loves Anjali more than his own life." },
-          { category: "dhruvya", text: "He is building this whole custom app to make her happy, and is set on marrying her." },
+          { category: "dhruvya", text: "He was once a highly studious JEE preparation boy, while Anjali is a smart commerce queen." },
           { category: "dhruvya", text: "He wakes up all night long to work, sing, and code, and sleeps through the entire morning." },
           { category: "dhruvya", text: "He is highly talented (coding, singing, fitness) but gets anxiety and needs heavy pampering." },
           { category: "inside_joke", text: "The legendary, classic inside joke of all time: 'Chalo kapda utro' 🤭" },
-          { category: "inside_joke", text: "Dhruvya & Anjali have been in a gorgeous long-distance relationship for almost 2 years." },
-          { category: "inside_joke", text: "Their beautiful story properly began when they first met on October 10, 2024." },
+          { category: "inside_joke", text: "Their gorgeous journey started on Snapchat on 28 September 2024, when Dhruvya found her and warned her to study for her exam instead of wasting time." },
+          { category: "inside_joke", text: "After her exam, they lost contact for 1 week before reviving it on Instagram, chatting endlessly for hours." },
+          { category: "inside_joke", text: "Dhruvya confessed his deep love on October 10, 2024, saying 'I don't wanna be your friend, be my girlfriend'. She hesitated and tried to ghost but said Yes!" },
+          { category: "inside_joke", text: "They share everything: from naughtiest/cheekiest secrets to deep emotional feelings, becoming inseparable within a month." },
+          { category: "inside_joke", text: "Giving her phone number to Dhruvya was a major sweet milestone, cementing their endless love!" },
           { category: "inside_joke", text: "Dhruvya is moving to Dehradun this year for college where Anjali already lives, so they can meet daily!" }
         ];
         
@@ -353,7 +419,7 @@ export function MistakeScreen() {
       const accusedName = isDhruvyaAccused ? "Dhruvya" : "Anjali";
       const prosecutorName = isDhruvyaAccused ? "Anjali" : "Dhruvya";
 
-      const questions = getUkkuPukkuQuestions(mistake.title, accusedName, prosecutorName);
+      const questions = getUkkuPukkuQuestions(mistake.title, accusedName, prosecutorName, courtProfile);
       
       const docRef = doc(db, "pairs", roomId, "mistakes", mistake.id);
       await updateDoc(docRef, {
@@ -911,7 +977,10 @@ export function MistakeScreen() {
                                   mistake.loggedBy,
                                   user?.uid || "",
                                   partner?.nickname || partner?.name || "Partner",
-                                  courtFacts
+                                  courtFacts,
+                                  undefined,
+                                  undefined,
+                                  courtProfile
                                 );
                                 setActiveTrial(trial);
                                 setActiveTrialMistake(mistake);
@@ -947,7 +1016,8 @@ export function MistakeScreen() {
                                   partner?.nickname || partner?.name || "Partner",
                                   courtFacts,
                                   mistake.courtAnswers?.accused || "",
-                                  mistake.courtAnswers?.prosecutor || ""
+                                  mistake.courtAnswers?.prosecutor || "",
+                                  courtProfile
                                 );
                                 setActiveTrial(trial);
                                 setActiveTrialMistake(mistake);
@@ -1554,6 +1624,7 @@ export function MistakeScreen() {
               exit={{ scale: 0.9, y: 30, opacity: 0 }}
               className="bg-card border border-border w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl relative my-auto text-text flex flex-col font-sans"
             >
+              {/* Header Gavel */}
               <div className="bg-gradient-to-r from-violet-500/10 to-indigo-500/10 border-b border-border p-5 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-500">
@@ -1561,7 +1632,7 @@ export function MistakeScreen() {
                   </div>
                   <div>
                     <h3 className="font-extrabold text-sm tracking-tight font-display text-text">
-                      Court Facts & Precedents
+                      Relationship Court Settings ⚖️
                     </h3>
                     <p className="text-[9px] text-text/40 font-bold uppercase tracking-widest mt-0.5">
                       custom relationship constitution
@@ -1577,117 +1648,272 @@ export function MistakeScreen() {
                 </button>
               </div>
 
-              {/* Creator Form */}
-              <div className="p-6 border-b border-border/60 bg-bg/30">
-                <form onSubmit={handleCreateFact} className="space-y-3">
-                  <div>
-                    <label className="text-[9px] uppercase font-black text-text/50 block mb-1">
-                      Applicable Subject / Category:
-                    </label>
-                    <div className="grid grid-cols-4 gap-1">
-                      {[
-                        { id: "anjali", label: "Anjali 💖" },
-                        { id: "dhruvya", label: "Dhruvya 🦖" },
-                        { id: "both", label: "Both 👩‍❤️‍👨" },
-                        { id: "inside_joke", label: "Jokes 💬" }
-                      ].map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => {
-                            sensory.play("tick");
-                            setNewFactCategory(cat.id as any);
-                          }}
-                          className={cn(
-                            "py-1.5 text-[9px] font-black rounded-lg border text-center transition-all",
-                            newFactCategory === cat.id
-                              ? "bg-violet-500/10 border-violet-500 text-violet-500"
-                              : "bg-bg/50 border-border text-text/50 hover:border-text/30"
-                          )}
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
+              {/* Dynamic Tab Switchers */}
+              <div className="grid grid-cols-2 bg-bg/50 border-b border-border/60 p-1.5 gap-1 select-none">
+                <button
+                  type="button"
+                  onClick={() => { sensory.play("tick"); setProfileTab("profile"); }}
+                  className={cn(
+                    "py-2 text-[10px] font-black uppercase tracking-wider rounded-xl text-center transition-all",
+                    profileTab === "profile" 
+                      ? "bg-violet-500 text-white shadow-md shadow-violet-500/15" 
+                      : "text-text/55 hover:text-text hover:bg-bg"
+                  )}
+                >
+                  Configure Profile 💖
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { sensory.play("tick"); setProfileTab("laws"); }}
+                  className={cn(
+                    "py-2 text-[10px] font-black uppercase tracking-wider rounded-xl text-center transition-all",
+                    profileTab === "laws" 
+                      ? "bg-violet-500 text-white shadow-md shadow-violet-500/15" 
+                      : "text-text/55 hover:text-text hover:bg-bg"
+                  )}
+                >
+                  Established Laws ({courtFacts.length}) 📜
+                </button>
+              </div>
+
+              {/* TAB 1: PERSonaliZATION PROFILE */}
+              {profileTab === "profile" ? (
+                <div className="p-6 space-y-4 max-h-[460px] overflow-y-auto no-scrollbar bg-card">
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black text-text tracking-tight flex items-center gap-1.5">
+                      ⚡ Courtroom Personalizer Hub
+                    </h4>
+                    <p className="text-[10px] text-text/55 leading-relaxed font-sans">
+                      Answer these questions so magistrates can tailor judges, quotes, and sentences to your real lives!
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="text-[9px] uppercase font-black text-text/50 block mb-1">
-                      Memory Text / Relationship Rule:
-                    </label>
-                    <div className="flex gap-2">
+                  <form onSubmit={handleSaveProfile} className="space-y-3.5 pt-2">
+                    {/* Nicknames Sub-Grid */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[8px] uppercase tracking-wider font-extrabold text-text/50 block mb-1">
+                          Anjali's Nickname:
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={profNickAnjali}
+                          onChange={(e) => setProfNickAnjali(e.target.value)}
+                          placeholder="e.g. baby, princess"
+                          className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none placeholder-text/25"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[8px] uppercase tracking-wider font-extrabold text-text/50 block mb-1">
+                          Dhruvya's Nickname:
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={profNickDhruvya}
+                          onChange={(e) => setProfNickDhruvya(e.target.value)}
+                          placeholder="e.g. dinosaur, bondu"
+                          className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none placeholder-text/25"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sleepy Majesty */}
+                    <div>
+                      <label className="text-[8px] uppercase tracking-wider font-extrabold text-text/50 block mb-1">
+                        Who is the sleepiest / sleeps call first?
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {["Anjali", "Dhruvya", "Both"].map((who) => (
+                          <button
+                            key={who}
+                            type="button"
+                            onClick={() => { sensory.play("tick"); setProfSleepingQueen(who); }}
+                            className={cn(
+                              "py-1.5 text-[9px] rounded-lg border text-center font-bold transition-all",
+                              profSleepingQueen === who
+                                ? "bg-violet-500/10 border-violet-500 text-violet-500"
+                                : "bg-bg border-border text-text/50 hover:border-text/30"
+                            )}
+                          >
+                            {who}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Momo spot */}
+                    <div>
+                      <label className="text-[8px] uppercase tracking-wider font-extrabold text-text/50 block mb-1">
+                        Favorite Momo / Hangout place in Dehradun:
+                      </label>
                       <input
                         type="text"
                         required
-                        value={newFactText}
-                        onChange={(e) => setNewFactText(e.target.value)}
-                        placeholder="e.g. Anjali is legally immune due to high cuteness..."
-                        className="flex-1 bg-bg border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none placeholder-text/25"
+                        value={profMomoPlace}
+                        onChange={(e) => setProfMomoPlace(e.target.value)}
+                        placeholder="e.g. Kalsang Café Dehradun, local street stall"
+                        className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none placeholder-text/25"
                       />
-                      <button
-                        type="submit"
-                        disabled={isSavingFact || !newFactText.trim()}
-                        className="px-4 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-black text-xs rounded-xl flex items-center justify-center transition-all shrink-0"
-                      >
-                        {isSavingFact ? "Saving" : "Add Fact"}
-                      </button>
                     </div>
-                  </div>
-                </form>
-              </div>
 
-              {/* Rules List Panel */}
-              <div className="p-6 max-h-[280px] overflow-y-auto space-y-3 no-scrollbar flex-1 bg-card">
-                <div className="text-[10px] text-text/45 uppercase font-black tracking-wider pb-1 flex justify-between">
-                  <span>Established Laws ({courtFacts.length})</span>
-                  <span className="text-violet-500 italic lowercase font-sans">Drawn dynamically during hearings</span>
+                    {/* Daily Ritual */}
+                    <div>
+                      <label className="text-[8px] uppercase tracking-wider font-extrabold text-text/50 block mb-1">
+                        Our fundamental daily sweet ritual:
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={profDailyRitual}
+                        onChange={(e) => setProfDailyRitual(e.target.value)}
+                        placeholder="e.g. sending 200 sweet reels, midnight cuddle talk"
+                        className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none placeholder-text/25"
+                      />
+                    </div>
+
+                    {/* Study or Job */}
+                    <div>
+                      <label className="text-[8px] uppercase tracking-wider font-extrabold text-text/50 block mb-1">
+                        What does each person stay busy with?
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={profStudyOrJob}
+                        onChange={(e) => setProfStudyOrJob(e.target.value)}
+                        placeholder="e.g. Dhruvya codes and gyms, Anjali studies and rules heart"
+                        className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none placeholder-text/25"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSavingProfile}
+                      className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 font-black text-xs text-white uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 active:scale-98 transition-all disabled:opacity-50"
+                    >
+                      <Sparkles size={12} />
+                      <span>{isSavingProfile ? "Saving Details..." : "Save Personalization Hub 🔒"}</span>
+                    </button>
+                  </form>
                 </div>
-
-                {courtFacts.length === 0 ? (
-                  <div className="py-8 text-center text-text/40 space-y-2">
-                    <p className="text-xl">🌴</p>
-                    <p className="text-xs font-bold leading-relaxed">
-                      Custom Relationship Constitution is empty!<br/>
-                      <span className="font-sans text-[10px] text-text/30 font-normal">
-                        Add some sweet inside jokes, facts about Anjali and Dhruvya, or laws so Ukku Pukku Court has evidence to cite.
-                      </span>
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border/40">
-                    {courtFacts.map((fact) => (
-                      <div key={fact.id} className="py-2.5 flex items-start justify-between gap-3 text-xs leading-relaxed">
-                        <div className="flex-1 min-w-0 pr-1">
-                          <span className={cn(
-                            "inline-block px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest mr-1.5 border",
-                            fact.category === "anjali" && "bg-rose-500/10 border-rose-500/20 text-rose-500",
-                            fact.category === "dhruvya" && "bg-amber-500/10 border-amber-500/20 text-amber-500",
-                            fact.category === "both" && "bg-teal-500/10 border-teal-500/20 text-teal-500",
-                            fact.category === "inside_joke" && "bg-indigo-500/10 border-indigo-500/20 text-indigo-500"
-                          )}>
-                            {fact.category === "anjali" ? "Anjali" : fact.category === "dhruvya" ? "Dhruvya" : fact.category === "both" ? "Both" : "Joke"}
-                          </span>
-                          <span className="text-text/80 break-words">{fact.text}</span>
+              ) : (
+                /* TAB 2: ESTABLISHED CONSTITUTION LAWS */
+                <>
+                  {/* Creator Form */}
+                  <div className="p-6 border-b border-border/60 bg-bg/30">
+                    <form onSubmit={handleCreateFact} className="space-y-3">
+                      <div>
+                        <label className="text-[9px] uppercase font-black text-text/50 block mb-1">
+                          Applicable Subject / Category:
+                        </label>
+                        <div className="grid grid-cols-4 gap-1 flex-wrap">
+                          {[
+                            { id: "anjali", label: "Anjali 💖" },
+                            { id: "dhruvya", label: "Dhruvya 🦖" },
+                            { id: "both", label: "Both 👩‍❤️‍👨" },
+                            { id: "inside_joke", label: "Jokes 💬" }
+                          ].map((cat) => (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => {
+                                sensory.play("tick");
+                                setNewFactCategory(cat.id as any);
+                              }}
+                              className={cn(
+                                "py-1.5 text-[9px] font-black rounded-lg border text-center transition-all",
+                                newFactCategory === cat.id
+                                  ? "bg-violet-500/10 border-violet-500 text-violet-500"
+                                  : "bg-bg/50 border-border text-text/50 hover:border-text/30"
+                              )}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteFact(fact.id)}
-                          className="p-1 rounded-lg hover:bg-rose-500/10 text-text/30 hover:text-rose-500 transition-colors shrink-0"
-                          title="Rule repealed"
-                        >
-                          <Trash2 size={13} />
-                        </button>
                       </div>
-                    ))}
+
+                      <div>
+                        <label className="text-[9px] uppercase font-black text-text/50 block mb-1">
+                          Memory Text / Relationship Rule:
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            required
+                            value={newFactText}
+                            onChange={(e) => setNewFactText(e.target.value)}
+                            placeholder="e.g. Anjali is legally immune due to high cuteness..."
+                            className="flex-1 bg-bg border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-violet-500 focus:outline-none placeholder-text/25"
+                          />
+                          <button
+                            type="submit"
+                            disabled={isSavingFact || !newFactText.trim()}
+                            className="px-4 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-black text-xs rounded-xl flex items-center justify-center transition-all shrink-0"
+                          >
+                            {isSavingFact ? "Saving" : "Add Fact"}
+                          </button>
+                        </div>
+                      </div>
+                    </form>
                   </div>
-                )}
-              </div>
+
+                  {/* Rules List Panel */}
+                  <div className="p-6 max-h-[240px] overflow-y-auto space-y-3 no-scrollbar flex-1 bg-card">
+                    <div className="text-[10px] text-text/45 uppercase font-black tracking-wider pb-1 flex justify-between">
+                      <span>Established Laws ({courtFacts.length})</span>
+                      <span className="text-violet-500 italic lowercase font-sans">Drawn dynamically during hearings</span>
+                    </div>
+
+                    {courtFacts.length === 0 ? (
+                      <div className="py-8 text-center text-text/40 space-y-2 col-span-full">
+                        <p className="text-xl">🌴</p>
+                        <p className="text-xs font-bold leading-relaxed">
+                          Custom Relationship Constitution is empty!<br/>
+                          <span className="font-sans text-[10px] text-text/30 font-normal">
+                            Add some sweet inside jokes, facts about Anjali and Dhruvya, or laws so Ukku Pukku Court has evidence to cite.
+                          </span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border/40">
+                        {courtFacts.map((fact) => (
+                          <div key={fact.id} className="py-2.5 flex items-start justify-between gap-3 text-xs leading-relaxed">
+                            <div className="flex-1 min-w-0 pr-1">
+                              <span className={cn(
+                                "inline-block px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest mr-1.5 border",
+                                fact.category === "anjali" && "bg-rose-500/10 border-rose-500/20 text-rose-500",
+                                fact.category === "dhruvya" && "bg-amber-500/10 border-amber-500/20 text-amber-500",
+                                fact.category === "both" && "bg-teal-500/10 border-teal-500/20 text-teal-500",
+                                fact.category === "inside_joke" && "bg-indigo-500/10 border-indigo-500/20 text-indigo-500"
+                              )}>
+                                {fact.category === "anjali" ? "Anjali" : fact.category === "dhruvya" ? "Dhruvya" : fact.category === "both" ? "Both" : "Joke"}
+                              </span>
+                              <span className="text-text/80 break-words">{fact.text}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteFact(fact.id)}
+                              className="p-1 rounded-lg hover:bg-rose-500/10 text-text/30 hover:text-rose-500 transition-colors shrink-0"
+                              title="Rule repealed"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* Footer text safety label */}
               <div className="p-4 bg-bg border-t border-border/60 text-[10px] text-text/40 leading-relaxed font-sans flex items-start gap-2">
                 <Sparkles size={12} className="text-violet-500 shrink-0 mt-0.5" />
                 <span>
-                  The court runs fully local simulations based strictly on the regulations you write above. This makes hearings completely personalized to your life!
+                  The court runs fully local simulations based strictly on the regulations and profiles you write above. This makes hearings completely personalized!
                 </span>
               </div>
             </motion.div>

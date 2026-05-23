@@ -335,6 +335,6 @@ export interface LoveTrailPoint {
   wasTogether: boolean;
 }
 
-export type ViewType = "home" | "habits" | "period" | "chat" | "settings" | "login" | "calendar" | "history" | "planner" | "timeline" | "jar" | "babygame" | "pulse" | "map" | "journey" | "sanctuary" | "vault" | "doodle" | "reels" | "mistakes";
+export type ViewType = "home" | "habits" | "period" | "chat" | "settings" | "login" | "calendar" | "history" | "planner" | "timeline" | "jar" | "babygame" | "pulse" | "map" | "journey" | "sanctuary" | "vault" | "doodle" | "reels" | "mistakes" | "spotify";
 export type CareTabType = "summary" | "period" | "calendar" | "history" | "planner" | "map";
 export type ThemeType = "pink" | "lavender" | "dark" | "amoled" | "mint" | "peach" | "ocean" | "honey" | "rose" | "midnight" | "aurora" | "mocha" | "berry" | "amoled-cyan" | "amoled-gold" | "amoled-violet" | "amoled-ruby";
