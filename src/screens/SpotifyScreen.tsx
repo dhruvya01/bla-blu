@@ -289,7 +289,7 @@ export function SpotifyScreen() {
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2 font-display">
-              Our Spotify <Heart className="text-[#1db954]" size={18} fill="#1db954" />
+              Personal Spotify <Heart className="text-[#1db954]" size={18} fill="#1db954" />
             </h1>
             <p className="text-xs text-white/60 font-medium tracking-wide">
               {songs.length} {songs.length === 1 ? "beautiful cover" : "beautiful covers"}
