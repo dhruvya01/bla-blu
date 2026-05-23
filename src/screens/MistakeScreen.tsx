@@ -39,7 +39,7 @@ import {
   Gavel
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { generateUkkuPukkuCourtTrial, CourtTrial, Fact } from "../utils/ukkuPukkuCourt";
+import { generateUkkuPukkuCourtTrial, CourtTrial, Fact, getUkkuPukkuQuestions } from "../utils/ukkuPukkuCourt";
 
 interface MistakeComment {
   id: string;
@@ -62,6 +62,9 @@ interface Mistake {
   appealText?: string;
   comments: MistakeComment[];
   createdAt: any;
+  courtStatus?: "idle" | "awaiting_testimonies" | "ready" | "completed";
+  courtQuestions?: { accused: string; prosecutor: string; };
+  courtAnswers?: { accused?: string; prosecutor?: string; };
 }
 
 const APOLOGIES_TEMPLATES = [
@@ -97,9 +100,11 @@ export function MistakeScreen() {
 
   // Comments temporary text storage per mistake id
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [testimonyInputs, setTestimonyInputs] = useState<Record<string, string>>({});
 
   // Ukku Pukku Court active trial state
   const [activeTrial, setActiveTrial] = useState<CourtTrial | null>(null);
+  const [activeTrialMistake, setActiveTrialMistake] = useState<Mistake | null>(null);
   const [trialStep, setTrialStep] = useState<number>(0);
 
   // Custom Relationship Facts / Court Guidance
@@ -115,6 +120,36 @@ export function MistakeScreen() {
 
     const factsRef = collection(db, "pairs", roomId, "court_facts");
     const unsubscribe = onSnapshot(factsRef, (snapshot) => {
+      if (snapshot.empty) {
+        // Automatically seed with Dhruvya & Anjali's adorable real couple facts!
+        const INITIAL_FACTS = [
+          { category: "anjali", text: "Anjali is Dhruvya's sweet little baby who is extremely moody and gets angry easily." },
+          { category: "anjali", text: "Anjali has a hot temper but is fundamentally a kind-hearted, sweet-souled angel." },
+          { category: "anjali", text: "She loves Mogu Mogu drinks and Momos, and demands continuous love and pampering." },
+          { category: "dhruvya", text: "Dhruvya is a cute bondu, stupid boy who loves Anjali more than his own life." },
+          { category: "dhruvya", text: "He is building this whole custom app to make her happy, and is set on marrying her." },
+          { category: "dhruvya", text: "He wakes up all night long to work, sing, and code, and sleeps through the entire morning." },
+          { category: "dhruvya", text: "He is highly talented (coding, singing, fitness) but gets anxiety and needs heavy pampering." },
+          { category: "inside_joke", text: "The legendary, classic inside joke of all time: 'Chalo kapda utro' 🤭" },
+          { category: "inside_joke", text: "Dhruvya & Anjali have been in a gorgeous long-distance relationship for almost 2 years." },
+          { category: "inside_joke", text: "Their beautiful story properly began when they first met on October 10, 2024." },
+          { category: "inside_joke", text: "Dhruvya is moving to Dehradun this year for college where Anjali already lives, so they can meet daily!" }
+        ];
+        
+        INITIAL_FACTS.forEach(async (fact) => {
+          try {
+            await addDoc(factsRef, {
+              category: fact.category,
+              text: fact.text,
+              createdAt: serverTimestamp()
+            });
+          } catch (e) {
+            console.error("Seeding error:", e);
+          }
+        });
+        return;
+      }
+
       const list: Fact[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -189,6 +224,9 @@ export function MistakeScreen() {
             appealText: data.appealText || "",
             comments: data.comments || [],
             createdAt: data.createdAt,
+            courtStatus: data.courtStatus || "idle",
+            courtQuestions: data.courtQuestions || null,
+            courtAnswers: data.courtAnswers || null,
           });
         });
 
@@ -304,6 +342,57 @@ export function MistakeScreen() {
       sensory.play("tick");
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleInitiateCourtCase = async (mistake: Mistake) => {
+    if (!roomId) return;
+    sensory.play("levelUp");
+    try {
+      const isDhruvyaAccused = mistake.loggedByName.toLowerCase().includes("anjali") === false;
+      const accusedName = isDhruvyaAccused ? "Dhruvya" : "Anjali";
+      const prosecutorName = isDhruvyaAccused ? "Anjali" : "Dhruvya";
+
+      const questions = getUkkuPukkuQuestions(mistake.title, accusedName, prosecutorName);
+      
+      const docRef = doc(db, "pairs", roomId, "mistakes", mistake.id);
+      await updateDoc(docRef, {
+        status: "appeal",
+        courtStatus: "awaiting_testimonies",
+        courtQuestions: questions,
+        courtAnswers: {
+          accused: "",
+          prosecutor: ""
+        }
+      });
+    } catch (err) {
+      console.error("Failed to initiate court case:", err);
+    }
+  };
+
+  const handleSubmitTestimony = async (mistake: Mistake, testimonyText: string) => {
+    if (!roomId || !user || !testimonyText.trim()) return;
+    sensory.play("success");
+    try {
+      const isAccused = user.uid !== mistake.loggedBy;
+      const answers = { ...(mistake.courtAnswers || {}) };
+      
+      if (isAccused) {
+        answers.accused = testimonyText.trim();
+      } else {
+        answers.prosecutor = testimonyText.trim();
+      }
+
+      const otherAnswered = isAccused ? !!answers.prosecutor : !!answers.accused;
+      const nextStatus = otherAnswered ? "ready" : "awaiting_testimonies";
+
+      const docRef = doc(db, "pairs", roomId, "mistakes", mistake.id);
+      await updateDoc(docRef, {
+        courtAnswers: answers,
+        courtStatus: nextStatus
+      });
+    } catch (err) {
+      console.error("Failed to submit testimony:", err);
     }
   };
 
@@ -593,7 +682,7 @@ export function MistakeScreen() {
                     <div className="px-6 pb-4 relative z-10 flex flex-col gap-3">
                       
                       {/* Godzilla/Silence advice segment if unresolved */}
-                      {mistake.status === "active" && (
+                      {mistake.status === "active" && !mistake.courtStatus && (
                         <div className="p-3.5 rounded-2xl bg-bg border border-border/60 text-[11px] leading-relaxed text-text/60 font-sans flex items-start gap-2.5">
                           <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
                           <div>
@@ -617,6 +706,150 @@ export function MistakeScreen() {
                           <p className="text-xs italic text-text/80 leading-relaxed pl-1">
                             "{mistake.appealText}"
                           </p>
+                        </div>
+                      )}
+
+                      {/* Interactive Court Room dockets */}
+                      {mistake.courtStatus && mistake.courtStatus !== "idle" && (
+                        <div className="p-4.5 rounded-[2rem] bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 flex flex-col gap-3.5 relative overflow-hidden shadow-xs mt-1">
+                          
+                          <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-800/50 pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <Scale className="text-violet-500 animate-pulse" size={15} />
+                              <div>
+                                <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200 block leading-none">
+                                  🏛️ Ukku Pukku Court Case
+                                </span>
+                                <span className="text-[8px] uppercase tracking-widest text-slate-400 font-extrabold mt-1">
+                                  Real-time interactive hearing
+                                </span>
+                              </div>
+                            </div>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider",
+                              mistake.courtStatus === "ready" || mistake.courtStatus === "completed"
+                                ? "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20" 
+                                : "bg-amber-500/10 dark:bg-amber-500/20 text-amber-500 border border-amber-500/20"
+                            )}>
+                              {mistake.courtStatus === "ready" ? "Verdict is Ready ✨" : mistake.courtStatus === "completed" ? "Completed ✅" : "Awaiting Statements 📜"}
+                            </span>
+                          </div>
+
+                          {/* Quick answers checklists */}
+                          <div className="space-y-2 text-[11px] border-b border-slate-100 dark:border-slate-800/40 pb-3">
+                            {/* Prosecutor */}
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-text/60">
+                                ⚖️ {mistake.loggedBy === user?.uid ? "You (Prosecutor)" : `${mistake.loggedByName} (Prosecutor)`}:
+                              </span>
+                              <span className={cn(
+                                "font-black text-[9px] uppercase hover:scale-[1.02] transition-transform",
+                                mistake.courtAnswers?.prosecutor 
+                                  ? "text-emerald-500" 
+                                  : "text-amber-500 animate-pulse"
+                              )}>
+                                {mistake.courtAnswers?.prosecutor ? "✅ Testimony Lodged" : "⏳ Statement Pending"}
+                              </span>
+                            </div>
+
+                            {/* Accused */}
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-text/60">
+                                🛡️ {mistake.loggedBy !== user?.uid ? "You (Accused)" : `${partner?.nickname || partner?.name || "Partner"} (Accused)`}:
+                              </span>
+                              <span className={cn(
+                                "font-black text-[9px] uppercase hover:scale-[1.02] transition-transform",
+                                mistake.courtAnswers?.accused 
+                                  ? "text-emerald-500" 
+                                  : "text-amber-500 animate-pulse"
+                              )}>
+                                {mistake.courtAnswers?.accused ? "✅ Testimony Lodged" : "⏳ Statement Pending"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Active question panel */}
+                          {mistake.courtStatus !== "completed" ? (
+                            <div className="p-3.5 bg-white dark:bg-slate-950/40 border border-slate-150 dark:border-slate-800/80 rounded-2xl flex flex-col gap-2">
+                              {(() => {
+                                const isAccused = user?.uid !== mistake.loggedBy;
+                                const currentQuestion = isAccused 
+                                  ? mistake.courtQuestions?.accused 
+                                  : mistake.courtQuestions?.prosecutor;
+                                const currentAnswer = isAccused 
+                                  ? mistake.courtAnswers?.accused 
+                                  : mistake.courtAnswers?.prosecutor;
+
+                                return (
+                                  <>
+                                    <p className="text-[9px] uppercase font-black tracking-wider text-violet-500 leading-none">
+                                      Your Custom Inquiry Directive:
+                                    </p>
+                                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                      "{currentQuestion || "Preparing case brief..."}"
+                                    </p>
+
+                                    {currentAnswer ? (
+                                      <div className="mt-2.5 border-t border-slate-100 dark:border-slate-800/80 pt-2.5 text-xs">
+                                        <span className="text-[9px] uppercase font-bold text-slate-400 block mb-1">
+                                          Your Submitted Defense/Prosecution Statement:
+                                        </span>
+                                        <p className="font-medium text-slate-800 dark:text-slate-200 bg-slate-50/50 dark:bg-slate-900/30 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 italic">
+                                          "{currentAnswer}"
+                                        </p>
+                                        {(!mistake.courtAnswers?.accused || !mistake.courtAnswers?.prosecutor) && (
+                                          <p className="text-[9px] text-amber-500/90 font-black mt-2.5 animate-pulse flex items-center gap-1 uppercase tracking-wider">
+                                            <span>⏳ Waiting for your partner's statement to trigger the court...</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="mt-2.5 text-xs flex flex-col gap-1.5">
+                                        <label className="text-[9px] uppercase font-black text-slate-400">
+                                          Draft Your Formal Testimony Statement:
+                                        </label>
+                                        <div className="flex gap-2">
+                                          <input
+                                            type="text"
+                                            value={testimonyInputs[mistake.id] || ""}
+                                            onChange={(e) => setTestimonyInputs(prev => ({ ...prev, [mistake.id]: e.target.value }))}
+                                            placeholder={isAccused ? "Write your sweet confession / excuse..." : "Detail your emotional demands..."}
+                                            className="flex-1 bg-slate-50 dark:bg-slate-900/55 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:outline-none focus:ring-violet-500 dark:text-white"
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter" && testimonyInputs[mistake.id]?.trim()) {
+                                                handleSubmitTestimony(mistake, testimonyInputs[mistake.id]);
+                                                setTestimonyInputs(prev => ({ ...prev, [mistake.id]: "" }));
+                                              }
+                                            }}
+                                          />
+                                          <button
+                                            onClick={() => {
+                                              const txt = testimonyInputs[mistake.id];
+                                              if (txt) {
+                                                handleSubmitTestimony(mistake, txt);
+                                                setTestimonyInputs(prev => ({ ...prev, [mistake.id]: "" }));
+                                              }
+                                            }}
+                                            disabled={!testimonyInputs[mistake.id]?.trim()}
+                                            className="px-4 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white font-black text-[11px] rounded-xl flex items-center justify-center tracking-wide transition-all shrink-0 uppercase"
+                                          >
+                                            Deliver Statement ✒️
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          ) : (
+                            <div className="p-4.5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex items-center gap-3 text-xs text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 size={18} className="shrink-0" />
+                              <p className="font-semibold leading-relaxed">
+                                This interactive courtroom case has been fully resolved and the verdict has been finalized! Love is successfully synced at 100%. 🥰
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -653,39 +886,80 @@ export function MistakeScreen() {
                       )}
 
                       {/* Accused side (not loggedBy, e.g. the active user who committed the mistake) can appeal */}
-                      {user?.uid !== mistake.loggedBy && mistake.status === "active" && (
+                      {user?.uid !== mistake.loggedBy && mistake.status === "active" && (!mistake.courtStatus || mistake.courtStatus === "idle") && (
                         <motion.button
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => { sensory.play("pop"); setAppealMistake(mistake); }}
-                          className="px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-violet-500/10 transition-all flex-1 justify-center"
+                          onClick={() => { sensory.play("pop"); handleInitiateCourtCase(mistake); }}
+                          className="px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-violet-500/10 transition-all flex-1 justify-center"
                         >
                           <Scale size={14} />
-                          File Repentance Appeal 📜
+                          Appeal in Interactive Court 🏛️
                         </motion.button>
                       )}
 
                       {/* Launch Ukku Pukku simulation judge session if active or appealed */}
                       {(mistake.status === "active" || mistake.status === "appeal") && (
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            sensory.play("levelUp");
-                            const trial = generateUkkuPukkuCourtTrial(
-                              mistake.title,
-                              mistake.loggedByName,
-                              mistake.loggedBy,
-                              user?.uid || "",
-                              partner?.nickname || partner?.name || "Partner",
-                              courtFacts
-                            );
-                            setActiveTrial(trial);
-                            setTrialStep(0);
-                          }}
-                          className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
-                        >
-                          <Gavel size={14} className="animate-bounce" />
-                          <span>Ukku Pukku Court 🧑‍⚖️</span>
-                        </motion.button>
+                        <>
+                          {(!mistake.courtStatus || mistake.courtStatus === "idle") && (
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                sensory.play("levelUp");
+                                const trial = generateUkkuPukkuCourtTrial(
+                                  mistake.title,
+                                  mistake.loggedByName,
+                                  mistake.loggedBy,
+                                  user?.uid || "",
+                                  partner?.nickname || partner?.name || "Partner",
+                                  courtFacts
+                                );
+                                setActiveTrial(trial);
+                                setActiveTrialMistake(mistake);
+                                setTrialStep(0);
+                              }}
+                              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all text-center justify-center flex-1"
+                            >
+                              <Gavel size={14} />
+                              <span>Instant Fast Verdict Mod 🧑‍⚖️</span>
+                            </motion.button>
+                          )}
+
+                          {mistake.courtStatus === "awaiting_testimonies" && (
+                            <button
+                              disabled
+                              className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900/60 text-slate-400 dark:text-slate-500 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-not-allowed justify-center flex-1 border border-dashed border-slate-200 dark:border-slate-800"
+                            >
+                              <Gavel size={14} className="animate-spin" />
+                              <span>Awaiting Both Statements... ⏳</span>
+                            </button>
+                          )}
+
+                          {mistake.courtStatus === "ready" && (
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                sensory.play("levelUp");
+                                const trial = generateUkkuPukkuCourtTrial(
+                                  mistake.title,
+                                  mistake.loggedByName,
+                                  mistake.loggedBy,
+                                  user?.uid || "",
+                                  partner?.nickname || partner?.name || "Partner",
+                                  courtFacts,
+                                  mistake.courtAnswers?.accused || "",
+                                  mistake.courtAnswers?.prosecutor || ""
+                                );
+                                setActiveTrial(trial);
+                                setActiveTrialMistake(mistake);
+                                setTrialStep(0);
+                              }}
+                              className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-violet-600 hover:from-amber-600 hover:to-violet-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-violet-500/10 active:scale-95 transition-all justify-center flex-1"
+                            >
+                              <Gavel size={14} className="animate-bounce" />
+                              <span>Convene Court Verdict 🏛️🧑‍⚖️</span>
+                            </motion.button>
+                          )}
+                        </>
                       )}
 
                       {mistake.status === "forgiven" && (
@@ -1241,9 +1515,21 @@ export function MistakeScreen() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         sensory.play("pop");
                         setActiveTrial(null);
+                        if (activeTrialMistake && activeTrialMistake.courtStatus && activeTrialMistake.courtStatus !== "idle") {
+                          try {
+                            const docRef = doc(db, "pairs", roomId, "mistakes", activeTrialMistake.id);
+                            await updateDoc(docRef, {
+                              status: "forgiven",
+                              courtStatus: "completed"
+                            });
+                          } catch (e) {
+                            console.error("Failed to auto-forgive court case on completion:", e);
+                          }
+                        }
+                        setActiveTrialMistake(null);
                       }}
                       className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all text-center"
                     >
