@@ -324,6 +324,19 @@ export function VaultScreen() {
     }
   };
 
+  const safeToMillis = (field: any) => {
+    if (!field) return undefined;
+    if (typeof field.toMillis === "function") return field.toMillis();
+    if (typeof field.toDate === "function") return field.toDate().getTime();
+    if (field instanceof Date) return field.getTime();
+    if (typeof field === "number") return field;
+    if (typeof field === "string") {
+      const d = Date.parse(field);
+      return isNaN(d) ? undefined : d;
+    }
+    return undefined;
+  };
+
   useEffect(() => {
     if (!isUnlocked || !roomId) return;
 
@@ -338,7 +351,7 @@ export function VaultScreen() {
         .map(doc => ({
           id: doc.id,
           url: doc.data().image,
-          timestamp: doc.data().timestamp?.toMillis(),
+          timestamp: safeToMillis(doc.data().timestamp),
           source: 'chat' as const
         }));
       setChatPhotos(photos);
@@ -349,7 +362,7 @@ export function VaultScreen() {
           id: doc.id,
           url: doc.data().video,
           caption: doc.data().text || "",
-          timestamp: doc.data().timestamp?.toMillis(),
+          timestamp: safeToMillis(doc.data().timestamp),
           source: 'chat' as const
         }));
       setChatVideos(videos);
@@ -367,7 +380,7 @@ export function VaultScreen() {
           id: doc.id,
           url: doc.data().content,
           caption: doc.data().caption,
-          timestamp: doc.data().createdAt?.toMillis(),
+          timestamp: safeToMillis(doc.data().createdAt),
           source: 'timeline' as const
         }));
       setTimelinePhotos(photos);
@@ -383,7 +396,7 @@ export function VaultScreen() {
         id: doc.id,
         url: doc.data().url,
         caption: doc.data().caption,
-        timestamp: doc.data().createdAt?.toMillis(),
+        timestamp: safeToMillis(doc.data().createdAt),
         source: 'vault' as const
       }));
       setVaultPhotos(photos);
@@ -399,7 +412,7 @@ export function VaultScreen() {
         id: doc.id,
         url: doc.data().url,
         caption: doc.data().caption,
-        timestamp: doc.data().createdAt?.toMillis(),
+        timestamp: safeToMillis(doc.data().createdAt),
         source: 'vault' as const
       }));
       setVaultVideos(dvideos);
@@ -415,7 +428,7 @@ export function VaultScreen() {
         id: doc.id,
         url: doc.data().videoUrl,
         caption: doc.data().caption || doc.data().text || "",
-        timestamp: doc.data().createdAt?.toMillis(),
+        timestamp: safeToMillis(doc.data().createdAt),
         source: 'reel' as const
       }));
       setReelsVideos(reelsList);
