@@ -332,7 +332,7 @@ export function MistakeScreen() {
       <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-primary/10 via-amber-500/5 to-transparent pointer-events-none" />
 
       {/* Hero Header */}
-      <div className="max-w-4xl w-full mx-auto px-6 pt-8 flex items-center justify-between relative z-10 shrink-0">
+      <div className="max-w-4xl w-full mx-auto px-6 pt-[calc(env(safe-area-inset-top,0px)+1.5rem)] md:pt-10 flex items-center justify-between relative z-10 shrink-0">
         <div className="flex items-center gap-4">
           <motion.button
             whileTap={{ scale: 0.9 }}
@@ -398,7 +398,7 @@ export function MistakeScreen() {
                   : "text-text/50 hover:text-text hover:bg-neutral-500/5"
               )}
             >
-              {tab === "all" ? "📂 All Cases" : tab === "active" ? "👮 Arrested" : tab === "appeal" ? "⚖️ Appeals" : "💖 Pardoned"}
+              {tab === "all" ? "📂 All" : tab === "active" ? "👮 Active" : tab === "appeal" ? "⚖️ Excuses" : "💖 Forgiven"}
             </button>
           ))}
         </div>
@@ -471,12 +471,12 @@ export function MistakeScreen() {
                           {/* Case status indicator */}
                           {mistake.status === "active" && (
                             <span className="px-2 py-0.5 text-[8px] font-black bg-amber-500 text-white rounded-full uppercase tracking-wider">
-                              👮 Under Arrest
+                              👮 Active
                             </span>
                           )}
                           {mistake.status === "appeal" && (
-                            <span className="px-2 py-0.5 text-[8px] font-black bg-violet-600 text-white rounded-full uppercase tracking-wider animate-pulse flex items-center gap-1">
-                              <Scale size={8} /> On Appeal
+                            <span className="px-2 py-0.5 text-[8px] font-black bg-rose-500-600 bg-violet-600 text-white rounded-full uppercase tracking-wider animate-pulse flex items-center gap-1">
+                              <Scale size={8} /> Excuses Offered
                             </span>
                           )}
                           {mistake.status === "forgiven" && (
@@ -526,7 +526,7 @@ export function MistakeScreen() {
                         <div className="p-3.5 rounded-2xl bg-bg border border-border/60 text-[11px] leading-relaxed text-text/60 font-sans flex items-start gap-2.5">
                           <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-extrabold text-amber-500 block uppercase text-[9px] tracking-wider mb-0.5">Repentance Advice:</span>
+                            <span className="font-extrabold text-amber-500 block uppercase text-[9px] tracking-wider mb-0.5">Punishment:</span>
                             {specs.actionAdvice}
                           </div>
                         </div>
@@ -622,7 +622,7 @@ export function MistakeScreen() {
                                 />
                               ) : (
                                 <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[7px] text-primary mt-0.5 shrink-0">
-                                   <User size={10} />
+                                   <Heart size={10} className="fill-current" />
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
@@ -650,7 +650,7 @@ export function MistakeScreen() {
                               handleAddComment(mistake.id);
                             }
                           }}
-                          placeholder={isAccused ? "Beg for help, promise ice cream, explain side..." : "Taunt him, write a cute reaction..."}
+                          placeholder={isAccused ? "Write your explanation or apology... 🥺" : "Leave a loving reaction or comment... 💬"}
                           className="flex-1 bg-card/90 border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary focus:outline-none placeholder-text/30"
                         />
                         <motion.button
@@ -707,9 +707,41 @@ export function MistakeScreen() {
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="E.g., Slept during the movies again 🥱"
-                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                    placeholder="Enter what they did..."
+                    className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-xs focus:ring-1 focus:ring-primary focus:outline-none placeholder-text/30"
                   />
+
+                  {/* Quick option buttons */}
+                  <div className="mt-2.5">
+                    <span className="text-[9px] uppercase font-black text-text/45 block mb-1.5 font-display">Or choose standard category:</span>
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1 no-scrollbar">
+                      {[
+                        "Replied late or went offline 📱",
+                        "Forgot a sweet promise 🧠",
+                        "No morning kisses or warm hugs 🥺",
+                        "Finished snacks/treats without me 🍕",
+                        "Slept early without saying goodnight 🥱",
+                        "Did not listen to my venting 😤"
+                      ].map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            sensory.play("tick");
+                            setTitle(item);
+                          }}
+                          className={cn(
+                            "text-[10px] px-2.5 py-1.5 rounded-lg border text-left transition-all",
+                            title === item
+                              ? "bg-primary/20 border-primary text-primary font-bold"
+                              : "bg-bg border-border text-text/60 hover:border-text/35"
+                          )}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -717,12 +749,12 @@ export function MistakeScreen() {
                   <textarea
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
-                    placeholder="E.g., Left me hang on single tick for three hours and didn't even notice I sent my OOTD pic! Unacceptable!"
-                    className="w-full h-18 bg-bg border border-border rounded-xl px-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:outline-none resize-none"
+                    placeholder="Provide any additional details or evidence if you want..."
+                    className="w-full h-18 bg-bg border border-border rounded-xl px-4 py-2.5 text-xs focus:ring-1 focus:ring-primary focus:outline-none resize-none placeholder-text/30"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-4">
                   <div>
                     <label className="text-[10px] uppercase font-black text-text/45 block mb-1.5">Crime incident date</label>
                     <input
@@ -735,24 +767,32 @@ export function MistakeScreen() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-text/45 block mb-1.5">Anger Level (How mad?)</label>
-                    <select
+                    <label className="text-[10px] uppercase font-black text-text/45 block mb-1 flex justify-between">
+                      <span>Anger Level</span>
+                      <span className="font-extrabold text-primary">Level {angerLevel} / 5</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="5"
+                      step="1"
                       value={angerLevel}
-                      onChange={(e) => setAngerLevel(parseInt(e.target.value))}
-                      className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                    >
-                      <option value="1">1 - Slight Pout 🤨</option>
-                      <option value="2">2 - Folded Arms 😤</option>
-                      <option value="3">3 - Steam Ears 🌋</option>
-                      <option value="4">4 - Silent treatment 🤐</option>
-                      <option value="5">5 - Godzilla Rage 🦖🔥</option>
-                    </select>
+                      onChange={(e) => {
+                        sensory.play("tick");
+                        setAngerLevel(parseInt(e.target.value));
+                      }}
+                      className="w-full accent-primary bg-neutral-200 dark:bg-neutral-800 h-2 rounded-lg cursor-pointer transition-all"
+                    />
+                    <div className="flex justify-between text-[9px] text-text/40 font-bold uppercase mt-1">
+                      <span>🥺 Less Angry</span>
+                      <span>🌋 More Angry</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="p-3 bg-rose-500/5 border border-rose-500/10 rounded-2xl flex items-start gap-2.5 text-[11px] text-text/60 font-sans mt-2">
                   <AlertOctagon size={14} className="text-rose-400 shrink-0 mt-0.5" />
-                  <span>By submitting this, you formalize the accusation and permit the partner to make desperate cute excuses! 📜</span>
+                  <span>By submitting this, you formalize the accusation and permit the partner to make desperate excuses! 📜</span>
                 </div>
 
                 <div className="flex gap-2.5 pt-2 select-none">
