@@ -16,7 +16,8 @@ import {
   Flower2,
   Image as ImageIcon,
   Lock,
-  Home
+  Home,
+  AlertCircle
 } from "lucide-react";
 import { useAppStore } from "../store";
 import { useShallow } from "zustand/react/shallow";
@@ -63,6 +64,7 @@ export function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
         { label: "Scrapbook", icon: <ImageIcon size={24} />, onClick: () => handleNavigate("timeline"), color: "bg-indigo-500/20 text-indigo-500" },
         { label: "Locked Folder", icon: <Lock size={24} />, onClick: () => handleNavigate("vault"), color: "bg-emerald-500/20 text-emerald-500" },
         { label: "100 Reasons", icon: <Heart size={24} />, onClick: () => handleNavigate("jar"), color: "bg-rose/20 text-rose" },
+        { label: "Mistake List", icon: <AlertCircle size={24} />, onClick: () => handleNavigate("mistakes"), color: "bg-amber-500/20 text-amber-500" },
       ]
     },
     {

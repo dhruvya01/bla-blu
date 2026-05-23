@@ -39,6 +39,7 @@ import { BabyGameScreen } from "./screens/BabyGameScreen";
 import { JourneyTrackerScreen } from "./screens/JourneyTrackerScreen";
 import { DoodleScreen } from "./screens/DoodleScreen";
 import { ReelsScreen } from "./screens/ReelsScreen";
+import { MistakeScreen } from "./screens/MistakeScreen";
 import { cn } from "./utils";
 import { doc, setDoc, updateDoc, getDoc, onSnapshot } from "firebase/firestore";
 import { db, auth, handleFirestoreError } from "./firebase/config";
@@ -611,6 +612,7 @@ export default function App() {
               view !== "vault" &&
               view !== "timeline" &&
               view !== "reels" &&
+              view !== "mistakes" &&
               "pt-[calc(env(safe-area-inset-top,0px)+62px)] pb-[calc(env(safe-area-inset-bottom,0px)+84px)]",
           )}
         >
@@ -634,6 +636,7 @@ export default function App() {
             {view === "vault" && <VaultScreen key="vault" />}
             {view === "doodle" && <DoodleScreen key="doodle" />}
             {view === "reels" && <ReelsScreen key="reels" />}
+            {view === "mistakes" && <MistakeScreen key="mistakes" />}
           </AnimatePresence>
         </main>
 
@@ -647,7 +650,8 @@ export default function App() {
           view !== "doodle" &&
           view !== "jar" &&
           view !== "timeline" &&
-          view !== "reels" && <Navigation />}
+          view !== "reels" &&
+          view !== "mistakes" && <Navigation />}
 
         <SurprisesManager />
         {/* <MusicPlayer /> */}
