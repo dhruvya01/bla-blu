@@ -53,8 +53,24 @@ export function SpotifyScreen() {
   const [songTitle, setSongTitle] = useState("");
   const [songLyrics, setSongLyrics] = useState("");
   const [songMood, setSongMood] = useState("cute");
-  
   const [isUploading, setIsUploading] = useState(false);
+
+  const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+
+  const togglePreviewPlay = () => {
+    if (!audioURL) return;
+    if (isPlayingPreview && previewAudio) {
+      previewAudio.pause();
+      setIsPlayingPreview(false);
+    } else {
+      const audio = new Audio(audioURL);
+      audio.onended = () => setIsPlayingPreview(false);
+      audio.play();
+      setPreviewAudio(audio);
+      setIsPlayingPreview(true);
+    }
+  };
   
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -142,6 +158,11 @@ export function SpotifyScreen() {
       return;
     }
     
+    if (previewAudio) {
+      previewAudio.pause();
+      setIsPlayingPreview(false);
+    }
+    
     setIsUploading(true);
     try {
       const fileName = `song_${Date.now()}.webm`;
@@ -178,6 +199,10 @@ export function SpotifyScreen() {
   };
 
   const cancelRecording = () => {
+    if (previewAudio) {
+      previewAudio.pause();
+      setIsPlayingPreview(false);
+    }
     setAudioBlob(null);
     setAudioURL(null);
     setRecordingTime(0);
@@ -267,7 +292,7 @@ export function SpotifyScreen() {
               Our Spotify <Heart className="text-[#1db954]" size={18} fill="#1db954" />
             </h1>
             <p className="text-xs text-white/60 font-medium tracking-wide">
-              {songs.length} compressed memory covers
+              {songs.length} {songs.length === 1 ? "beautiful cover" : "beautiful covers"}
             </p>
           </div>
         </div>
@@ -280,20 +305,21 @@ export function SpotifyScreen() {
           
           <div className="relative z-10 flex flex-col items-center justify-center space-y-4">
             <h2 className="text-sm font-bold text-white/90 uppercase tracking-widest text-center">
-              Sing for your Girl 🎤
+              Sing for your Cutie 🎤
             </h2>
             
             {audioURL ? (
               <div className="w-full space-y-4">
                 <div className="flex items-center justify-center gap-3 bg-[#181818] rounded-full p-2 border border-white/10">
                   <button
-                    onClick={() => {
-                      const audio = new Audio(audioURL);
-                      audio.play();
-                    }}
+                    onClick={togglePreviewPlay}
                     className="w-10 h-10 rounded-full bg-[#1db954] flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all"
                   >
-                    <Play size={18} fill="currentColor" className="ml-1" />
+                    {isPlayingPreview ? (
+                      <Pause size={18} fill="currentColor" />
+                    ) : (
+                      <Play size={18} fill="currentColor" className="ml-1" />
+                    )}
                   </button>
                   <div className="flex-1 flex gap-1 items-center px-2">
                     {/* Fake waveform */}
@@ -404,7 +430,7 @@ export function SpotifyScreen() {
             <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 bg-[#181818] rounded-3xl border border-white/5">
               <Mic className="text-white/20" size={48} />
               <p className="text-white/40 text-xs font-medium px-8 leading-relaxed">
-                No songs recorded yet. Sing a beautiful cover for your princess, it takes very little memory!
+                No songs recorded yet. Sing a beautiful cover for your love!
               </p>
             </div>
           ) : (
