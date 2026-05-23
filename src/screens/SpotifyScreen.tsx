@@ -12,7 +12,10 @@ import {
   orderBy,
   onSnapshot,
   deleteDoc,
-  doc
+  doc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { sensory } from "../utils/sensory";
@@ -26,6 +29,9 @@ interface Song {
   singerName: string;
   createdAt: any;
   duration?: number;
+  lyrics?: string;
+  mood?: string;
+  likedBy?: string[];
 }
 
 export function SpotifyScreen() {
@@ -43,12 +49,27 @@ export function SpotifyScreen() {
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
+  
   const [songTitle, setSongTitle] = useState("");
+  const [songLyrics, setSongLyrics] = useState("");
+  const [songMood, setSongMood] = useState("cute");
+  
   const [isUploading, setIsUploading] = useState(false);
   
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const moods = [
+    { id: "cute", label: "Cute 🧸", color: "bg-pink-500" },
+    { id: "sleepy", label: "Sleepy 😴", color: "bg-indigo-500" },
+    { id: "missing", label: "Missing You 🥺", color: "bg-blue-500" },
+    { id: "apology", label: "Apology 🥺", color: "bg-orange-500" },
+    { id: "romantic", label: "Romantic 💖", color: "bg-rose-500" },
+  ];
 
   useEffect(() => {
     if (!roomId) return;
@@ -136,11 +157,16 @@ export function SpotifyScreen() {
         singerName: user.email === "anjali@blablu.app" ? "Anjali" : "Dhruvya", // Custom naming
         createdAt: serverTimestamp(),
         duration: recordingTime,
+        lyrics: songLyrics.trim(),
+        mood: songMood,
+        likedBy: [],
       });
 
       setAudioBlob(null);
       setAudioURL(null);
       setSongTitle("");
+      setSongLyrics("");
+      setSongMood("cute");
       setRecordingTime(0);
       sensory.play("levelUp");
     } catch (err) {
@@ -156,6 +182,8 @@ export function SpotifyScreen() {
     setAudioURL(null);
     setRecordingTime(0);
     setSongTitle("");
+    setSongLyrics("");
+    setSongMood("cute");
   };
 
   const togglePlay = (song: Song) => {
@@ -166,18 +194,45 @@ export function SpotifyScreen() {
       if (audioRef.current) {
         audioRef.current.src = song.url;
         audioRef.current.play();
+        setCurrentlyPlaying(song.id);
+        setCurrentTime(0);
+        setDuration(song.duration || 0);
       }
-      setCurrentlyPlaying(song.id);
     }
   };
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.onended = () => {
-        setCurrentlyPlaying(null);
-      };
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handleEnded = () => setCurrentlyPlaying(null);
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("ended", handleEnded);
+
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, []);
+
+  const toggleLike = async (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!roomId || !user) return;
+    sensory.play("tick");
+    const isLiked = song.likedBy?.includes(user.uid);
+    try {
+      await updateDoc(doc(db, "pairs", roomId, "songs", song.id), {
+        likedBy: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
+      });
+    } catch (err) {
+      console.error("Failed to update like", err);
     }
-  }, [audioRef.current]);
+  };
 
   const deleteSong = async (song: Song) => {
     if (!roomId) return;
@@ -198,7 +253,7 @@ export function SpotifyScreen() {
   };
 
   return (
-    <div className="absolute inset-0 bg-[#000000] text-white overflow-y-auto no-scrollbar pb-24 font-sans select-none">
+    <div className="absolute inset-0 bg-[#000000] text-white overflow-y-auto no-scrollbar pb-32 font-sans select-none">
       <audio ref={audioRef} className="hidden" />
       
       {/* Spotify Header */}
@@ -256,6 +311,31 @@ export function SpotifyScreen() {
                   onChange={(e) => setSongTitle(e.target.value)}
                   className="w-full bg-[#181818] border-b-2 border-white/10 focus:border-[#1db954] text-white px-4 py-3 rounded-t-xl outline-none text-sm font-bold tracking-wide"
                 />
+
+                <textarea
+                  placeholder="Add a cute note or lyrics... (optional)"
+                  value={songLyrics}
+                  onChange={(e) => setSongLyrics(e.target.value)}
+                  className="w-full bg-[#181818] border-b-2 border-white/10 focus:border-[#1db954] text-white px-4 py-2 text-xs outline-none resize-none placeholder-white/30 rounded-b-xl"
+                  rows={2}
+                />
+
+                <div className="flex flex-wrap gap-2">
+                  {moods.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setSongMood(m.id)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all",
+                        songMood === m.id
+                          ? m.color + " text-white shadow-md"
+                          : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="flex items-center gap-3">
                   <button
@@ -328,67 +408,177 @@ export function SpotifyScreen() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3 pb-8">
               <AnimatePresence>
-                {songs.map((song, index) => (
+                {songs.map((song, index) => {
+                  const isPlaying = currentlyPlaying === song.id;
+                  const isLiked = song.likedBy?.includes(user?.uid || "");
+                  const moodInfo = moods.find(m => m.id === song.mood) || moods[0];
+
+                  return (
                   <motion.div
                     key={song.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ delay: index * 0.05 }}
-                    className="group bg-[#181818] hover:bg-[#282828] rounded-2xl p-3 flex items-center gap-4 transition-colors cursor-pointer border border-white/5"
+                    className={cn(
+                      "group bg-[#181818] hover:bg-[#282828] rounded-2xl p-4 flex flex-col gap-3 transition-colors cursor-pointer border",
+                      isPlaying ? "border-[#1db954]" : "border-white/5"
+                    )}
+                    onClick={() => togglePlay(song)}
                   >
-                    <button
-                      onClick={() => togglePlay(song)}
-                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white group-hover:bg-[#1db954] group-hover:text-black transition-all shrink-0"
-                    >
-                      {currentlyPlaying === song.id ? (
-                        <Pause size={16} fill="currentColor" />
-                      ) : (
-                        <Play size={16} fill="currentColor" className="ml-0.5" />
-                      )}
-                    </button>
-                    
-                    <div className="flex-1 min-w-0" onClick={() => togglePlay(song)}>
-                      <h4 className={cn("font-bold text-sm truncate", currentlyPlaying === song.id ? "text-[#1db954]" : "text-white")}>
-                        {song.title}
-                      </h4>
-                      <p className="text-[10px] text-white/50 uppercase tracking-widest font-bold mt-0.5 flex items-center gap-1.5">
-                        <span className="text-white/80">{song.singerName}</span>
-                        {song.duration && (
-                          <>
-                            <span className="w-1 h-1 rounded-full bg-white/20" />
-                            <span>{formatTime(song.duration)}</span>
-                          </>
-                        )}
-                      </p>
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePlay(song);
+                          }}
+                          className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white group-hover:bg-[#1db954] group-hover:text-black transition-all shrink-0 relative overflow-hidden"
+                        >
+                          {isPlaying ? (
+                            <Pause size={20} fill="currentColor" />
+                          ) : (
+                            <Play size={20} fill="currentColor" className="ml-1" />
+                          )}
+                          {isPlaying && (
+                            <div className="absolute inset-0 border-2 border-[#1db954] rounded-full animate-ping opacity-20" />
+                          )}
+                        </button>
+                      
+                        <div>
+                          <h4 className={cn("font-bold text-base truncate pr-2", isPlaying ? "text-[#1db954]" : "text-white")}>
+                            {song.title}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">
+                              {song.singerName}
+                            </span>
+                            {song.duration && (
+                              <>
+                                <span className="w-1 h-1 rounded-full bg-white/20" />
+                                <span className="text-[10px] text-white/50 font-mono tracking-widest">{formatTime(song.duration)}</span>
+                              </>
+                            )}
+                            {song.mood && (
+                              <>
+                                <span className="w-1 h-1 rounded-full bg-white/20" />
+                                <span className={cn("text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-lg", moodInfo.color, "text-white")}>
+                                  {moodInfo.label}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => toggleLike(song, e)}
+                        className="p-2 -mr-2 rounded-full hover:bg-white/10 transition-colors"
+                      >
+                        <Heart size={20} className={isLiked ? "text-rose-500 fill-rose-500" : "text-white/30"} />
+                      </button>
                     </div>
 
-                    {currentlyPlaying === song.id && (
-                      <div className="flex gap-0.5 h-4 items-end shrink-0 mr-2">
-                        <motion.div animate={{ height: ["4px", "16px", "8px", "16px"] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-1 rounded-t-sm bg-[#1db954]" />
-                        <motion.div animate={{ height: ["12px", "4px", "16px", "8px"] }} transition={{ repeat: Infinity, duration: 0.7 }} className="w-1 rounded-t-sm bg-[#1db954]" />
-                        <motion.div animate={{ height: ["8px", "16px", "4px", "12px"] }} transition={{ repeat: Infinity, duration: 0.9 }} className="w-1 rounded-t-sm bg-[#1db954]" />
+                    {song.lyrics && (
+                      <div className="px-3 py-2 bg-black/40 rounded-xl border border-white/5 mx-2">
+                        <p className="text-xs text-white/70 italic leading-relaxed line-clamp-3">
+                          "{song.lyrics}"
+                        </p>
                       </div>
                     )}
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteSong(song);
-                      }}
-                      className="w-8 h-8 rounded-full hover:bg-red-500/10 flex items-center justify-center text-white/30 hover:text-red-500 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {isPlaying && (
+                      <div className="flex items-center gap-3 px-2">
+                         <span className="text-[10px] font-mono text-[#1db954]">{formatTime(currentTime)}</span>
+                         <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                           <div 
+                             className="h-full bg-[#1db954] transition-all duration-100 ease-linear rounded-full" 
+                             style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                           />
+                         </div>
+                         <span className="text-[10px] font-mono text-white/40">{formatTime(duration)}</span>
+                         
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             deleteSong(song);
+                           }}
+                           className="p-1.5 ml-2 rounded-full text-white/30 hover:bg-red-500/20 hover:text-red-500 transition-colors"
+                         >
+                           <Trash2 size={14} />
+                         </button>
+                      </div>
+                    )}
                   </motion.div>
-                ))}
+                )})}
               </AnimatePresence>
             </div>
           )}
         </div>
       </div>
+
+      {currentlyPlaying && songs.find(s => s.id === currentlyPlaying) && (
+        <motion.div 
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          className="fixed bottom-0 inset-x-0 bg-[#181818] border-t border-white/10 p-4 pb-8 flex flex-col gap-2 shadow-2xl z-50 rounded-t-3xl"
+        >
+          <div className="flex items-center justify-between pointer-events-none">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-md bg-[#282828] flex items-center justify-center relative overflow-hidden">
+                <Music size={16} className="text-[#1db954]" />
+                <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-t from-[#1db954]/50 to-transparent" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-sm text-white truncate max-w-[200px]">
+                  {songs.find(s => s.id === currentlyPlaying)?.title}
+                </span>
+                <span className="text-[10px] text-[#1db954] uppercase tracking-widest font-black">
+                  NOW PLAYING
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 pointer-events-auto">
+               <button onClick={(e) => toggleLike(songs.find(s => s.id === currentlyPlaying)!, e)}>
+                 <Heart size={20} className={songs.find(s => s.id === currentlyPlaying)?.likedBy?.includes(user?.uid || "") ? "text-rose-500 fill-rose-500" : "text-white/50"} />
+               </button>
+               <button 
+                 onClick={() => {
+                   audioRef.current?.pause();
+                   setCurrentlyPlaying(null);
+                 }}
+                 className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all"
+               >
+                 <Pause size={18} fill="currentColor" />
+               </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 px-1 relative z-10 pointer-events-auto">
+            <span className="text-[10px] font-mono text-white/50 tabular-nums">{formatTime(currentTime)}</span>
+            <div 
+              className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer relative"
+              onClick={(e) => {
+                if (audioRef.current && duration) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const percent = (e.clientX - rect.left) / rect.width;
+                  audioRef.current.currentTime = percent * duration;
+                }
+              }}
+            >
+              <div 
+                className="absolute left-0 top-0 h-full bg-white rounded-full transition-all duration-100"
+                style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-mono text-white/50 tabular-nums">{formatTime(duration)}</span>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
