@@ -141,10 +141,35 @@ interface AppStore {
   setHomeLocation: (lat: number | null, lng: number | null) => Promise<void>;
 }
 
-// Helpers
+// Safe wrapper for localStorage to prevent cross-origin iframe security errors (e.g. in AI Studio)
+export const safeStorage = {
+  getItem: (key: string) => {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (e) {
+      console.warn("localStorage getItem denied:", e);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string) => {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn("localStorage setItem denied:", e);
+    }
+  },
+  removeItem: (key: string) => {
+    try {
+      window.localStorage.removeItem(key);
+    } catch (e) {
+      console.warn("localStorage removeItem denied:", e);
+    }
+  }
+};
+
 const parseJSON = (key: string, fallback: any) => {
   try {
-    const val = localStorage.getItem(key);
+    const val = safeStorage.getItem(key);
     if (!val || val === "undefined" || val === "null") return fallback;
     return JSON.parse(val);
   } catch (e) {
@@ -152,10 +177,10 @@ const parseJSON = (key: string, fallback: any) => {
   }
 };
 
-const cachedUserUid = localStorage.getItem("blablu_user_uid");
-const lastRoomId = localStorage.getItem("blablu_last_room");
+const cachedUserUid = safeStorage.getItem("blablu_user_uid");
+const lastRoomId = safeStorage.getItem("blablu_last_room");
 const cachedTheme =
-  (localStorage.getItem("blablu_theme") as ThemeType) || "pink";
+  (safeStorage.getItem("blablu_theme") as ThemeType) || "pink";
 
 const enrichState = (
   state: AppStore,
@@ -516,14 +541,32 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         pukkuHygiene,
       } = state.babyEvolution;
 
-      // Slower rates: 100 points should take ~8-12 hours (240-360 standard ticks)
-      // Rate per 2-min tick: 100 / 300 = ~0.33 -> CHANGED to 15-min ticks!
-      // In 8 hours there are 32 ticks (15 mins each). To lose 100 hunger in 8h: 100 / 32 = 3.125
-      const baseHungerRate = (isSleeping ? 1.0 : 3.0) + Math.random() * 0.5;
-      const baseHygieneRate = 1.5 + Math.random() * 0.5;
+      // Meal logic (9am, 3pm, 9pm)
+      let mealMisses = 0;
+      if (!isSleeping && state.babyEvolution.lastTick) {
+         const mealHours = [9, 15, 21];
+         let lastD = new Date(lastTick);
+         const enD = new Date(now);
+         let maxChecks = 72;
+         while (lastD < enD && maxChecks > 0) {
+            lastD.setHours(lastD.getHours() + 1);
+            if (mealHours.includes(lastD.getHours())) {
+                mealMisses++;
+            }
+            maxChecks--;
+         }
+      }
+
+      // No hunger drain while sleeping!
+      const baseHungerRate = isSleeping ? 0 : (0.4 + Math.random() * 0.2);
+      const baseHygieneRate = 1.0 + Math.random() * 0.5;
       const baseSleepinessRate = isSleeping ? -15 : 2.0;
 
-      const deltaHunger = baseHungerRate * ticksPassed;
+      let deltaHunger = baseHungerRate * ticksPassed;
+      if (!isSleeping && mealMisses > 0) {
+         deltaHunger += mealMisses * 45; // huge drop if a meal is missed
+      }
+
       const deltaHygiene = baseHygieneRate * ticksPassed;
       const deltaSleep = baseSleepinessRate * ticksPassed;
 

@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence, inMemoryPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getMessaging } from "firebase/messaging";
@@ -18,8 +18,11 @@ export const messaging = (() => {
   }
 })();
 
-// Ensure persistence is set
-setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
+// Ensure persistence is set, fallback for iframe environments (like AI Studio)
+setPersistence(auth, browserLocalPersistence).catch(err => {
+  console.warn("browserLocalPersistence blocked (likely in an iframe). Falling back to inMemoryPersistence.");
+  setPersistence(auth, inMemoryPersistence).catch(e => console.error("inMemoryPersistence also failed:", e));
+});
 
 export interface FirestoreErrorInfo {
   error: string;

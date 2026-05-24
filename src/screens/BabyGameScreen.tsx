@@ -212,23 +212,21 @@ export function BabyGameScreen() {
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex-1 w-full bg-bg overflow-y-auto no-scrollbar pb-6">
       {/* Gamified Header */}
       <div className="sticky top-0 z-30 bg-bg/80 backdrop-blur-2xl pt-safe-top pb-4 px-5 border-b border-white/10 shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-3 mt-2">
-          <motion.button 
-            whileTap={{scale:0.9}} 
-            onClick={()=>setView('home')} 
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-white/50 dark:border-white/10 shadow-sm hover:bg-white/5 transition-colors"
-          >
-            <ArrowLeft size={18} className="text-text/70"/>
-            <span className="text-sm font-bold text-text/70">Home</span>
-          </motion.button>
-          <div className="px-5 py-2.5 bg-amber-400/20 rounded-[20px] border border-amber-400/30 flex items-center gap-2 shadow-sm">
-            <div className="w-7 h-7 rounded-full bg-amber-400 flex items-center justify-center shadow-md">
-              <Coins size={14} className="text-amber-900" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[8px] font-black uppercase text-amber-600 leading-none tracking-widest">Babies' Money</span>
-              <span className="text-[12px] font-black text-amber-900">{coins}</span>
-            </div>
+        <motion.button 
+          whileTap={{scale:0.9}} 
+          onClick={()=>setView('home')} 
+          className="flex items-center gap-2 px-4 py-2 mt-2 rounded-full bg-card border border-white/50 dark:border-white/10 shadow-sm hover:bg-white/5 transition-colors"
+        >
+          <ArrowLeft size={18} className="text-text/70"/>
+          <span className="text-sm font-bold text-text/70">Home</span>
+        </motion.button>
+        <div className="px-5 py-2.5 mt-2 bg-amber-400/20 rounded-[20px] border border-amber-400/30 flex items-center gap-2 shadow-sm">
+          <div className="w-7 h-7 rounded-full bg-amber-400 flex items-center justify-center shadow-md">
+            <Coins size={14} className="text-amber-900" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[8px] font-black uppercase text-amber-600 leading-none tracking-widest">Babies' Money</span>
+            <span className="text-[12px] font-black text-amber-900">{coins}</span>
           </div>
         </div>
       </div>
@@ -242,40 +240,51 @@ export function BabyGameScreen() {
       </div>
 
       {/* Family quick-stats */}
-      <div className="mx-4 mt-6 grid grid-cols-2 gap-3">
-        {([
-           {id:'dhruvya',n:'Dhruvya',c:'indigo',age:getAgeShort(DHRUVYA_BD), role:'Papa'},
-           {id:'anjali',n:'Anjali',c:'emerald',age:getAgeShort(ANJALI_BD), role:'Mumma'},
-           {id:'pukku',n:'Pukku',c:'blue',h:Math.round(pukkuHunger||0),hy:Math.round(pukkuHygiene||0),age:getAgeShort(PUKKU_BD)},
-           {id:'ukku',n:'Ukku',c:'rose',h:Math.round(ukkuHunger||0),hy:Math.round(ukkuHygiene||0),age:getAgeShort(UKKU_BD)}
-         ] as const).map(b=>(
-          <motion.div key={b.id} whileHover={{y:-2}} className={cn("bg-card border border-white/50 dark:border-white/5 shadow-sm relative overflow-hidden group flex flex-col justify-between", 'role' in b ? "rounded-[20px] p-3" : "rounded-[32px] p-4")}>
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-current to-transparent opacity-5 rounded-bl-[100px] pointer-events-none" style={{color: b.c === 'blue' ? '#3b82f6' : b.c === 'rose' ? '#f43f5e' : b.c === 'indigo' ? '#6366f1' : '#10b981'}} />
-            <div className={cn("flex items-start justify-between relative z-10", 'role' in b ? "mb-2" : "mb-4")}>
-              <div className="flex items-center gap-2">
-                <div className={cn("rounded-[12px] flex items-center justify-center text-white text-xs font-black shadow-inner border border-white/20 shrink-0", 'role' in b ? "w-8 h-8" : "w-10 h-10", b.c==='blue'?'bg-blue-500':b.c==='rose'?'bg-rose-500':b.c==='indigo'?'bg-indigo-500':'bg-emerald-500')}>
-                  {b.n[0]}
-                </div>
-                <div className="flex flex-col">
-                  <span className={cn("font-bold tracking-tight text-text leading-tight", 'role' in b ? "text-[12px]" : "text-[14px]")}>{b.n}</span>
-                  <span className="text-[9px] font-bold text-text/40">{b.age}</span>
+      <div className="mx-4 mt-6 flex flex-col gap-3">
+        {/* Parents */}
+        <div className="grid grid-cols-2 gap-3">
+          {([
+             {id:'dhruvya',n:'Dhruvya',c:'indigo',age:getAgeShort(DHRUVYA_BD), role:'Papa'},
+             {id:'anjali',n:'Anjali',c:'emerald',age:getAgeShort(ANJALI_BD), role:'Mumma'}
+           ] as const).map(b=>(
+            <motion.div key={b.id} whileHover={{y:-2}} className="bg-card border border-white/50 dark:border-white/5 shadow-sm rounded-[24px] p-3.5 relative overflow-hidden group flex flex-col justify-center items-center text-center">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-current to-transparent opacity-5 rounded-bl-[100px] pointer-events-none" style={{color: b.c === 'indigo' ? '#6366f1' : '#10b981'}} />
+              <div className={cn("rounded-[14px] flex items-center justify-center text-white text-sm font-black shadow-inner border border-white/20 shrink-0 w-10 h-10 mb-2 z-10", b.c==='indigo'?'bg-indigo-500':'bg-emerald-500')}>
+                {b.n[0]}
+              </div>
+              <span className="font-bold tracking-tight text-text text-[13px] leading-tight z-10">{b.n}</span>
+              <span className="text-[9px] font-bold text-text/40 z-10">{b.age}</span>
+              <div className="flex items-center gap-1 mt-1 z-10">
+                <span className="text-[10px] font-black text-text/50 uppercase tracking-widest">{b.role}</span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Babies */}
+        <div className="grid grid-cols-2 gap-3">
+          {([
+             {id:'pukku',n:'Pukku',c:'blue',h:Math.round(pukkuHunger||0),hy:Math.round(pukkuHygiene||0),age:getAgeShort(PUKKU_BD)},
+             {id:'ukku',n:'Ukku',c:'rose',h:Math.round(ukkuHunger||0),hy:Math.round(ukkuHygiene||0),age:getAgeShort(UKKU_BD)}
+           ] as const).map(b=>(
+            <motion.div key={b.id} whileHover={{y:-2}} className="bg-card border border-white/50 dark:border-white/5 shadow-sm rounded-[32px] p-4 relative overflow-hidden group flex flex-col justify-between">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-current to-transparent opacity-5 rounded-bl-[100px] pointer-events-none" style={{color: b.c === 'blue' ? '#3b82f6' : '#f43f5e'}} />
+              <div className="flex items-start justify-between relative z-10 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className={cn("rounded-[12px] flex items-center justify-center text-white text-xs font-black shadow-inner border border-white/20 shrink-0 w-10 h-10", b.c==='blue'?'bg-blue-500':'bg-rose-500')}>
+                    {b.n[0]}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-bold tracking-tight text-text text-[14px] leading-tight">{b.n}</span>
+                    <span className="text-[9px] font-bold text-text/40">{b.age}</span>
+                  </div>
                 </div>
               </div>
-              {'role' in b && (
-                 <span className="text-xl leading-none">{b.role === 'Papa' ? '👨🏻' : '👩🏻'}</span>
-              )}
-            </div>
-            
-            {'role' in b ? (
-              <div className="flex items-center gap-1.5 py-1.5 px-2 bg-text/5 rounded-[10px] relative z-10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] w-fit mt-1">
-                <span className="text-[9px] font-black text-text/50 uppercase tracking-widest">{b.role}</span>
-              </div>
-            ) : (
               <div className="space-y-3 mt-2 relative z-10">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[9px] font-bold text-text/50 uppercase flex items-center gap-1">🍼 Fullness</span>
-                    <span className="text-[9px] font-black text-text/60">{b.h}%</span>
+                    <span className={cn("text-[9px] font-black", b.h < 25 ? "text-rose-500 animate-pulse" : "text-text/60")}>{b.h}%</span>
                   </div>
                   <div className="w-full h-2 bg-text/5 rounded-full overflow-hidden shadow-inner border border-text/5">
                     <motion.div initial={{width:0}} animate={{width:`${b.h}%`}} transition={{type:"spring", stiffness:50, damping: 15}} className={cn('h-full rounded-full shadow-sm',b.h>70?'bg-emerald-400':b.h>30?'bg-amber-400':'bg-rose-500')}/>
@@ -284,22 +293,22 @@ export function BabyGameScreen() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[9px] font-bold text-text/50 uppercase flex items-center gap-1">✨ Clean</span>
-                    <span className="text-[9px] font-black text-text/60">{b.hy}%</span>
+                    <span className={cn("text-[9px] font-black", b.hy < 25 ? "text-rose-500 animate-pulse" : "text-text/60")}>{b.hy}%</span>
                   </div>
                   <div className="w-full h-2 bg-text/5 rounded-full overflow-hidden shadow-inner border border-text/5">
                     <motion.div initial={{width:0}} animate={{width:`${b.hy}%`}} transition={{type:"spring", stiffness:50, damping: 15}} className={cn('h-full rounded-full shadow-sm',b.hy>70?'bg-sky-400':b.hy>30?'bg-amber-400':'bg-rose-500')}/>
                   </div>
                 </div>
               </div>
-            )}
-          </motion.div>
-        ))}
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       {/* Tab Bar */}
-      <div className="mx-4 mt-6 flex bg-card border border-white/50 dark:border-white/5 rounded-[24px] p-2 gap-2 shadow-sm">
+      <div className="mx-4 mt-6 flex bg-card border border-white/50 dark:border-white/5 rounded-[24px] p-1.5 gap-1 shadow-sm overflow-x-auto no-scrollbar">
         {([['home','🏠','Home'],['play','🎮','Play'],['cook','🍳','Cook'],['shop','🛒','Shop'],['tasks','✅','Tasks']] as const).map(([k,e,l])=>(
-          <motion.button whileTap={{scale:0.92}} key={k} onClick={()=>setTab(k as any)} className={cn('flex-1 py-3 rounded-[16px] text-[10px] font-black uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-1.5 relative overflow-hidden',tab===k?'bg-primary text-white shadow-md':'text-text/40 hover:bg-text/5')}>
+          <motion.button whileTap={{scale:0.92}} key={k} onClick={()=>setTab(k as any)} className={cn('min-w-[64px] flex-1 py-2.5 rounded-[16px] text-[10px] font-black uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-1.5 relative overflow-hidden',tab===k?'bg-primary text-white shadow-md':'text-text/40 hover:bg-text/5')}>
             {tab===k && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
             <span className="text-xl relative z-10 drop-shadow-sm">{e}</span>
             <span className="relative z-10">{l}</span>

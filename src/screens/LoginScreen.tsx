@@ -135,6 +135,8 @@ export function LoginScreen() {
         }
       } else if (err.code === "auth/too-many-requests") {
         showError("Too many failed attempts. Please try again later.");
+      } else if (err.code === "auth/network-request-failed") {
+        showError("Network error. If you are in AI Studio, please click ↗ (Open in new tab) at the top right.");
       } else {
         showError("Login failed: " + (err.message || "Unknown error"));
         console.error("Login attempt failed:", err);

@@ -418,6 +418,28 @@ export default function App() {
   const debugBirthday = useAppStore((state) => state?.debugBirthday);
   const birthdayPerson = debugBirthday || getRealBirthday();
 
+  // DEVELOPMENT LOCK SCREEN
+  return (
+    <div className="flex flex-col h-[100dvh] w-full items-center justify-center bg-black p-8 text-center">
+      <div className="max-w-md w-full flex flex-col items-center gap-8">
+        <h1 className="text-2xl sm:text-3xl font-black text-rose-500 leading-tight uppercase tracking-widest text-center shadow-rose-500/20 drop-shadow-xl">
+          App is in developing mode
+        </h1>
+        <p className="text-xl sm:text-2xl font-bold text-white/90 text-center tracking-tight">
+          btw i dont miss you go do what ever you want
+        </p>
+        <a 
+          href="https://youtu.be/rrCYMsV7A-c?si=CROGRI3aW4bjGQHb" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="bg-white text-black font-black px-8 py-4 rounded-full text-sm mt-12 hover:bg-neutral-200 transition-colors shadow-lg active:scale-95"
+        >
+          Watch Video
+        </a>
+      </div>
+    </div>
+  );
+
   if (loading || (!isAuthReady && user)) {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-bg relative overflow-hidden">

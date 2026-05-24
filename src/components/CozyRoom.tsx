@@ -27,6 +27,7 @@ export function CozyRoom({ theme='default', isSleeping=false, cleanliness=75, on
     const interval = setInterval(() => {
       // Pukku logic
       if (bathingBaby === 'pukku') setPukkuSpeech("🫧 Splash! 🫧");
+      else if (pukkuHunger < 15) setPukkuSpeech(Math.random() > 0.5 ? "WAAAA! 😭 HUNGRY!" : "I WANT FOOD! 😡");
       else if (pukkuHunger < 40) setPukkuSpeech(Math.random() > 0.5 ? "Mummy foof! 🥺" : "Papa eat! 🥪");
       else if (pukkuHygiene < 30) setPukkuSpeech("I'm messy! 💩");
       else if (cleanliness < 40) setPukkuSpeech("Dirty room! 🧹");
@@ -35,6 +36,7 @@ export function CozyRoom({ theme='default', isSleeping=false, cleanliness=75, on
 
       // Ukku logic
       if (bathingBaby === 'ukku') setUkkuSpeech("🫧 Yaaay! 🫧");
+      else if (ukkuHunger < 15) setUkkuSpeech(Math.random() > 0.5 ? "WAAAAA! 😭😭" : "MUMMAA FOOD! 🥺");
       else if (ukkuHunger < 40) setUkkuSpeech(Math.random() > 0.5 ? "Mummy foof! 🥺" : "Papa eat! 🍪");
       else if (ukkuHygiene < 30) setUkkuSpeech("Waaaa! Muddy! 💩");
       else if (Math.random() > 0.7) setUkkuSpeech(Math.random() > 0.5 ? "Papa up up! ☁️" : "Mummy kissie! 😘");
