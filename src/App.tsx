@@ -13,6 +13,8 @@ import {
   Zap,
   MessageSquare,
   MapPin,
+  Play,
+  Lock,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "./store";
@@ -420,22 +422,85 @@ export default function App() {
 
   // DEVELOPMENT LOCK SCREEN
   return (
-    <div className="flex flex-col h-[100dvh] w-full items-center justify-center bg-black p-8 text-center">
-      <div className="max-w-md w-full flex flex-col items-center gap-8">
-        <h1 className="text-2xl sm:text-3xl font-black text-rose-500 leading-tight uppercase tracking-widest text-center shadow-rose-500/20 drop-shadow-xl">
-          App is in developing mode
-        </h1>
-        <p className="text-xl sm:text-2xl font-bold text-white/90 text-center tracking-tight">
-          btw i dont miss you go do what ever you want
-        </p>
-        <a 
-          href="https://youtu.be/rrCYMsV7A-c?si=CROGRI3aW4bjGQHb" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="bg-white text-black font-black px-8 py-4 rounded-full text-sm mt-12 hover:bg-neutral-200 transition-colors shadow-lg active:scale-95"
+    <div className="relative flex flex-col h-[100dvh] w-full items-center justify-center bg-[#07070a] p-6 text-center overflow-hidden font-sans">
+      {/* Dynamic Glowing Ambient Circles in Background */}
+      <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-rose-500/10 rounded-full blur-[120px] animate-pulse pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-600/10 rounded-full blur-[140px] animate-pulse pointer-events-none [animation-delay:1.5s]" />
+      <div className="absolute inset-0 bg-[radial-gradient(transparent_1px,#ffffff03_1px)] bg-[size:20px_20px] pointer-events-none" />
+
+      <div className="max-w-md w-full flex flex-col items-center gap-8 relative z-10">
+        {/* Status Chip */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="flex items-center gap-2 px-4 py-2 bg-rose-950/40 border border-rose-500/20 backdrop-blur-md rounded-full"
         >
-          Watch Video
-        </a>
+          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-400">
+            System Dev Phase ACTIVE
+          </span>
+        </motion.div>
+
+        {/* Dynamic Title */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="space-y-3"
+        >
+          <h1 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-200 to-violet-400 leading-tight uppercase tracking-widest text-center">
+            Developing Mode
+          </h1>
+        </motion.div>
+
+        {/* Quote Glassmorphic Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full px-6 py-5 bg-white/[0.02] border border-white/5 backdrop-blur-md rounded-[28px] shadow-2xl relative group overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+          <div className="absolute -top-6 -left-6 w-12 h-12 bg-rose-500/10 rounded-full blur-xl group-hover:bg-rose-500/20 transition-all duration-700" />
+          <p className="text-lg sm:text-xl font-medium text-white/90 text-center tracking-tight leading-relaxed italic px-2">
+            "btw i dont miss you go do what ever you want"
+          </p>
+        </motion.div>
+
+        {/* Buttons Control Panel */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex flex-col gap-3.5 w-full px-2"
+        >
+          {/* Watch Video Button */}
+          <a 
+            href="https://youtu.be/rrCYMsV7A-c?si=CROGRI3aW4bjGQHb" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="group relative bg-white text-black font-black px-8 py-4.5 rounded-3xl text-xs uppercase tracking-widest hover:bg-neutral-100 transition-all shadow-xl active:scale-98 flex items-center justify-center gap-2.5 overflow-hidden"
+          >
+            <Play size={14} className="fill-current group-hover:scale-110 transition-transform" />
+            <span>Watch Video</span>
+          </a>
+
+          {/* SMS / Text Me Button */}
+          <a 
+            href="sms:+917889686144" 
+            className="group border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.08] text-white font-black px-8 py-4.5 rounded-3xl text-xs uppercase tracking-widest transition-all active:scale-98 flex items-center justify-center gap-2.5 shadow-xl"
+          >
+            <MessageSquare size={14} className="text-rose-400 group-hover:rotate-6 transition-transform" />
+            <span id="text-me-btn-text">Text Me</span>
+          </a>
+        </motion.div>
+      </div>
+
+      {/* Decorative Brand Signature */}
+      <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center opacity-25 text-[9px] font-mono select-none pointer-events-none tracking-widest uppercase">
+        <span>[ Terminal SECURE ]</span>
+        <span>v3.5.0-Dev</span>
       </div>
     </div>
   );
