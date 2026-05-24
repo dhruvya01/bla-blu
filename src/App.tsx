@@ -486,9 +486,11 @@ export default function App() {
             <span>Watch Video</span>
           </a>
 
-          {/* SMS / Text Me Button */}
+          {/* WhatsApp / Text Me Button */}
           <a 
-            href="sms:+917889686144" 
+            href="https://wa.me/917889686144" 
+            target="_blank" 
+            rel="noopener noreferrer"
             className="group border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.08] text-white font-black px-8 py-4.5 rounded-3xl text-xs uppercase tracking-widest transition-all active:scale-98 flex items-center justify-center gap-2.5 shadow-xl"
           >
             <MessageSquare size={14} className="text-rose-400 group-hover:rotate-6 transition-transform" />
