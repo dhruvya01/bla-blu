@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Square, Play, Pause, Trash2, UploadCloud, Save, Music, Heart, Volume2 } from "lucide-react";
 import { useAppStore } from "../store";
 import { useShallow } from "zustand/react/shallow";
-import { db, storage } from "../firebase/config";
+import { db } from "../firebase/config";
 import {
   collection,
   addDoc,
@@ -17,9 +17,9 @@ import {
   arrayUnion,
   arrayRemove
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { sensory } from "../utils/sensory";
 import { cn } from "../utils";
+import { encryptData, decryptData } from "../utils/e2ee";
 
 interface Song {
   id: string;
@@ -45,9 +45,6 @@ export function SpotifyScreen() {
 
   const [songs, setSongs] = useState<Song[]>([]);
   const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [audioURL, setAudioURL] = useState<string | null>(null);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   
   const [songTitle, setSongTitle] = useState("");
@@ -55,16 +52,21 @@ export function SpotifyScreen() {
   const [songMood, setSongMood] = useState("cute");
   const [isUploading, setIsUploading] = useState(false);
 
+  const [recordedAudio, setRecordedAudio] = useState<string | null>(null);
+  
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   const togglePreviewPlay = () => {
-    if (!audioURL) return;
+    if (!recordedAudio) return;
     if (isPlayingPreview && previewAudio) {
       previewAudio.pause();
       setIsPlayingPreview(false);
     } else {
-      const audio = new Audio(audioURL);
+      const audio = new Audio(recordedAudio);
       audio.onended = () => setIsPlayingPreview(false);
       audio.play();
       setPreviewAudio(audio);
@@ -91,11 +93,27 @@ export function SpotifyScreen() {
     if (!roomId) return;
     const q = query(collection(db, "pairs", roomId, "songs"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data: Song[] = [];
-      snapshot.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() } as Song);
-      });
-      setSongs(data);
+      const processDocs = async () => {
+        const data: Song[] = [];
+        const promises = snapshot.docs.map(async (docData) => {
+          const songDoc = docData.data();
+          let decryptedUrl = songDoc.url;
+          
+          if (songDoc.url && songDoc.url.startsWith('E2EE:')) {
+              try {
+                  decryptedUrl = await decryptData(songDoc.url);
+              } catch (e) {
+                  console.error("Failed to decrypt song url", e);
+              }
+          }
+          return { id: docData.id, ...songDoc, url: decryptedUrl } as Song;
+        });
+
+        const resolvedData = await Promise.all(promises);
+        setSongs(resolvedData);
+      };
+      
+      processDocs();
     });
     return () => unsubscribe();
   }, [roomId]);
@@ -116,26 +134,30 @@ export function SpotifyScreen() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Balanced bitrate for decent quality and memory efficiency (64kbps = ~480KB per min)
-      const options = { audioBitsPerSecond: 64000 };
-      const recorder = new MediaRecorder(stream, options);
-      const chunks: Blob[] = [];
-      
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "audio/webm;codecs=opus" });
-        setAudioBlob(blob);
-        setAudioURL(URL.createObjectURL(blob));
-        // Stop all tracks to release mic
-        stream.getTracks().forEach((track) => track.stop());
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
-      
-      recorder.start();
-      setMediaRecorder(recorder);
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          if (audioChunksRef.current.length > 0) {
+            setRecordedAudio(reader.result as string);
+          }
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
-      setAudioBlob(null);
-      setAudioURL(null);
+      setRecordedAudio(null);
       sensory.play("tick");
     } catch (err) {
       console.error("Mic access denied", err);
@@ -144,15 +166,15 @@ export function SpotifyScreen() {
   };
 
   const stopRecording = () => {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      mediaRecorder.stop();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
       setIsRecording(false);
       sensory.play("tick");
     }
   };
 
   const saveSong = async () => {
-    if (!audioBlob || !roomId || !user) return;
+    if (!recordedAudio || !roomId || !user) return;
     if (!songTitle.trim()) {
       alert("Please give your song cover a cute title!");
       return;
@@ -165,15 +187,12 @@ export function SpotifyScreen() {
     
     setIsUploading(true);
     try {
-      const fileName = `song_${Date.now()}.webm`;
-      const storageRef = ref(storage, `pairs/${roomId}/songs/${fileName}`);
-      
-      await uploadBytes(storageRef, audioBlob);
-      const downloadUrl = await getDownloadURL(storageRef);
+      // Encrypt the base64 audio
+      const encryptedAudioUrl = await encryptData(recordedAudio);
       
       await addDoc(collection(db, "pairs", roomId, "songs"), {
         title: songTitle.trim(),
-        url: downloadUrl,
+        url: encryptedAudioUrl, // Storing base64 string directly
         singerUid: user.uid,
         singerName: user.email === "anjali@blablu.app" ? "Anjali" : "Dhruvya", // Custom naming
         createdAt: serverTimestamp(),
@@ -183,8 +202,7 @@ export function SpotifyScreen() {
         likedBy: [],
       });
 
-      setAudioBlob(null);
-      setAudioURL(null);
+      setRecordedAudio(null);
       setSongTitle("");
       setSongLyrics("");
       setSongMood("cute");
@@ -203,8 +221,7 @@ export function SpotifyScreen() {
       previewAudio.pause();
       setIsPlayingPreview(false);
     }
-    setAudioBlob(null);
-    setAudioURL(null);
+    setRecordedAudio(null);
     setRecordingTime(0);
     setSongTitle("");
     setSongLyrics("");
@@ -308,7 +325,7 @@ export function SpotifyScreen() {
               Sing for your Cutie 🎤
             </h2>
             
-            {audioURL ? (
+            {recordedAudio ? (
               <div className="w-full space-y-4">
                 <div className="flex items-center justify-center gap-3 bg-[#181818] rounded-full p-2 border border-white/10">
                   <button

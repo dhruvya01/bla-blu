@@ -236,19 +236,64 @@ async function start() {
   });
 
   const fs = await import("fs");
-  const isProduction = process.env.NODE_ENV === "production" || 
-                       process.env.K_SERVICE ||
-                       fs.existsSync(path.join(process.cwd(), "dist", "index.html"));
+  const distPath = path.join(process.cwd(), "dist");
+  const distHtmlPath = path.join(distPath, "index.html");
+  const hasBuild = fs.existsSync(distHtmlPath);
+
+  // High-reliability production determination
+  const isProduction = (process.env.NODE_ENV === "production" || process.env.K_SERVICE) && hasBuild;
   
   if (isProduction) {
-    const distPath = path.join(process.cwd(), "dist");
     console.log(`[BLABLU] Running in PRODUCTION mode. Serving: ${distPath}`);
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      if (fs.existsSync(distHtmlPath)) {
+        res.sendFile(distHtmlPath);
+      } else {
+        res.status(503).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Building Applet...</title>
+              <meta http-equiv="refresh" content="5">
+              <style>
+                body {
+                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                  background: #0d0d11;
+                  color: #fff;
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                  height: 100vh;
+                  margin: 0;
+                }
+                .loader {
+                  border: 3px solid rgba(255,255,255,0.1);
+                  border-radius: 50%;
+                  border-top: 3px solid #f43f5e;
+                  width: 32px;
+                  height: 32px;
+                  animation: spin 1s linear infinite;
+                  margin-bottom: 20px;
+                }
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              </style>
+            </head>
+            <body>
+              <div class="loader"></div>
+              <h2 style="font-weight: 900; letter-spacing: 0.05em; font-size: 1.25rem;">BUILDING THE COZY SPACE...</h2>
+              <p style="opacity: 0.5; font-size: 0.875rem; margin-top: 5px;">This will take just a few seconds. Reloading automatically.</p>
+            </body>
+          </html>
+        `);
+      }
     });
   } else {
-    console.log("[BLABLU] Running in DEVELOPMENT mode (Vite Middleware)");
+    console.log("[BLABLU] Running in DEVELOPMENT mode or missing initial build. Falling back to Vite Middleware.");
     try {
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
@@ -258,6 +303,13 @@ async function start() {
       app.use(vite.middlewares);
     } catch (e) {
       console.error("[BLABLU] Failed to load Vite middleware. Check if 'vite' is installed.", e);
+      app.get("*", (req, res) => {
+        if (fs.existsSync(distHtmlPath)) {
+          res.sendFile(distHtmlPath);
+        } else {
+          res.status(503).send("App is starting up, please try again in a moment.");
+        }
+      });
     }
   }
 

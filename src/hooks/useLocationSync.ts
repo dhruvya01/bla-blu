@@ -343,7 +343,7 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
         const battery = Math.round((batt.batteryLevel ?? 0) * 100);
         const isCharging = batt.isCharging ?? false;
 
-        // ── FLUID HIGH-FIDELITY TRACKING WITH 35K DAILY QUOTA CALIBRATION ────
+        // ── FLUID HIGH-FIDELITY TRACKING WITH EXTREME QUOTA OPTIMIZATION ────
         // Accuracy filter set to 50m to capture clean updates while dropping poor/weak signals.
         if (pos.coords.accuracy > 50) return;
 
@@ -357,25 +357,54 @@ export function useLocationSync(roomId: string | null, userId: string | null) {
           battDiff = Math.abs(lastWritten.current.battery - battery);
           chgChanged = lastWritten.current.isCharging !== isCharging;
           
-          // Calibrated responsive intervals as per user request:
-          // Inside 50m Home Radius: Update every 4 minutes (240s)
-          // Outside Home Radius: Update every 2 minutes (120s)
-          // High Speed Driving Override (>30 km/h): Update every 60s
-          let dynamicInterval = isAtHome ? 240_000 : 120_000;
-          if (speedKmh > 30) dynamicInterval = 60_000;
+          // Check if it's currently Night-Time: 11 PM to 7 AM local time
+          const localHour = new Date().getHours();
+          const isNightTime = localHour >= 23 || localHour < 7;
 
-          // Smart Real-Time Map Overlay Override!
+          // Calibrated responsive intervals for APK/Background operation to respect a 50k daily limit:
+          // 1. Inside 50m separately-configured Home Radius: keep updates extremely quiet to save DB quota
+          // 2. Slow down even more at night-time (11PM to 7AM) to preserve battery & quota
+          // 3. Outside of home: dynamically throttle tracking frequency according to speed
+          let dynamicInterval = 300_000; // Default fallback: 5 minutes
+
+          if (isAtHome) {
+            if (isNightTime) {
+              dynamicInterval = 1500_000; // Night-Time & Home: Update every 25 minutes
+            } else {
+              dynamicInterval = 900_000;  // Day-Time & Home: Update every 15 minutes
+            }
+          } else {
+            if (isNightTime) {
+              dynamicInterval = 900_000;  // Night-Time & Outside: Update every 15 minutes
+            } else {
+              // Day-Time & Outside: Scale update intervals dynamically based on speed to ensure efficient usage
+              if (speedKmh <= 2) {
+                dynamicInterval = 300_000; // Stationary / Resting: Update every 5 minutes
+              } else if (speedKmh <= 10) {
+                dynamicInterval = 240_000; // Walking / Slow speed: Update every 4 minutes 
+              } else if (speedKmh <= 30) {
+                dynamicInterval = 150_000; // Moderate speed (e.g. running/biking): Update every 2.5 minutes
+              } else if (speedKmh <= 70) {
+                dynamicInterval = 60_000;  // Driving / Commuting: Update every 60 seconds
+              } else {
+                dynamicInterval = 45_000;  // High-Speed Driving: Update every 45 seconds for precise navigation trace
+              }
+            }
+          }
+
+          // Smart Real-Time Map Overlay Override (Only applies outside of home to visualize active trips)
           const isViewingMap = state.view === 'map' || state.view === 'journey';
-          if (isViewingMap) {
+          if (isViewingMap && !isAtHome) {
             dynamicInterval = Math.min(dynamicInterval, speedKmh > 10 ? 30_000 : 60_000); 
           }
 
-          // Displacement threshold set to 50 meters to match home radius and filter GPS drift
-          const hasSignificantChange = moved > 50 || chgChanged || (battDiff > 2);
+          // Displacement threshold set to 50 meters to ignore minor GPS drift when at home.
+          // Inside home, we don't trigger updates on drift; outside of home, >50m movement triggers immediate write.
+          const hasSignificantChange = (!isAtHome && moved > 50) || chgChanged || (battDiff > 2);
           const intervalPassed = elapsed >= dynamicInterval;
 
           // Hard safety cooldown (Never update faster than 30s)
-          const minCooldown = isViewingMap ? 15_000 : 30_000;
+          const minCooldown = 30_000;
           if (elapsed < minCooldown) return;
 
           if (!hasSignificantChange && !intervalPassed) return;

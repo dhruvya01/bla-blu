@@ -294,170 +294,283 @@ export function HearthScreen({ socket }: HearthProps) {
         animate="show" 
         className="px-5 space-y-4 relative z-10"
       >
-        {/* Cute Milestone Header */}
-        <motion.div variants={itemVariant} className="text-center relative flex flex-col items-center mt-2">
-          <div className="inline-block mb-1">
-             <h4 className="text-[11px] font-bold uppercase tracking-widest text-text/60 leading-none">{greeting} {user?.nickname || user?.name || "Lover"}</h4>
+        {/* Modern Header Section */}
+        <motion.div variants={itemVariant} className="flex flex-col items-center mt-3 mb-1">
+          {/* Couple Avatar Bond with Infinite Pulse line */}
+          <div className="flex items-center gap-4 bg-card/60 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/50 dark:border-white/5 shadow-sm mb-4">
+            <div className="relative flex items-center justify-center">
+              <div id="user-avatar-dp" className="w-10 h-10 rounded-full bg-primary/20 text-primary border border-primary/35 flex items-center justify-center font-black text-sm shadow-inner uppercase overflow-hidden">
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Me" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+                ) : (
+                  user?.nickname?.[0] || user?.name?.[0] || "U"
+                )}
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-card" />
+            </div>
+            
+            <div className="flex items-center gap-1.5 opacity-60">
+              <span className="w-1 h-1 rounded-full bg-rose-400 animate-ping" />
+              <Heart size={14} className="text-rose-500 fill-rose-500/20 animate-pulse" />
+              <span className="w-1 h-1 rounded-full bg-rose-400 animate-ping delay-500" />
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <div id="partner-avatar-dp" className="w-10 h-10 rounded-full bg-rose-400/20 text-rose-500 border border-rose-400/35 flex items-center justify-center font-black text-sm shadow-inner uppercase overflow-hidden">
+                {partner?.avatarUrl ? (
+                  <img src={partner.avatarUrl} alt="Partner" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+                ) : (
+                  partner?.nickname?.[0] || partner?.name?.[0] || "P"
+                )}
+              </div>
+              <div className={cn("absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card", isOnline ? "bg-emerald-500" : "bg-text/30")} />
+            </div>
           </div>
-          <h1 className="text-5xl font-display text-text font-bold tracking-tight">
-             {(() => {
-               const startDate = pair?.anniversary || pair?.createdAt || user?.createdAt;
-               const start = parseSafeDate(startDate);
-               if (!start) return "Love Story";
-               const diff = Date.now() - start.getTime();
-               return `${Math.floor(diff / (1000 * 60 * 60 * 24))} Days`;
-             })()}
-          </h1>
+
+          <div className="text-center">
+            <p className="text-[12px] font-semibold uppercase tracking-widest text-text/60 leading-none mb-2">
+              {greeting}
+            </p>
+            <h1 
+              id="anniversary-counter-h1"
+              className="text-6xl xs:text-7xl font-bold text-text tracking-tighter flex items-center gap-3 justify-center mt-1"
+            >
+              <span className="drop-shadow-sm font-bold text-text">
+                {(() => {
+                  const startDate = pair?.anniversary || pair?.createdAt || user?.createdAt;
+                  const start = parseSafeDate(startDate);
+                  if (!start) return "0";
+                  const diff = Date.now() - start.getTime();
+                  return `${Math.floor(diff / (1000 * 60 * 60 * 24))}`;
+                })()}
+              </span>
+              <span className="text-sm uppercase tracking-[0.2em] font-semibold text-text/50 relative top-2">
+                Days
+              </span>
+            </h1>
+          </div>
         </motion.div>
 
-        {/* 3D Interactive Babies */}
-        <motion.div variants={itemVariant} className="bg-card rounded-[32px] p-2 flex flex-col relative overflow-hidden shadow-sm border border-white/50 dark:border-white/5">
-          <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
-          <div className="flex items-center justify-between w-full px-4 pt-3 pb-2 relative z-10">
-            <h3 className="text-[13px] font-bold text-text flex items-center gap-2">
-              <Smile size={16} className="text-primary" /> Our Family
+        {/* Bento Board: The Family Playroom */}
+        <motion.div variants={itemVariant} className="bg-card rounded-[32px] p-2 flex flex-col relative overflow-hidden shadow-sm border border-border/80 group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-rose-400/5 pointer-events-none" />
+          <div className="flex items-center justify-between w-full px-4 pt-3.5 pb-2.5 relative z-10">
+            <h3 className="text-xs font-black uppercase tracking-wider text-text/80 flex items-center gap-2">
+              <Smile size={15} className="text-primary" /> Our Family
             </h3>
-            <div className="flex gap-2 text-[10px] font-bold text-text/40">
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-400" />Pukku </span>
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-rose-400" />Ukku </span>
+            <div className="flex gap-2.5 text-[9px] font-black uppercase tracking-widest text-text/40">
+              <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />Pukku </span>
+              <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />Ukku </span>
             </div>
           </div>
           <div className="w-full aspect-video rounded-[24px] overflow-hidden relative z-10 shadow-inner bg-bg/50">
             <InteractiveBabies showControls={false} />
           </div>
-          <motion.button whileTap={{ scale: 0.98 }} onClick={() => { sensory.play('pop'); setView('babygame') }} className="mx-2 mb-2 mt-2 bg-primary/10 text-primary py-3.5 rounded-[20px] font-bold text-xs hover:bg-primary/20 transition-colors">
-            Play with Babies 🍼
+          <motion.button 
+            whileTap={{ scale: 0.98 }} 
+            onClick={() => { sensory.play('pop'); setView('babygame') }} 
+            className="mx-2 mb-2 mt-2.5 bg-primary/10 text-primary py-3 rounded-[20px] font-black uppercase tracking-widest text-[10px] hover:bg-primary/20 transition-all flex items-center justify-center gap-2"
+          >
+            <span>Babies</span>
+            <span>🍼</span>
           </motion.button>
         </motion.div>
 
-        {/* Soft Proximity Widget */}
-        <motion.div variants={itemVariant} className="bg-gradient-to-r from-rose-400 to-primary rounded-[32px] p-[2px] shadow-sm shadow-primary/20 relative">
-          <div className="bg-card rounded-[30px] p-5 flex items-center gap-5 justify-between w-full h-full relative z-10">
-            <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-[18px] bg-primary/10 flex items-center justify-center text-primary relative">
-                 {isOnline && <div className="absolute inset-0 rounded-[18px] border border-primary animate-ping opacity-50" />}
-                 <Compass size={22} className="relative z-10" />
-               </div>
-               <div className="flex-1">
-                 <p className="text-[10px] font-bold uppercase tracking-widest text-text/40">Distance</p>
-                 <p className="text-xl font-bold text-text tracking-tight mt-0.5">
-                   {distance ? formatDistance(distance) : "Unknown"} <span className="text-[11px] font-bold text-primary">away</span>
-                 </p>
-               </div>
+        {/* Playable Grid Layout from the Sketch */}
+        <div className="flex flex-col gap-3.5 w-full">
+          {/* ROW 1: Our distance */}
+          <motion.div
+            variants={itemVariant}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { sensory.play('pop'); setView('journey') }}
+            className="col-span-2 w-full bg-card rounded-[32px] p-6 border border-border/80 shadow-sm relative overflow-hidden group cursor-pointer"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute right-0 bottom-0 opacity-[0.05] text-rose-500 pointer-events-none translate-x-4 translate-y-4 group-hover:scale-105 transition-transform duration-700">
+              <Compass size={160} />
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <div className={cn("px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5", isOnline ? "bg-emerald-500/10 text-emerald-500" : "bg-text/5 text-text/40")}>
-                 <div className={cn("w-1.5 h-1.5 rounded-full", isOnline ? "bg-emerald-500" : "bg-text/30")} />
-                 {isOnline ? "Live" : "Idle"}
+            <div className="flex items-center justify-between w-full relative z-10">
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-text/60 leading-none">Our distance</p>
+                <p className="text-[2.2rem] font-bold tracking-tighter mt-1 leading-none text-text">
+                  {distance ? formatDistance(distance) : "Searching..."}
+                </p>
               </div>
-              {partner?.activity?.batteryLevel !== undefined && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-bg/50 rounded-full border border-border/50">
-                  <Battery
-                    size={10}
-                    className={cn(
-                      (partner?.activity?.batteryLevel || 0) < 20
-                        ? "text-rose-500 animate-pulse"
-                        : "text-text/60",
-                    )}
-                  />
-                  <span className="text-[10px] font-bold text-text/60">
-                    {partner.activity.batteryLevel}%
-                  </span>
+
+              <div className="flex flex-col items-end gap-2">
+                <div className={cn("px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2 shadow-sm border", isOnline ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "bg-text/5 text-text/50 border-border")}>
+                  <span className={cn("w-2 h-2 rounded-full", isOnline ? "bg-emerald-500" : "bg-text/30")} />
+                  {isOnline ? "Live" : "Idle"}
                 </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Playful Actions Grid */}
-        <motion.div variants={itemVariant} className="grid grid-cols-2 gap-3">
-             {[
-               { id: 'chat', label: 'Notes', sub: 'Shared Space', icon: <MessageCircle size={22} className="text-blue-500" />, view: 'chat', bg: "bg-blue-500/10", border: 'border-blue-500/20' },
-               { id: 'spotify', label: 'Personal Spotify', sub: 'Covers & Voice', icon: <Play size={22} className="fill-[#1db954] text-[#1db954]" />, view: 'spotify', bg: "bg-[#1db954]/10", border: 'border-[#1db954]/20' },
-               { id: 'planner', label: 'Dates', sub: 'Our Plans', icon: <Calendar size={22} className="text-emerald-500" />, view: 'planner', bg: "bg-emerald-500/10", border: 'border-emerald-500/20' },
-               { id: 'journey', label: 'Map', sub: 'Location bg', icon: <Navigation size={22} className="text-amber-500" />, view: 'journey', bg: "bg-amber-500/10", border: 'border-amber-500/20' },
-               { id: 'period', label: 'Cycle', sub: 'Health Hub', icon: <Droplets size={22} className="text-rose-500" />, view: 'period', bg: "bg-rose-500/10", border: 'border-rose-500/20' },
-               { id: 'doodle', label: 'Doodle Canvas', sub: 'Draw Together', icon: <Palette size={22} className="text-pink-500" />, view: 'doodle', bg: "bg-pink-500/10", border: 'border-pink-500/20' },
-               { id: 'reels', label: 'Our Reels', sub: 'Video Memories', icon: <Video size={22} className="text-violet-500" />, view: 'reels', bg: "bg-violet-500/10", border: 'border-violet-500/20' }
-             ].map(item => (
-               <motion.button 
-                 key={item.id} 
-                 whileTap={{ scale: 0.98 }} 
-                 onClick={() => { sensory.play('pop'); setView(item.view as any) }} 
-                 className={cn(
-                   "bg-card rounded-[32px] border shadow-sm border-white/50 dark:border-white/5 active:brightness-95 transition-all relative overflow-hidden group",
-                   (item as any).className || "p-5 flex flex-col items-center gap-3 text-center"
-                 )}
-               >
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className={cn("w-14 h-14 rounded-[22px] flex items-center justify-center shadow-sm border shrink-0", item.bg, item.border)}>
-                     {item.icon}
+                {partner?.activity?.batteryLevel !== undefined && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-bg/50 rounded-full border border-border/50 shadow-sm">
+                    <Battery size={12} className={cn((partner?.activity?.batteryLevel || 0) < 20 ? "text-rose-500 animate-pulse" : "text-text/60")} />
+                    <span className="text-[11px] font-semibold text-text/70 leading-none">{partner.activity.batteryLevel}%</span>
                   </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-text mb-0.5">{item.label}</p>
-                    {item.sub && <p className="text-[9px] font-bold uppercase tracking-widest text-text/40">{item.sub}</p>}
-                  </div>
-               </motion.button>
-             ))}
-        </motion.div>
+                )}
+              </div>
+            </div>
+          </motion.div>
 
-        {/* Letters Button */}
-        <motion.button 
-          variants={itemVariant}
-          whileTap={{ scale: 0.98 }} 
-          onClick={() => { sensory.play('pop'); setShowLoveEnvelopeComposer(true) }} 
-          className="w-full bg-card rounded-[32px] p-5 flex items-center gap-4 shadow-sm border border-white/50 dark:border-white/5"
-        >
-            <div className="w-12 h-12 rounded-[18px] bg-amber-400/10 border border-amber-400/20 text-amber-500 flex items-center justify-center relative">
-               <Mail size={22} />
-               {availableEnvelopesCount > 0 && (
-                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-card">
-                   {availableEnvelopesCount}
-                 </div>
-               )}
-               {lockedEnvelopesCount > 0 && (
-                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-card border border-amber-200 text-amber-500/50 rounded-full flex items-center justify-center">
-                   <Lock size={10} />
-                 </div>
-               )}
+          {/* ROW 2: Songs, Reels (Stacked) + Doodles (Square) */}
+          <div className="flex gap-3.5 h-[150px]">
+            <div className="flex flex-col gap-3.5 flex-[1.4]">
+              <motion.button
+                variants={itemVariant}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { sensory.play('pop'); setView('spotify') }}
+                className="flex-1 bg-card rounded-[24px] px-5 py-3 flex items-center gap-4 text-left border shadow-sm border-border/80 active:brightness-95 transition-all overflow-hidden relative group"
+              >
+                <div className="absolute right-0 bottom-0 opacity-[0.04] text-[#1db954] pointer-events-none translate-x-2 translate-y-2 group-hover:scale-110 transition-transform duration-500">
+                  <Play size={80} />
+                </div>
+                <div className="w-10 h-10 rounded-full bg-[#1db954]/10 text-[#1db954] flex items-center justify-center shrink-0 shadow-inner z-10">
+                  <Play size={16} className="fill-[#1db954]" />
+                </div>
+                <p className="text-[16px] font-semibold leading-none truncate text-text z-10 tracking-tight">Our Song</p>
+              </motion.button>
+              
+              <motion.button
+                variants={itemVariant}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { sensory.play('pop'); setView('reels') }}
+                className="flex-1 bg-card rounded-[24px] px-5 py-3 flex items-center gap-4 text-left border shadow-sm border-border/80 active:brightness-95 transition-all overflow-hidden relative group"
+              >
+                <div className="absolute right-0 bottom-0 opacity-[0.04] text-violet-500 pointer-events-none translate-x-3 translate-y-2 group-hover:scale-110 transition-transform duration-500">
+                  <Video size={70} />
+                </div>
+                <div className="w-10 h-10 rounded-full bg-violet-500/10 text-violet-500 flex items-center justify-center shrink-0 shadow-inner z-10">
+                  <Video size={16} />
+                </div>
+                <p className="text-[16px] font-semibold leading-none truncate text-text z-10 tracking-tight">Our Reels</p>
+              </motion.button>
             </div>
-            <div className="flex-1 text-left">
-               <p className="text-sm font-bold text-text">Love Letters</p>
-               <p className="text-[10px] font-semibold text-text/40 mt-0.5">
-                 {availableEnvelopesCount > 0 ? `${availableEnvelopesCount} waiting to open` : lockedEnvelopesCount > 0 ? `${lockedEnvelopesCount} locked for future` : "Send a love note"}
-               </p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-bg border border-border flex items-center justify-center text-text/30">
-               <ChevronRight size={16} />
-            </div>
-        </motion.button>
 
-        {/* Memories Button */}
-        <motion.button 
-          variants={itemVariant}
-          whileTap={{ scale: 0.98 }} 
-          onClick={() => { sensory.play('pop'); setView('timeline') }} 
-          className="w-full bg-card rounded-[32px] p-5 flex items-center gap-4 shadow-sm border border-white/50 dark:border-white/5"
-        >
-            <div className="w-12 h-12 rounded-[18px] bg-purple-400/10 border border-purple-400/20 text-purple-500 flex items-center justify-center relative">
-               <History size={22} />
-            </div>
-            <div className="flex-1 text-left">
-               <p className="text-sm font-bold text-text">Our Scrapbook</p>
-               <p className="text-[10px] font-semibold text-text/40 mt-0.5">Relive our precious moments</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-bg border border-border flex items-center justify-center text-text/30">
-               <ChevronRight size={16} />
-            </div>
-        </motion.button>
-
-        {/* Countdown */}
-        <motion.div variants={itemVariant} className="bg-card rounded-[32px] p-5 shadow-sm border border-white/50 dark:border-white/5 relative overflow-hidden">
-          <div className="absolute -right-4 -bottom-4 opacity-5 pointer-events-none text-text">
-             <Calendar size={120} />
+            <motion.button
+              variants={itemVariant}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { sensory.play('pop'); setView('doodle') }}
+              className="flex-1 bg-card rounded-[32px] p-5 flex flex-col justify-center items-center text-center border shadow-sm border-border/80 active:brightness-95 transition-all relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-pink-500/5 to-transparent opacity-[0.5]" />
+              <div className="absolute right-0 bottom-0 opacity-[0.04] text-pink-500 pointer-events-none translate-x-2 translate-y-2 group-hover:scale-110 transition-transform duration-500">
+                <Palette size={110} />
+              </div>
+              <div className="w-12 h-12 rounded-[20px] bg-pink-500/10 border border-pink-500/20 text-pink-500 flex items-center justify-center shadow-inner mb-3 shrink-0 z-10">
+                <Palette size={24} />
+              </div>
+              <p className="text-[16px] font-semibold leading-tight text-text z-10 tracking-tight">Doodles</p>
+            </motion.button>
           </div>
-          <CountdownWidget nearestEvent={nearestEvent} anniversary={pair?.anniversary} />
-        </motion.div>
+
+          {/* ROW 3: Scrapbook & Calendar */}
+          <div className="grid grid-cols-2 gap-3.5 h-[120px]">
+             <motion.button
+              variants={itemVariant}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { sensory.play('pop'); setView('timeline') }}
+              className="bg-card rounded-[32px] p-5 flex flex-col justify-end items-start text-left border shadow-sm border-border/80 active:brightness-95 transition-all overflow-hidden h-full relative group"
+            >
+              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-purple-500/5 to-transparent opacity-[0.5]" />
+              <div className="absolute right-0 bottom-0 opacity-[0.04] text-purple-500 pointer-events-none translate-x-3 translate-y-3 group-hover:scale-110 transition-transform duration-500">
+                <History size={100} />
+              </div>
+              <div className="w-9 h-9 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center shadow-inner absolute top-4 left-4">
+                <History size={16} />
+              </div>
+              <p className="text-[17px] font-semibold leading-tight text-text z-10 tracking-tight">Scrapbook</p>
+            </motion.button>
+
+            <motion.button
+              variants={itemVariant}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { sensory.play('pop'); setView('planner') }}
+              className="bg-card rounded-[32px] p-5 flex flex-col justify-end items-start text-left border shadow-sm border-border/80 active:brightness-95 transition-all overflow-hidden h-full relative group"
+            >
+              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-emerald-500/5 to-transparent opacity-[0.5]" />
+              <div className="absolute right-0 bottom-0 opacity-[0.04] text-emerald-500 pointer-events-none translate-x-3 translate-y-3 group-hover:scale-110 transition-transform duration-500">
+                <Calendar size={100} />
+              </div>
+              <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-inner absolute top-4 left-4">
+                <Calendar size={16} />
+              </div>
+              <p className="text-[17px] font-semibold leading-tight text-text z-10 tracking-tight truncate">Our Calendar</p>
+            </motion.button>
+          </div>
+
+          {/* ROW 4: Health HUB */}
+          <motion.button
+            variants={itemVariant}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { sensory.play('pop'); setView('period') }}
+            className="w-full bg-card rounded-[32px] py-6 px-6 flex items-center justify-center border shadow-sm border-border/80 active:brightness-95 transition-all relative overflow-hidden group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 via-transparent to-rose-500/5 pointer-events-none" />
+            <div className="absolute left-6 opacity-[0.04] text-rose-500 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+              <Droplets size={70} />
+            </div>
+            <div className="absolute right-6 opacity-[0.04] text-rose-500 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+              <Droplets size={70} />
+            </div>
+            <p className="text-[14px] font-semibold tracking-widest uppercase text-text z-10 text-center flex items-center gap-2">
+              <Heart size={16} className="text-rose-500 fill-rose-500/20" />
+              LOVE
+            </p>
+          </motion.button>
+
+          {/* ROW 5: Our Anniversary */}
+          <motion.div
+            variants={itemVariant}
+            className="w-full bg-card rounded-[32px] p-6 shadow-sm border border-border/80 relative overflow-hidden flex flex-col items-center justify-center text-center group"
+          >
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] text-amber-500 pointer-events-none group-hover:scale-105 transition-transform duration-700">
+              <Heart size={160} className="fill-amber-500" />
+            </div>
+            <div className="relative z-10 w-full flex flex-col items-center">
+              <p className="text-[11px] font-semibold tracking-widest text-text/60 uppercase mb-2">Our Anniversary</p>
+              <CountdownWidget nearestEvent={nearestEvent} anniversary={pair?.anniversary} />
+            </div>
+          </motion.div>
+          
+          {/* Notes & Letters */}
+          <div className="grid grid-cols-2 gap-3.5">
+             <motion.button
+                variants={itemVariant}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { sensory.play('pop'); setView('chat') }}
+                className="bg-card/80 backdrop-blur-md rounded-[24px] py-4 px-4 flex items-center justify-center gap-3 border shadow-sm border-border/80 active:brightness-95 transition-all relative overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-blue-500/5 to-transparent rounded-bl-[40px] pointer-events-none" />
+                <div className="absolute -left-2 -bottom-2 opacity-[0.04] text-blue-500 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+                  <MessageCircle size={56} />
+                </div>
+                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 shadow-inner z-10">
+                  <MessageCircle size={14} className="text-blue-500" />
+                </div>
+                <span className="text-[13px] font-semibold text-text z-10 tracking-tight">Shared Notes</span>
+              </motion.button>
+              <motion.button
+                variants={itemVariant}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { sensory.play('pop'); setShowLoveEnvelopeComposer(true) }}
+                className="bg-card/80 backdrop-blur-md rounded-[24px] py-4 px-4 flex items-center justify-center gap-3 border shadow-sm border-border/80 active:brightness-95 transition-all relative overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-500/5 to-transparent rounded-bl-[40px] pointer-events-none" />
+                 <div className="absolute -left-2 -bottom-2 opacity-[0.04] text-amber-500 pointer-events-none group-hover:scale-110 transition-transform duration-500">
+                  <Mail size={56} />
+                </div>
+                <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 shadow-inner z-10">
+                  <Mail size={14} className="text-amber-500" />
+                </div>
+                <span className="text-[13px] font-semibold text-text z-10 tracking-tight">Love Letters</span>
+                {availableEnvelopesCount > 0 && (
+                  <span className="absolute max-w-[20px] max-h-[20px] top-3 right-3 bg-rose-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold z-10 shadow-lg">
+                    {availableEnvelopesCount}
+                  </span>
+                )}
+              </motion.button>
+          </div>
+        </div>
 
         {/* Dashboard Speeding Alert */}
         {speedingHistory && speedingHistory.length > 0 && (
@@ -589,10 +702,9 @@ function CountdownWidget({ nearestEvent, anniversary }: { nearestEvent: any, ann
 
   return (
     <div className="w-full flex justify-between items-center relative z-10">
-       <div className="flex-1">
-          <p className="text-[10px] font-bold tracking-widest text-text/40 mb-1 uppercase">Our Anniversary</p>
-          <div className="flex items-center gap-1.5">
-            <p className="text-sm font-bold text-text leading-tight">October 10</p>
+       <div className="flex-1 flex flex-col items-center">
+          <div className="flex items-center gap-1.5 mb-1 text-center justify-center">
+            <p className="text-sm font-bold text-text leading-tight">{anniversary || "October 10"}</p>
             <Heart size={14} className="fill-primary text-primary" />
           </div>
           
