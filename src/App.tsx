@@ -31,6 +31,7 @@ import { Navigation } from "./components/Navigation";
 import { LoginScreen } from "./screens/LoginScreen";
 import { HearthScreen } from "./screens/HearthScreen";
 import { ChatScreen } from "./screens/ChatScreen";
+import { SharedNotesScreen } from "./screens/SharedNotesScreen";
 import { CareSanctuaryScreen } from "./screens/CareSanctuaryScreen";
 import { SharedPlannerScreen } from "./screens/SharedPlannerScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
@@ -495,6 +496,7 @@ export default function App() {
 
         {/* Global Header */}
         {view !== "chat" &&
+          view !== "shared_notes" &&
           view !== "settings" &&
           view !== "map" &&
           view !== "journey" &&
@@ -610,6 +612,7 @@ export default function App() {
           className={cn(
             "flex-1 flex flex-col overflow-y-auto no-scrollbar relative min-h-0",
             view !== "chat" &&
+              view !== "shared_notes" &&
               view !== "settings" &&
               view !== "map" &&
               view !== "journey" &&
@@ -620,9 +623,10 @@ export default function App() {
               "pt-[calc(env(safe-area-inset-top,0px)+62px)] pb-[calc(env(safe-area-inset-bottom,0px)+84px)]",
           )}
         >
-          <AnimatePresence mode="sync">
+          <AnimatePresence mode="wait">
             {view === "home" && <HearthScreen key="home" socket={socket} />}
             {view === "chat" && <ChatScreen key="chat" socket={socket} />}
+            {view === "shared_notes" && <SharedNotesScreen key="shared_notes" />}
             {view === "planner" && <SharedPlannerScreen key="planner" />}
             {(view === "sanctuary" ||
               view === "habits" ||
@@ -647,6 +651,7 @@ export default function App() {
 
         {/* Persistent Navigation */}
         {view !== "chat" &&
+          view !== "shared_notes" &&
           view !== "map" &&
           view !== "journey" &&
           view !== "settings" &&

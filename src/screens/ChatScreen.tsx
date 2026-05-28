@@ -525,6 +525,10 @@ function ChatMessage({
     return counts;
   }, [reactions]);
 
+  const x = useMotionValue(0);
+  const replyIconOpacity = useTransform(x, [-50, -30, 30, 50], [1, 0, 0, 1]);
+  const replyIconScale = useTransform(x, [-50, -30, 30, 50], [1, 0.5, 0.5, 1]);
+
   if (m.isCareBtn) {
     return (
       <div className="flex justify-center w-full my-2">
@@ -581,10 +585,6 @@ function ChatMessage({
       </div>
     );
   }
-
-  const x = useMotionValue(0);
-  const replyIconOpacity = useTransform(x, [-50, -30, 30, 50], [1, 0, 0, 1]);
-  const replyIconScale = useTransform(x, [-50, -30, 30, 50], [1, 0.5, 0.5, 1]);
 
   return (
     <div

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useShallow } from 'zustand/react/shallow';
 import { ArrowLeft, Coins, Star, Utensils, Moon, ShowerHead, ChefHat, ShoppingCart, CheckSquare, Sparkles } from 'lucide-react';
 import { useAppStore } from '../store';
 import { sensory } from '../utils/sensory';
@@ -20,7 +21,16 @@ const ANJALI_BD = new Date(2008, 0, 5).getTime();
 const DHRUVYA_BD = new Date(2008, 5, 9).getTime();
 
 export function BabyGameScreen() {
-  const { user, roomId, babyEvolution, addCoins, feedBaby, cleanBaby, setBabyEvolution, setView } = useAppStore();
+  const { user, roomId, babyEvolution, addCoins, feedBaby, cleanBaby, setBabyEvolution, setView } = useAppStore(useShallow(state => ({
+    user: state.user,
+    roomId: state.roomId,
+    babyEvolution: state.babyEvolution,
+    addCoins: state.addCoins,
+    feedBaby: state.feedBaby,
+    cleanBaby: state.cleanBaby,
+    setBabyEvolution: state.setBabyEvolution,
+    setView: state.setView
+  })));
   const [babyState, setBabyState] = useState<BabyState|null>(null);
   const [home, setHome] = useState<HomeGameData>(INITIAL_HOME);
   const [tab, setTab] = useState<'home'|'cook'|'shop'|'tasks'|'play'>('home');
@@ -209,7 +219,13 @@ export function BabyGameScreen() {
   const tasksCompleted = DAILY_TASKS.filter(t=>home.dailyTasks[t.id]).length;
 
   return (
-    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex-1 w-full bg-bg overflow-y-auto no-scrollbar pb-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 15, scale: 0.98 }} 
+      animate={{ opacity: 1, y: 0, scale: 1 }} 
+      exit={{ opacity: 0, y: -15, scale: 0.98 }} 
+      transition={{ type: "spring", duration: 0.6, bounce: 0.15 }}
+      className="flex-1 w-full bg-bg overflow-y-auto no-scrollbar pb-6"
+    >
       {/* Gamified Header */}
       <div className="sticky top-0 z-30 bg-bg/80 backdrop-blur-2xl pt-safe-top pb-4 px-5 border-b border-white/10 shadow-sm flex items-center justify-between">
         <motion.button 

@@ -28,7 +28,7 @@ export function Navigation() {
         <NavItem active={view === "home"} onClick={() => setView("home")} icon={<Home size={22} />} label="Home" badge={unopenedEnvelopes > 0 ? unopenedEnvelopes : undefined} />
         <NavItem active={view === "chat"} onClick={() => setView("chat")} icon={<MessageCircle size={22} />} label="Chat" badge={unreadCount > 0 ? unreadCount : undefined} />
         <NavItem active={view === "journey"} onClick={() => setView("journey")} icon={<Navigation2 size={22} />} label="Map" />
-        <NavItem active={view === "habits" || view === "period" || view === "history" || view === "sanctuary" || view === "calendar"} onClick={() => setView("habits")} icon={<Heart size={22} />} label="Love" />
+        <NavItem active={view === "habits" || view === "period" || view === "history" || view === "sanctuary" || view === "calendar"} onClick={() => setView("period")} icon={<Heart size={22} />} label="Love" />
         <NavItem active={view === "planner"} onClick={() => setView("planner")} icon={<CalendarDays size={22} />} label="Dates" />
       </nav>
     </div>

@@ -236,12 +236,12 @@ async function start() {
   });
 
   const fs = await import("fs");
-  const distPath = path.join(process.cwd(), "dist");
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
+  
+  // Resolve paths safely for both ESM (dev) and CJS (prod, inside dist/)
+  const currentDir = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+  const distPath = currentDir.endsWith("dist") ? currentDir : path.join(currentDir, "dist");
   const distHtmlPath = path.join(distPath, "index.html");
-  const hasBuild = fs.existsSync(distHtmlPath);
-
-  // High-reliability production determination
-  const isProduction = (process.env.NODE_ENV === "production" || process.env.K_SERVICE) && hasBuild;
   
   if (isProduction) {
     console.log(`[BLABLU] Running in PRODUCTION mode. Serving: ${distPath}`);

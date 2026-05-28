@@ -61,6 +61,7 @@ export function SideDrawer({ isOpen, onClose }: SideDrawerProps) {
       title: "Our World",
       items: [
         { label: "Home", icon: <Home size={24} />, onClick: () => handleNavigate("home"), color: "bg-rose-400/20 text-rose-400 font-bold" },
+        { label: "Shared Notes", icon: <AlertCircle size={24} />, onClick: () => handleNavigate("shared_notes"), color: "bg-blue-500/20 text-blue-500" },
         { label: "Calendar", icon: <Calendar size={24} />, onClick: () => handleNavigate("planner"), color: "bg-primary/20 text-primary" },
         { label: "Scrapbook", icon: <ImageIcon size={24} />, onClick: () => handleNavigate("timeline"), color: "bg-indigo-500/20 text-indigo-500" },
         { label: "Locked Folder", icon: <Lock size={24} />, onClick: () => handleNavigate("vault"), color: "bg-emerald-500/20 text-emerald-500" },

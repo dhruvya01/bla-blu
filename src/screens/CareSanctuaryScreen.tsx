@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Home, Calendar, History, Sparkles, ChevronLeft, ChevronRight, Droplets, Moon, CheckCircle2, Sprout, Info, Activity, Coffee, Utensils, Pill, Flame, Footprints, Hash, Smile, Frown, Meh, Cloudy, X, Edit2, Settings, Trash2, Plus, Users, Zap, Target, ArrowLeft } from "lucide-react";
-import { doc, updateDoc, setDoc, serverTimestamp, writeBatch, collection, query, onSnapshot, deleteDoc, addDoc } from "firebase/firestore";
+import { doc, updateDoc, setDoc, serverTimestamp, writeBatch, collection, query, onSnapshot, deleteDoc, addDoc, where, getDocs } from "firebase/firestore";
 import { Socket } from "socket.io-client";
 import { db, handleFirestoreError } from "../firebase/config";
 import { useAppStore } from "../store";
@@ -68,7 +68,13 @@ export function CareSanctuaryScreen({ socket }: SanctuaryProps) {
   // Consolidated listeners moved to useAppSync.ts
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col w-full font-body bg-bg pb-40">
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      exit={{ opacity: 0, y: -15 }} 
+      transition={{ type: "spring", duration: 0.55, bounce: 0.1 }}
+      className="flex flex-col w-full font-body bg-bg pb-40"
+    >
       <div className="flex flex-col w-full">
         {/* Sticky Header with Home Button */}
         <div className="sticky top-0 z-30 bg-bg/80 backdrop-blur-2xl pt-safe-top pb-4 px-6 border-b border-white/5 flex items-center justify-between">
@@ -262,7 +268,7 @@ function PeriodTrackerView() {
         flow,
         createdAt: serverTimestamp()
       };
-      await addDoc(collection(db, "pairs", roomId, "periodEntries"), newEntry);
+      const entryRef = await addDoc(collection(db, "pairs", roomId, "periodEntries"), newEntry);
       
       // Update lastPeriodStart if this is the newest
       const currentLast = health?.lastPeriodStart || "0000-00-00";
@@ -272,6 +278,17 @@ function PeriodTrackerView() {
           updatedAt: serverTimestamp()
         }, { merge: true });
       }
+
+      // Automatically add starting event to the shared calendar Events list
+      await addDoc(collection(db, "pairs", roomId, "calendarEvents"), {
+        title: "🩸 Period Started",
+        date: startDate,
+        type: "notable",
+        icon: "🩸",
+        notes: `Flow Intensity: ${flow}. Stay supportive! ❤️`,
+        createdAt: serverTimestamp(),
+        periodEntryId: entryRef.id
+      });
       
       setShowStartModal(false);
       sensory.play('pop');
@@ -290,6 +307,18 @@ function PeriodTrackerView() {
       await updateDoc(doc(db, "pairs", roomId, "periodEntries", activePeriod.id), {
         endDate
       });
+
+      // Automatically add ending event to the shared calendar Events list
+      await addDoc(collection(db, "pairs", roomId, "calendarEvents"), {
+        title: "✨ Period Ended",
+        date: endDate,
+        type: "notable",
+        icon: "✨",
+        notes: `Cycle started on ${activePeriod.startDate} is complete. 🤍`,
+        createdAt: serverTimestamp(),
+        periodEntryId: activePeriod.id
+      });
+
       setShowEndModal(false);
       sensory.play('sparkle');
     } catch(e) { console.error("End period error:", e); }
@@ -318,7 +347,7 @@ function PeriodTrackerView() {
 
     setSaving(true);
     try {
-      await addDoc(collection(db, "pairs", roomId!, "periodEntries"), {
+      const entryRef = await addDoc(collection(db, "pairs", roomId!, "periodEntries"), {
         startDate: pastStart,
         endDate: pastEnd,
         flow: "medium",
@@ -333,6 +362,18 @@ function PeriodTrackerView() {
           updatedAt: serverTimestamp()
         }, { merge: true });
       }
+
+      // Automatically add historical event to the shared calendar Events list
+      await addDoc(collection(db, "pairs", roomId!, "calendarEvents"), {
+        title: "🩸 Logged Past Period",
+        date: pastStart,
+        type: "notable",
+        icon: "🩸",
+        notes: `Historic cycle logged from ${pastStart} to ${pastEnd}`,
+        createdAt: serverTimestamp(),
+        periodEntryId: entryRef.id
+      });
+
       sensory.play('pop');
       setShowPastModal(false);
     } catch(e) { console.error("Past period error:", e); }
@@ -473,42 +514,6 @@ function PeriodTrackerView() {
           <span className="text-[7px] font-black uppercase text-text/20 mt-1">Past</span>
         </button>
       </div>
-
-      {/* SECTION 3 - Symptom Logging (Only if on period) */}
-      {isOnPeriod && (
-         <div className="space-y-3">
-            <h3 className="font-display text-base text-text">How are you feeling?</h3>
-            <div className="flex gap-2">
-               {[
-                 { id: 'cramps', icon: '😫', label: 'Cramps', field: 'cramps', value: 4 },
-                 { id: 'tired', icon: '😴', label: 'Tired', field: 'energyLevel', value: 2 },
-                 { id: 'moody', icon: '🥺', label: 'Moody', field: 'mood', value: 'anxious' },
-                 { id: 'nausea', icon: '🤢', label: 'Nausea', field: 'nausea', value: true }
-               ].map(item => (
-                 <button 
-                  key={item.id}
-                  onClick={async () => {
-                    if (!roomId) return;
-                    sensory.play('pop');
-                    try {
-                      const docRef = doc(db, "pairs", roomId, "dailyHealthLogs", todayStr);
-                      await setDoc(docRef, {
-                        [item.field]: item.value,
-                        date: todayStr,
-                        updatedAt: serverTimestamp()
-                      }, { merge: true });
-                      sensory.success();
-                    } catch (e) { console.error(e); }
-                  }}
-                  className="flex-1 bg-card border border-border rounded-2xl p-3 flex flex-col items-center active:scale-90 transition-all"
-                 >
-                    <span className="text-xl mb-1">{item.icon}</span>
-                    <span className="text-[8px] font-black uppercase text-text/40">{item.label}</span>
-                 </button>
-               ))}
-            </div>
-         </div>
-      )}
 
       {/* SECTION 4 - Cycle calendar */}
       <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
@@ -977,6 +982,7 @@ function HistoryView() {
   const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
   const [severity, setSeverity] = useState<'low' | 'medium' | 'high'>('medium');
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   
   const periodEntries = [...(health?.periodEntries || [])].filter(e => e && e.startDate).sort((a,b) => b.startDate.localeCompare(a.startDate));
   const isHer = user?.perspective === 'her';
@@ -1036,10 +1042,33 @@ function HistoryView() {
 
   const years = Object.keys(grouped).sort((a,b) => b.localeCompare(a));
 
-  const handleDeletePeriod = async (entryId: string) => {
-    if (!roomId || !window.confirm("Permanent delete? This cannot be undone.")) return;
+  const handleDeletePeriod = async (entry: any) => {
+    if (!roomId) return;
+    const entryId = entry.id;
     try {
+      // 1. Delete associated calendar events (both linked and legacy by start/end match)
+      const q = query(collection(db, "pairs", roomId, "calendarEvents"));
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      let count = 0;
+      snapshot.forEach(docObj => {
+        const ev = docObj.data();
+        const isLinked = ev.periodEntryId === entryId;
+        const isLegacyStart = ev.date === entry.startDate && ev.title?.includes("Period");
+        const isLegacyEndMatch = entry.endDate && ev.date === entry.endDate && (ev.title?.includes("Period Ended") || ev.title?.includes("✨ Period Ended"));
+
+        if (isLinked || isLegacyStart || isLegacyEndMatch) {
+          batch.delete(docObj.ref);
+          count++;
+        }
+      });
+      if (count > 0) {
+        await batch.commit();
+      }
+
+      // 2. Delete the period entry itself
       await deleteDoc(doc(db, "pairs", roomId, "periodEntries", entryId));
+      
       const remaining = periodEntries.filter(e => e.id !== entryId);
       const newest = remaining.sort((a,b) => b.startDate.localeCompare(a.startDate))[0];
       await setDoc(doc(db, "pairs", roomId, "health", "current"), {
@@ -1047,7 +1076,11 @@ function HistoryView() {
         updatedAt: serverTimestamp()
       }, { merge: true });
       setHealth({ ...health, periodEntries: remaining });
-    } catch (e) { console.error(e); }
+      setDeletingId(null);
+      sensory.play('pop');
+    } catch (e) {
+      console.error("Delete period error:", e);
+    }
   };
 
   return (
@@ -1194,7 +1227,32 @@ function HistoryView() {
                             <p className="text-[10px] font-black text-text/30 uppercase tracking-widest mt-0.5">{entry.flow || 'Medium'} Intensity</p>
                           </div>
                         </div>
-                        {isHer && <button onClick={() => handleDeletePeriod(entry.id!)} className="p-2 text-text/20 hover:text-rose-500"><Trash2 size={16} /></button>}
+                        {deletingId === entry.id ? (
+                          <div className="flex items-center gap-1.5 bg-rose-500/10 p-1.5 rounded-xl border border-rose-500/20">
+                            <span className="text-[10px] text-rose-500 font-bold px-1.5">Delete?</span>
+                            <button
+                              onClick={() => handleDeletePeriod(entry)}
+                              className="px-2 py-1 text-[10px] bg-rose-500 text-white rounded-lg font-bold hover:bg-rose-600 transition-all active:scale-95"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setDeletingId(null)}
+                              className="px-2 py-1 text-[10px] bg-border hover:bg-border/80 text-text/70 rounded-lg font-semibold transition-all active:scale-95"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setDeletingId(entry.id!)} 
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl transition-all font-semibold active:scale-95"
+                            title="Delete Period History"
+                          >
+                            <Trash2 size={13} />
+                            <span>Delete</span>
+                          </button>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-bg/40 rounded-2xl p-3 border border-border/50">

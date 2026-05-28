@@ -103,7 +103,7 @@ export const generateCycleDays = (
 
     // 1. Check if this date falls within a REAL recorded period
     const realEntry = entries.find(e => {
-      const end = e.endDate || '9999-12-31';
+      const end = e.endDate || todayStr;
       return dStr >= e.startDate && dStr <= end;
     });
 

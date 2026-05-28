@@ -200,6 +200,38 @@ export function HearthScreen({ socket }: HearthProps) {
     }
   };
 
+  const [memoryOfTheMonth, setMemoryOfTheMonth] = useState<{ url: string; caption?: string } | null>(null);
+
+  useEffect(() => {
+    if (!roomId) return;
+    const unsub = onSnapshot(collection(db, "pairs", roomId, "timeline"), async (snap) => {
+      const photos = snap.docs.filter(d => d.data().type === "photo");
+      if (photos.length > 0) {
+        const currentDateStr = new Date().toISOString().slice(0, 7); // Use YYYY-MM to fix a random photo for the month
+        let hash = 0;
+        for (let i = 0; i < currentDateStr.length; i++) hash += currentDateStr.charCodeAt(i);
+        const randIndex = hash % photos.length;
+        const targetDoc = photos[randIndex].data();
+        let decryptedUrl = targetDoc.content;
+        let decryptedCaption = targetDoc.caption;
+        if (decryptedUrl && decryptedUrl.startsWith("E2EE:")) {
+          try {
+             decryptedUrl = await decryptData(decryptedUrl);
+          } catch(e) {}
+        }
+        if (decryptedCaption && decryptedCaption.startsWith("E2EE:")) {
+          try {
+             decryptedCaption = await decryptData(decryptedCaption);
+          } catch(e) {}
+        }
+        setMemoryOfTheMonth({ url: decryptedUrl, caption: decryptedCaption });
+      } else {
+        setMemoryOfTheMonth(null);
+      }
+    });
+    return () => unsub();
+  }, [roomId]);
+
   const distance = useMemo(() => {
     if (!partnerLoc || !userLoc) return null;
     return getDistance(userLoc.lat, userLoc.lng, partnerLoc.lat, partnerLoc.lng);
@@ -547,7 +579,7 @@ export function HearthScreen({ socket }: HearthProps) {
                 <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 shadow-inner z-10">
                   <MessageCircle size={14} className="text-blue-500" />
                 </div>
-                <span className="text-[13px] font-semibold text-text z-10 tracking-tight">Shared Notes</span>
+                <span className="text-[13px] font-semibold text-text z-10 tracking-tight">Chat</span>
               </motion.button>
               <motion.button
                 variants={itemVariant}
@@ -570,6 +602,47 @@ export function HearthScreen({ socket }: HearthProps) {
                 )}
               </motion.button>
           </div>
+
+          {/* ROW X: Memories (moved to bottom) */}
+          <AnimatePresence>
+            {memoryOfTheMonth && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.5 }}
+                className="w-full relative h-[220px] rounded-[32px] overflow-hidden group cursor-pointer border border-white/20 dark:border-white/5 shadow-2xl bg-black"
+                onClick={() => { sensory.play('pop'); setView('timeline') }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 pointer-events-none" />
+                
+                <motion.img 
+                  src={memoryOfTheMonth.url} 
+                  alt="Memories" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 blur-[10px] opacity-40 absolute inset-0 scale-110"
+                />
+                <motion.img 
+                  src={memoryOfTheMonth.url} 
+                  alt="Memories" 
+                  className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 relative z-[5] mx-auto"
+                />
+                
+                <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+                  <Sparkles size={14} className="text-amber-300" />
+                  <span className="text-[10px] font-semibold text-white uppercase tracking-widest leading-none">Memories</span>
+                </div>
+
+                {memoryOfTheMonth.caption && (
+                  <div className="absolute bottom-4 left-4 right-4 z-20 group-hover:-translate-y-1 transition-transform duration-500">
+                    <p className="text-white text-sm font-medium line-clamp-3 drop-shadow-md">
+                      {memoryOfTheMonth.caption}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
         </div>
 
         {/* Dashboard Speeding Alert */}
